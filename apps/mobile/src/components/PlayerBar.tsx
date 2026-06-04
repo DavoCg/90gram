@@ -12,6 +12,7 @@ export function PlayerBar() {
   const status = use$(player$.status);
   const positionSec = use$(player$.positionSec);
   const durationSec = use$(player$.durationSec);
+  const canSeek = use$(player$.canSeek);
 
   if (!record) return null;
 
@@ -51,6 +52,7 @@ export function PlayerBar() {
       <SeekBar
         positionSec={positionSec}
         durationSec={durationSec}
+        canSeek={canSeek}
         onSeek={(seconds) => audioEngine.seek(seconds)}
       />
     </View>

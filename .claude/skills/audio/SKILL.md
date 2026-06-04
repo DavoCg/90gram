@@ -27,15 +27,29 @@ Version note (react-native-audio-api 0.12.2): the `AudioContext` constructor doe
 
 ## Node graph
 
-`AudioBufferSourceNode -> GainNode -> AnalyserNode -> destination`. The analyser sits AFTER gain so the
-visualizer reacts to actual output level. Start with `analyser.fftSize = 256`, `smoothingTimeConstant = 0.8`.
+`source -> GainNode -> AnalyserNode -> destination`. The analyser sits AFTER gain so the visualizer reacts
+to actual output level. Start with `analyser.fftSize = 256`, `smoothingTimeConstant = 0.8`. The active
+source is recreated on every play; always connect it into `gainNode` (never straight to `destination`, or
+the visualizer goes silent).
 
 ## Buffer-based preview playback
 
 `fetch(previewUrl) -> response.arrayBuffer() -> ctx.decodeAudioData() -> AudioBuffer`. Source nodes are
 single-use: create a fresh `createBufferSource({ pitchCorrection: true })` for every play. Keep the decoded
-`AudioBuffer` in a ref; read `buffer.duration` for progress. Track playback offset yourself and use
-`start(when, offset)` to resume/seek after pause.
+`AudioBuffer` in a ref (cached per record id so replay/seek/resume does not re-download); read
+`buffer.duration` for progress. Track playback offset yourself and use `start(0, offset)` to resume/seek
+after pause. On seek-while-playing, set `player$.positionSec` to the target BEFORE recreating the source so
+the bar does not flash the old timestamp. A `playGeneration` counter guards against a slow decode clobbering
+a newer `playRecord`, and `playRecord` tears down the current source immediately so the old preview does not
+keep sounding while the next one decodes.
+
+### Do NOT use the streaming nodes (createStreamer / createFileSource)
+
+We tried true progressive streaming so playback could start before the full download. In this build those
+native paths CRASH the app (they do not safely return null when FFmpeg / remote-URL support is missing, and
+a JS try/catch cannot catch a native crash). So previews stay buffer-based. `player$.canSeek` exists and is
+always `true` here; it is plumbing kept for a future streaming source that cannot seek. Only revisit
+streaming behind an FFmpeg build that has been verified on a real device first.
 
 ## Player store (Legend State)
 

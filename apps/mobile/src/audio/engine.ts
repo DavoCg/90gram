@@ -6,10 +6,14 @@
 // AFTER gain so the visualizer reacts to the actual output level. Source nodes are
 // single-use, so a fresh AudioBufferSourceNode is created for every play.
 //
+// Playback is buffer-based: fetch -> arrayBuffer -> decodeAudioData -> AudioBuffer, then a
+// fresh source per play. We attempted true streaming (createFileSource / createStreamer)
+// but those native paths crash in the current build, so we stay on the reliable buffer
+// path. Revisit streaming only behind an on-device-verified FFmpeg build.
+//
 // Note on the installed library version (0.12.2): the AudioContext constructor does not
 // accept `initSuspended`, so we create the context lazily and resume() it on the first
-// user gesture. Lock-screen / now-playing is handled by PlaybackNotificationManager
-// (the older enableRemoteCommand / setLockScreenInfo API does not exist in 0.12.2).
+// user gesture. Lock-screen / now-playing is handled by PlaybackNotificationManager.
 import {
   AudioContext,
   AudioManager,
@@ -39,6 +43,10 @@ let loadedRecordId: string | null = null;
 let startOffsetSec = 0; // where in the buffer the current source started
 let startedAtCtxTime = 0; // context.currentTime when the current source started
 let positionTimer: ReturnType<typeof setInterval> | null = null;
+
+// Bumped on every playRecord call so a slow decode from a previous track cannot start
+// playback after the user has already switched to a newer one.
+let playGeneration = 0;
 
 const subscriptions: AudioEventSubscription[] = [];
 let sessionConfigured = false;
@@ -127,7 +135,7 @@ function playFromOffset(offsetSec: number): void {
   source.start(0, offsetSec);
   sourceNode = source;
 
-  player$.status.set('playing');
+  player$.assign({ status: 'playing', canSeek: true });
   startPositionTimer();
   void updateNotification('playing', offsetSec);
 }
@@ -218,16 +226,35 @@ export const audioEngine = {
 
   /** Load (if needed) and play a record from the start. Resumes the context on first gesture. */
   async playRecord(record: RecordDto): Promise<void> {
-    player$.assign({ record, status: 'loading' });
+    const generation = ++playGeneration;
+
+    // Stop the current preview right away so it does not keep sounding while the next
+    // track fetches and decodes. Reset progress; duration is cleared only when switching
+    // to a different record (a replay of the loaded one already has the right duration).
+    const isSameRecord = loadedRecordId === record.id && decodedBuffer !== null;
+    stopPositionTimer();
+    teardownSource();
+    startOffsetSec = 0;
+    player$.assign({
+      record,
+      status: 'loading',
+      positionSec: 0,
+      canSeek: false,
+      ...(isSameRecord ? {} : { durationSec: 0 }),
+    });
+
     await resumeContext();
 
-    if (loadedRecordId !== record.id || !decodedBuffer) {
+    if (!isSameRecord) {
       const ok = await decode(record);
       if (!ok) {
-        player$.status.set('idle');
+        if (generation === playGeneration) player$.status.set('idle');
         return;
       }
     }
+
+    // A newer playRecord superseded this one while we were loading; let it win.
+    if (generation !== playGeneration) return;
     playFromOffset(0);
   },
 
@@ -304,6 +331,12 @@ export const audioEngine = {
     decodedBuffer = null;
     loadedRecordId = null;
     sessionConfigured = false;
-    player$.assign({ status: 'idle', record: null, positionSec: 0, durationSec: 0 });
+    player$.assign({
+      status: 'idle',
+      record: null,
+      positionSec: 0,
+      durationSec: 0,
+      canSeek: false,
+    });
   },
 };

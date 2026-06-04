@@ -15,6 +15,9 @@ export interface PlayerState {
   positionSec: number;
   durationSec: number;
   gain: number;
+  // True when the active source supports seeking (the file source). The streamer
+  // fallback streams but cannot seek, so the UI shows a read-only progress indicator.
+  canSeek: boolean;
 }
 
 export const player$ = observable<PlayerState>({
@@ -23,4 +26,5 @@ export const player$ = observable<PlayerState>({
   positionSec: 0,
   durationSec: 0,
   gain: 1,
+  canSeek: false,
 });

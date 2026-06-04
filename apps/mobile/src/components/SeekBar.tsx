@@ -35,10 +35,13 @@ function formatTime(seconds: number): string {
 export function SeekBar({
   positionSec,
   durationSec,
+  canSeek = true,
   onSeek,
 }: {
   positionSec: number;
   durationSec: number;
+  // False while streaming a non-seekable source: the bar becomes a read-only indicator.
+  canSeek?: boolean;
   onSeek: (seconds: number) => void;
 }) {
   // Keep the latest onSeek without recreating the gesture each render.
@@ -94,7 +97,7 @@ export function SeekBar({
 
   const pan = Gesture.Pan()
     .minDistance(0)
-    .enabled(durationSec > 0)
+    .enabled(canSeek && durationSec > 0)
     .onBegin((e) => {
       scrubbing.value = true;
       updateFromX(e.x);
@@ -114,6 +117,26 @@ export function SeekBar({
     .onFinalize(() => {
       scrubbing.value = false;
     });
+
+  // Tap anywhere on the track to jump there. Pan needs finger movement to activate, so a
+  // stationary tap would otherwise do nothing; this handles the "click to seek" case.
+  const tap = Gesture.Tap()
+    .enabled(canSeek && durationSec > 0)
+    .maxDuration(400)
+    .onEnd((e) => {
+      const width = trackWidth.value;
+      const f = width > 0 ? Math.min(Math.max(e.x / width, 0), 1) : 0;
+      const target = f * durationSec;
+      // Freeze the bar at the tapped position until the engine catches up.
+      holdFraction.value = f;
+      holding.value = true;
+      runOnJS(seek)(target);
+      runOnJS(setPendingSec)(target);
+    });
+
+  // A real tap (no movement) activates `tap`; any drag activates `pan`. They are mutually
+  // exclusive, so racing them never double-seeks.
+  const gesture = Gesture.Race(pan, tap);
 
   // Single source of truth for the displayed fraction, evaluated on the UI thread.
   const fraction = useDerivedValue(() =>
@@ -158,7 +181,7 @@ export function SeekBar({
         }}
       />
 
-      <GestureDetector gesture={pan}>
+      <GestureDetector gesture={gesture}>
         {/* Tall, transparent hit area so the thin visual track is easy to grab. */}
         <View className="h-6 flex-1 justify-center" onLayout={onLayout}>
           <View className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
