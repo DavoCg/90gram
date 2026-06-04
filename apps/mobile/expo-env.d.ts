@@ -1,4 +1,3 @@
 /// <reference types="expo/types" />
 
-// Allow side-effect imports of the Uniwind CSS entry.
-declare module '*.css';
+// NOTE: This file should not be edited and should be in your git ignore

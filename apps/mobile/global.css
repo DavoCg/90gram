@@ -2,18 +2,39 @@
 @import 'uniwind';
 
 /*
- * Design tokens + light/dark theme. Uniwind compiles light-dark() to a runtime call
- * that follows the system color scheme, so these semantic colors switch automatically.
- * No tailwind.config.js: tokens live here via Tailwind v4 @theme.
+ * Design tokens + light/dark themes. Uniwind scans the @variant blocks below for each
+ * configured theme (light + dark by default), registers the custom properties, and binds
+ * them to the system color scheme (via prefers-color-scheme, plus an optional .dark/.light
+ * class). The semantic colors therefore switch automatically. No tailwind.config.js.
+ *
+ * Do NOT use light-dark() for color tokens: inside @theme it is parsed as a single color
+ * value that Uniwind's color processor cannot convert, so every token silently falls back
+ * to black. Each theme must declare the SAME set of variables.
  */
 @theme {
-  --color-bg: light-dark(#faf7f2, #0e0e10);
-  --color-surface: light-dark(#ffffff, #1a1a1d);
-  --color-surface-2: light-dark(#f1ece3, #232327);
-  --color-text: light-dark(#18181b, #f5f5f4);
-  --color-muted: light-dark(#6b7280, #a1a1aa);
-  --color-border: light-dark(#e7e2d8, #2a2a2e);
-  --color-accent: light-dark(#c026d3, #e879f9);
-
   --font-sans: system-ui;
+}
+
+@layer theme {
+  :root {
+    @variant light {
+      --color-bg: #faf7f2;
+      --color-surface: #ffffff;
+      --color-surface-2: #f1ece3;
+      --color-text: #18181b;
+      --color-muted: #6b7280;
+      --color-border: #e7e2d8;
+      --color-accent: #c026d3;
+    }
+
+    @variant dark {
+      --color-bg: #0e0e10;
+      --color-surface: #1a1a1d;
+      --color-surface-2: #232327;
+      --color-text: #f5f5f4;
+      --color-muted: #a1a1aa;
+      --color-border: #2a2a2e;
+      --color-accent: #e879f9;
+    }
+  }
 }
