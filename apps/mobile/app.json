@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "getvinyls",
+    "slug": "getvinyls",
+    "version": "0.1.0",
+    "scheme": "getvinyls",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.getvinyls.app"
+    },
+    "android": {
+      "package": "com.getvinyls.app",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-system-ui",
+      [
+        "react-native-audio-api",
+        {
+          "iosBackgroundMode": true,
+          "androidPermissions": [
+            "MODIFY_AUDIO_SETTINGS",
+            "FOREGROUND_SERVICE",
+            "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+          ],
+          "androidForegroundService": true,
+          "androidFSTypes": ["mediaPlayback"]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

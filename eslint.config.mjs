@@ -18,6 +18,23 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // CommonJS config files (Metro/Babel/Prettier etc.) use Node globals and require().
+    files: ['**/*.config.js', '**/*.cjs', '**/babel.config.js', '**/metro.config.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+        __dirname: 'readonly',
+        process: 'readonly',
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off',
+    },
+  },
+  {
     rules: {
       // Strict TS hygiene: no implicit any, justify every suppression.
       '@typescript-eslint/no-explicit-any': 'error',
