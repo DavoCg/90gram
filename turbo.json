@@ -1,0 +1,34 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalEnv": ["DATABASE_URL", "API_BASE_URL", "EXPO_PUBLIC_API_BASE_URL", "DISCOGS_TOKEN", "DISCOGS_FIXTURE"],
+  "globalDependencies": [".env", ".env.example"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build", "gen:api-types"],
+      "outputs": ["dist/**", ".expo/**", "generated/**"]
+    },
+    "gen:api-types": {
+      "outputs": ["src/schema.d.ts"]
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["src/generated/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "db:generate", "gen:api-types"],
+      "outputs": []
+    },
+    "lint": {
+      "outputs": []
+    },
+    "scrape": {
+      "cache": false,
+      "persistent": false
+    }
+  }
+}

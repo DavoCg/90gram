@@ -1,0 +1,10 @@
+packages:
+  - apps/api
+  - apps/mobile
+  - packages/db
+  - packages/api-client
+  - packages/tsconfig
+
+# apps/scraper is a Python project, NOT a pnpm workspace member.
+# Turbo still orchestrates it through apps/scraper/package.json, which shells
+# out to uv / ruff / pyright. See apps/scraper/README and the scraper skill.

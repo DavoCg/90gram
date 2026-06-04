@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+
+# Prisma generated client (regenerated from schema)
+packages/db/src/generated/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Expo / React Native
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/*.log
+.expo-shared/
+
+# Python / scraper
+apps/scraper/.venv/
+apps/scraper/.ruff_cache/
+apps/scraper/__pycache__/
+**/__pycache__/
+*.pyc
+apps/scraper/.scrapy/
+
+# Logs / misc
+*.log
+.DS_Store
+coverage/
