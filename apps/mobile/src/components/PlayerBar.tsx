@@ -2,14 +2,8 @@ import { use$ } from '@legendapp/state/react';
 import { ActivityIndicator, Image, Pressable, Text, View } from '../theme/uniwind';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
+import { SeekBar } from './SeekBar';
 import { Visualizer } from './Visualizer';
-
-function formatTime(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
 
 // Bottom player surface. Reads narrow slices from the Legend State observable and drives
 // the engine. use$ subscribes only to the fields this component reads.
@@ -21,7 +15,6 @@ export function PlayerBar() {
 
   if (!record) return null;
 
-  const progress = durationSec > 0 ? Math.min(positionSec / durationSec, 1) : 0;
   const isPlaying = status === 'playing';
   const isLoading = status === 'loading';
 
@@ -55,16 +48,11 @@ export function PlayerBar() {
         </Pressable>
       </View>
 
-      <View className="mt-3 flex-row items-center gap-2">
-        <Text className="w-10 text-xs text-muted">{formatTime(positionSec)}</Text>
-        <View className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
-          <View
-            className="h-1 rounded-full bg-accent"
-            style={{ width: `${progress * 100}%` }}
-          />
-        </View>
-        <Text className="w-10 text-right text-xs text-muted">{formatTime(durationSec)}</Text>
-      </View>
+      <SeekBar
+        positionSec={positionSec}
+        durationSec={durationSec}
+        onSeek={(seconds) => audioEngine.seek(seconds)}
+      />
     </View>
   );
 }
