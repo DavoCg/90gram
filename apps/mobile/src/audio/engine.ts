@@ -21,7 +21,7 @@ import {
   type GainNode,
 } from 'react-native-audio-api';
 import type { RecordDto } from '@getvinyls/api-client';
-import { usePlayerStore } from './store';
+import { player$ } from './store';
 
 const FFT_SIZE = 256;
 const SMOOTHING = 0.8;
@@ -53,7 +53,7 @@ function ensureGraph(): {
   }
   if (!gainNode) {
     gainNode = context.createGain();
-    gainNode.gain.value = usePlayerStore.getState().gain;
+    gainNode.gain.value = player$.gain.get();
   }
   if (!analyserNode) {
     analyserNode = context.createAnalyser();
@@ -73,7 +73,7 @@ async function resumeContext(): Promise<void> {
 }
 
 function currentPositionSec(): number {
-  if (!context || usePlayerStore.getState().status !== 'playing') {
+  if (!context || player$.status.get() !== 'playing') {
     return startOffsetSec;
   }
   return startOffsetSec + (context.currentTime - startedAtCtxTime);
@@ -82,9 +82,9 @@ function currentPositionSec(): number {
 function startPositionTimer(): void {
   stopPositionTimer();
   positionTimer = setInterval(() => {
-    const { durationSec } = usePlayerStore.getState();
+    const durationSec = player$.durationSec.get();
     const pos = Math.min(currentPositionSec(), durationSec || Number.POSITIVE_INFINITY);
-    usePlayerStore.setState({ positionSec: pos });
+    player$.positionSec.set(pos);
     void updateNotification('playing', pos);
   }, POSITION_TICK_MS);
 }
@@ -127,7 +127,7 @@ function playFromOffset(offsetSec: number): void {
   source.start(0, offsetSec);
   sourceNode = source;
 
-  usePlayerStore.setState({ status: 'playing' });
+  player$.status.set('playing');
   startPositionTimer();
   void updateNotification('playing', offsetSec);
 }
@@ -137,7 +137,7 @@ function handleEnded(): void {
   stopPositionTimer();
   teardownSource();
   startOffsetSec = 0;
-  usePlayerStore.setState({ status: 'paused', positionSec: 0 });
+  player$.assign({ status: 'paused', positionSec: 0 });
   void updateNotification('paused', 0);
 }
 
@@ -148,19 +148,19 @@ async function decode(record: RecordDto): Promise<boolean> {
   const arrayBuffer = await response.arrayBuffer();
   decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
   loadedRecordId = record.id;
-  usePlayerStore.setState({ durationSec: decodedBuffer.duration });
+  player$.durationSec.set(decodedBuffer.duration);
   return true;
 }
 
 async function updateNotification(state: 'playing' | 'paused', elapsedSec: number): Promise<void> {
-  const record = usePlayerStore.getState().record;
+  const record = player$.record.get();
   if (!record) return;
   try {
     await PlaybackNotificationManager.show({
       title: record.title,
       artist: record.artist,
       artwork: record.coverArtUrl ? { uri: record.coverArtUrl } : undefined,
-      duration: usePlayerStore.getState().durationSec,
+      duration: player$.durationSec.get(),
       elapsedTime: elapsedSec,
       speed: 1,
       state,
@@ -218,13 +218,13 @@ export const audioEngine = {
 
   /** Load (if needed) and play a record from the start. Resumes the context on first gesture. */
   async playRecord(record: RecordDto): Promise<void> {
-    usePlayerStore.setState({ record, status: 'loading' });
+    player$.assign({ record, status: 'loading' });
     await resumeContext();
 
     if (loadedRecordId !== record.id || !decodedBuffer) {
       const ok = await decode(record);
       if (!ok) {
-        usePlayerStore.setState({ status: 'idle' });
+        player$.status.set('idle');
         return;
       }
     }
@@ -233,7 +233,7 @@ export const audioEngine = {
 
   /** Toggle play/pause for the currently loaded record. */
   async toggle(): Promise<void> {
-    const status = usePlayerStore.getState().status;
+    const status = player$.status.get();
     if (status === 'playing') {
       await this.pause();
     } else {
@@ -242,12 +242,12 @@ export const audioEngine = {
   },
 
   async pause(): Promise<void> {
-    if (usePlayerStore.getState().status !== 'playing') return;
+    if (player$.status.get() !== 'playing') return;
     const pos = currentPositionSec();
     stopPositionTimer();
     teardownSource();
     startOffsetSec = pos;
-    usePlayerStore.setState({ status: 'paused', positionSec: pos });
+    player$.assign({ status: 'paused', positionSec: pos });
     await updateNotification('paused', pos);
   },
 
@@ -261,12 +261,12 @@ export const audioEngine = {
   seek(toSec: number): void {
     if (!decodedBuffer) return;
     const clamped = Math.max(0, Math.min(toSec, decodedBuffer.duration));
-    const wasPlaying = usePlayerStore.getState().status === 'playing';
+    const wasPlaying = player$.status.get() === 'playing';
     if (wasPlaying) {
       playFromOffset(clamped);
     } else {
       startOffsetSec = clamped;
-      usePlayerStore.setState({ positionSec: clamped });
+      player$.positionSec.set(clamped);
       void updateNotification('paused', clamped);
     }
   },
@@ -275,7 +275,7 @@ export const audioEngine = {
     const clamped = Math.max(0, Math.min(value, 1));
     const { gain } = ensureGraph();
     gain.gain.value = clamped;
-    usePlayerStore.setState({ gain: clamped });
+    player$.gain.set(clamped);
   },
 
   /** The analyser node for the visualizer (null until the graph exists). */
@@ -301,6 +301,6 @@ export const audioEngine = {
     decodedBuffer = null;
     loadedRecordId = null;
     sessionConfigured = false;
-    usePlayerStore.setState({ status: 'idle', record: null, positionSec: 0, durationSec: 0 });
+    player$.assign({ status: 'idle', record: null, positionSec: 0, durationSec: 0 });
   },
 };

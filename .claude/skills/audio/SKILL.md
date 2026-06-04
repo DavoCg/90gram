@@ -3,7 +3,7 @@ name: audio
 description: >-
   Conventions for the audio layer in apps/mobile, built on react-native-audio-api (Software
   Mansion, Web Audio model). Read this for ANYTHING audio: the single AudioContext, the
-  source -> gain -> analyser -> destination graph, buffer-based preview playback, the Zustand
+  source -> gain -> analyser -> destination graph, buffer-based preview playback, the Legend State
   player store, lock-screen / remote controls via AudioManager, subscription cleanup, and the
   AnalyserNode-driven visualizer. This is the app centerpiece; build it deliberately.
 ---
@@ -37,10 +37,13 @@ single-use: create a fresh `createBufferSource({ pitchCorrection: true })` for e
 `AudioBuffer` in a ref; read `buffer.duration` for progress. Track playback offset yourself and use
 `start(when, offset)` to resume/seek after pause.
 
-## Player store (Zustand)
+## Player store (Legend State)
 
-Holds only serializable UI state: current record, play state, position/offset, playback rate, gain. It does
-NOT hold node instances. Components select narrow slices.
+Client/UI state lives in a Legend State observable (`player$` in `src/audio/store.ts`): current record,
+play state, position/offset, gain. It holds ONLY serializable state, never node instances. The engine is the
+sole writer (`player$.x.set(...)` / `player$.assign({...})`); components read narrow slices with
+`use$(player$.x)` from `@legendapp/state/react` (fine-grained reactivity). Server/data state stays in
+TanStack Query. (This replaces the Zustand store the bootstrap originally specified, per a project decision.)
 
 ## Lock screen + remote controls (0.12.2 API)
 

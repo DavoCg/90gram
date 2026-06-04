@@ -27,12 +27,20 @@ NOT Expo Go, because `react-native-audio-api` needs native modules. Expo Router 
   (`queryKeys.records.all`, `queryKeys.records.detail(id)`). Wrap the app in `QueryClientProvider`.
 - No hand-written fetch. Every call goes through the typed client; responses are fully typed, zero `any`.
 
+## State management
+
+- **Server/data state: TanStack Query** (the hooks above). **Client/UI state: Legend State** observables
+  (`@legendapp/state`). The two collaborate: query owns fetched data and cache; Legend State owns local UI
+  state like the player. The player store is `player$` in `src/audio/store.ts` (see the audio skill).
+- Read observables in components with `use$(player$.x)` from `@legendapp/state/react` (fine-grained: only the
+  fields you read trigger re-render). Write from non-React code (the engine) with `.set()` / `.assign()`.
+
 ## Performance
 
 - Use `FlashList` (not `FlatList`) for the record list. Memoize row components (`React.memo`), pass stable
   keys, and avoid inline closures that defeat memoization in hot lists.
-- Keep re-renders tight: select narrow slices from the Zustand player store; never `setState` per animation
-  frame (see the audio skill for the visualizer rules).
+- Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (see the audio
+  skill for the visualizer rules).
 
 ## Structure
 

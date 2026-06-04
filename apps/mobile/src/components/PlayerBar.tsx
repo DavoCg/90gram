@@ -1,6 +1,7 @@
+import { use$ } from '@legendapp/state/react';
 import { ActivityIndicator, Image, Pressable, Text, View } from '../theme/uniwind';
 import { audioEngine } from '../audio/engine';
-import { usePlayerStore } from '../audio/store';
+import { player$ } from '../audio/store';
 import { Visualizer } from './Visualizer';
 
 function formatTime(seconds: number): string {
@@ -10,12 +11,13 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-// Bottom player surface. Reads narrow slices from the player store and drives the engine.
+// Bottom player surface. Reads narrow slices from the Legend State observable and drives
+// the engine. use$ subscribes only to the fields this component reads.
 export function PlayerBar() {
-  const record = usePlayerStore((s) => s.record);
-  const status = usePlayerStore((s) => s.status);
-  const positionSec = usePlayerStore((s) => s.positionSec);
-  const durationSec = usePlayerStore((s) => s.durationSec);
+  const record = use$(player$.record);
+  const status = use$(player$.status);
+  const positionSec = use$(player$.positionSec);
+  const durationSec = use$(player$.durationSec);
 
   if (!record) return null;
 

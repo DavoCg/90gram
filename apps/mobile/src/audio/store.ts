@@ -1,8 +1,12 @@
-import { create } from 'zustand';
+import { observable } from '@legendapp/state';
 import type { RecordDto } from '@getvinyls/api-client';
 
-// The player store holds ONLY serializable UI state. The audio graph itself is
-// imperative and lives in the engine module (refs), never here. See the audio skill.
+// Client/UI state for the player, held in a Legend State observable (fine-grained
+// reactivity). Server/data state stays in TanStack Query. This holds ONLY serializable
+// UI state; the audio graph is imperative and lives in the engine module (refs).
+//
+// The engine is the sole writer (player$.x.set(...) / player$.assign(...)). Components
+// read narrow slices with use$(player$.x) so only the bits they use trigger re-render.
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused';
 
 export interface PlayerState {
@@ -13,12 +17,10 @@ export interface PlayerState {
   gain: number;
 }
 
-// No actions on the store: the engine is the sole writer (usePlayerStore.setState).
-// Components read narrow slices via selectors.
-export const usePlayerStore = create<PlayerState>(() => ({
+export const player$ = observable<PlayerState>({
   record: null,
   status: 'idle',
   positionSec: 0,
   durationSec: 0,
   gain: 1,
-}));
+});
