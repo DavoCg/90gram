@@ -74,7 +74,44 @@ pnpm build        # builds where applicable
 
 - API only: `pnpm --filter @getvinyls/api dev` -> http://127.0.0.1:8787
   (`/records`, `/records/:id`, `/openapi.json`, `/docs`).
-- Mobile dev build: `pnpm --filter @getvinyls/mobile prebuild` then `... ios` / `... android`.
+- Mobile: build via **EAS** (recommended, no local Xcode/Android needed) or locally. See below.
+
+## Mobile build (EAS)
+
+The app is a dev build (not Expo Go) because `react-native-audio-api` needs native modules. EAS Build
+compiles it in the cloud, so you do not need Xcode or Android Studio locally. Config lives in
+`apps/mobile/eas.json` (profiles: `development`, `preview`, `production`), and Metro is configured for this
+pnpm monorepo (watches the workspace root, resolves the hoisted `node_modules`).
+
+One-time, from `apps/mobile`:
+
+```bash
+pnpm dlx eas-cli login        # log into your Expo account
+pnpm dlx eas-cli init         # creates the EAS project and writes extra.eas.projectId into app.json
+```
+
+Build a development client (iOS Simulator + Android APK, no store credentials needed to start):
+
+```bash
+cd apps/mobile
+pnpm dlx eas-cli build --profile development --platform ios       # or android, or all
+```
+
+When it finishes, install the artifact (drag the simulator build onto a booted simulator, or scan the QR
+for the APK), then start Metro and connect the dev client:
+
+```bash
+pnpm --filter @getvinyls/mobile dev   # expo start --dev-client
+```
+
+Notes:
+- Set `EXPO_PUBLIC_API_BASE_URL` to a host the device/simulator can reach (a LAN IP for a physical device;
+  the dev profile defaults to `http://127.0.0.1:8787` for the simulator). EAS reads build-time env from the
+  profile's `env` block.
+- `preview` builds an internal-distribution build for testers; `production` builds for the stores
+  (`pnpm dlx eas-cli submit` to upload). Those need Apple/Google credentials, which EAS can manage.
+- Local alternative (requires Xcode/Android SDK): `pnpm --filter @getvinyls/mobile prebuild` then
+  `... ios` / `... android`.
 
 ## The type-safe contract pipeline (regenerating client types)
 

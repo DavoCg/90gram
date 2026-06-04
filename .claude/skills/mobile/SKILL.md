@@ -9,8 +9,20 @@ description: >-
 
 # Mobile (apps/mobile)
 
-Expo SDK 56, New Architecture (always on). This is a **dev build** (`expo prebuild` + native run),
-NOT Expo Go, because `react-native-audio-api` needs native modules. Expo Router for file-based, typed routes.
+Expo SDK 56, New Architecture (always on). This is a **dev build**, NOT Expo Go, because
+`react-native-audio-api` needs native modules. Expo Router for file-based, typed routes.
+
+## Builds: EAS
+
+The app builds via **EAS Build** (`apps/mobile/eas.json`), so no local Xcode/Android is required. Profiles:
+`development` (dev client, internal distribution, iOS simulator + Android APK), `preview` (internal testers),
+`production` (stores). The `development` profile needs `expo-dev-client` (installed). Run `eas init` once to
+create the project (writes `extra.eas.projectId` into `app.json`), then `eas build --profile development`.
+A local build still works too (`expo prebuild` + `expo run:ios|android`) if you have the native toolchain.
+
+This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the workspace root and
+`resolver.nodeModulesPaths` to both the app and the hoisted root `node_modules` (`.npmrc` uses
+`node-linker=hoisted`). Keep that in place or Metro/EAS will fail to resolve workspace packages.
 
 ## Styling: Uniwind (Tailwind v4 for RN)
 
