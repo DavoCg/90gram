@@ -2,14 +2,14 @@ import { useCallback } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { use$ } from '@legendapp/state/react';
 import type { RecordDto } from '@getvinyls/api-client';
-import { ActivityIndicator, Pressable, Text, View } from '../src/theme/uniwind';
-import { useRecords } from '../src/api/hooks';
-import { RecordRow } from '../src/components/RecordRow';
-import { PlayerBar } from '../src/components/PlayerBar';
-import { audioEngine } from '../src/audio/engine';
-import { player$ } from '../src/audio/store';
+import { ActivityIndicator, Pressable, Text, View } from '../../src/theme/uniwind';
+import { useRecords } from '../../src/api/hooks';
+import { RecordRow } from '../../src/components/RecordRow';
+import { PlayerBar } from '../../src/components/PlayerBar';
+import { audioEngine } from '../../src/audio/engine';
+import { player$ } from '../../src/audio/store';
 
-export default function RecordsScreen() {
+export default function HomeScreen() {
   const { data, isLoading, isError, refetch } = useRecords();
   const currentId = use$(player$.record)?.id;
   const status = use$(player$.status);
