@@ -1,0 +1,42 @@
+name: Production build
+
+# Manual trigger by default (credit-safe). To build automatically on every merge to main,
+# replace the trigger below with:
+#   on:
+#     push:
+#       branches: ['main']
+on:
+  workflow_dispatch:
+
+jobs:
+  build_ios:
+    name: iOS production
+    type: build
+    params:
+      platform: ios
+      profile: production
+  build_android:
+    name: Android production
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  # Store submission is wired but disabled until credentials are configured.
+  # Fill in eas.json `submit.production` (ascAppId / serviceAccountKeyPath, etc.), then
+  # uncomment these jobs to build-and-submit in one run.
+  #
+  # submit_ios:
+  #   name: Submit iOS to App Store
+  #   needs: [build_ios]
+  #   type: submit
+  #   params:
+  #     build_id: ${{ needs.build_ios.outputs.build_id }}
+  #     profile: production
+  # submit_android:
+  #   name: Submit Android to Play Store
+  #   needs: [build_android]
+  #   type: submit
+  #   params:
+  #     build_id: ${{ needs.build_android.outputs.build_id }}
+  #     profile: production

@@ -113,6 +113,25 @@ Notes:
 - Local alternative (requires Xcode/Android SDK): `pnpm --filter @getvinyls/mobile prebuild` then
   `... ios` / `... android`.
 
+### EAS Workflows (CI/CD)
+
+Cloud CI/CD lives in `apps/mobile/.eas/workflows/` (run on Expo's infra, triggered from git or manually):
+
+| Workflow                 | Trigger                       | What it does                                                  |
+| ------------------------ | ----------------------------- | ------------------------------------------------------------ |
+| `ci.yml`                 | pull request to `main`        | Installs, regenerates API types, typechecks + lints mobile (no build credits). |
+| `development-build.yml`  | manual (`workflow_dispatch`)  | Builds dev clients (iOS Simulator + Android APK).            |
+| `deploy-production.yml`  | manual (`workflow_dispatch`)  | Builds production iOS + Android; store-submit jobs are included but commented until credentials are set. |
+
+Run a workflow manually:
+
+```bash
+pnpm dlx eas-cli@latest workflow:run development-build.yml
+```
+
+To auto-build on merge, change `deploy-production.yml`'s trigger to `push: { branches: ['main'] }`. The
+CI workflow runs as a custom job (it does not consume EAS Build minutes); the build/submit jobs do.
+
 ## The type-safe contract pipeline (regenerating client types)
 
 Zod route schemas in `apps/api` are the single source of truth. The flow:

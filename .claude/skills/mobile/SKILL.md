@@ -20,6 +20,11 @@ The app builds via **EAS Build** (`apps/mobile/eas.json`), so no local Xcode/And
 create the project (writes `extra.eas.projectId` into `app.json`), then `eas build --profile development`.
 A local build still works too (`expo prebuild` + `expo run:ios|android`) if you have the native toolchain.
 
+CI/CD is **EAS Workflows** in `apps/mobile/.eas/workflows/`: `ci.yml` (PR lint + typecheck as a custom job,
+no build credits), `development-build.yml` and `deploy-production.yml` (manual `workflow_dispatch` builds;
+production has commented store-submit jobs). Keep CI scoped to `pnpm --filter @getvinyls/mobile` so it stays
+fast and does not pull in the Python scraper (no `uv` on the workers) or need a database.
+
 This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the workspace root and
 `resolver.nodeModulesPaths` to both the app and the hoisted root `node_modules` (`.npmrc` uses
 `node-linker=hoisted`). Keep that in place or Metro/EAS will fail to resolve workspace packages.
