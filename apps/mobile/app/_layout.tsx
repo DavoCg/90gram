@@ -23,8 +23,8 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
-          <Stack>
-            <Stack.Screen name="index" options={{ title: 'getvinyls' }} />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
           </Stack>
         </QueryClientProvider>
       </SafeAreaProvider>
