@@ -1,0 +1,13 @@
+{
+  "name": "@getvinyls/scraper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Thin Turbo wrapper for the Python Scrapy project. No JS deps; scripts shell out to uv/ruff/pyright.",
+  "scripts": {
+    "setup": "uv sync",
+    "lint": "uv run ruff check . && uv run ruff format --check .",
+    "format": "uv run ruff format .",
+    "typecheck": "uv run pyright",
+    "scrape": "uv run scrapy crawl discogs"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "extends": "@getvinyls/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": ["src", "prisma", "prisma.config.ts"],
+  "exclude": ["node_modules", "src/generated"]
+}

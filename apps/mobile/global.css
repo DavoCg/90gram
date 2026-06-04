@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+/*
+ * Design tokens + light/dark theme. Uniwind compiles light-dark() to a runtime call
+ * that follows the system color scheme, so these semantic colors switch automatically.
+ * No tailwind.config.js: tokens live here via Tailwind v4 @theme.
+ */
+@theme {
+  --color-bg: light-dark(#faf7f2, #0e0e10);
+  --color-surface: light-dark(#ffffff, #1a1a1d);
+  --color-surface-2: light-dark(#f1ece3, #232327);
+  --color-text: light-dark(#18181b, #f5f5f4);
+  --color-muted: light-dark(#6b7280, #a1a1aa);
+  --color-border: light-dark(#e7e2d8, #2a2a2e);
+  --color-accent: light-dark(#c026d3, #e879f9);
+
+  --font-sans: system-ui;
+}

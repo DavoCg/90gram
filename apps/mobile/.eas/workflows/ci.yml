@@ -1,0 +1,21 @@
+name: CI
+
+# Runs on every pull request into main. Cheap (no EAS Build credits): a single custom job
+# that installs the workspace, regenerates the API client types from the committed
+# openapi.json, then typechecks and lints the mobile app.
+on:
+  pull_request:
+    branches: ['main']
+
+jobs:
+  verify:
+    name: Lint and typecheck
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Generate API client types
+        run: pnpm --filter @getvinyls/api-client gen:api-types
+      - name: Typecheck (mobile)
+        run: pnpm --filter @getvinyls/mobile typecheck
+      - name: Lint (mobile)
+        run: pnpm --filter @getvinyls/mobile lint

@@ -1,0 +1,21 @@
+name: Development build
+
+# Manual trigger: produces dev clients (iOS Simulator build + Android APK) using the
+# `development` profile in eas.json. Run with:
+#   pnpm dlx eas-cli@latest workflow:run development-build.yml
+on:
+  workflow_dispatch:
+
+jobs:
+  build_ios:
+    name: iOS dev client (simulator)
+    type: build
+    params:
+      platform: ios
+      profile: development
+  build_android:
+    name: Android dev client (APK)
+    type: build
+    params:
+      platform: android
+      profile: development

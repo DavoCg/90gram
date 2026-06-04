@@ -1,0 +1,9 @@
+{
+  "extends": "@getvinyls/tsconfig/node.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}

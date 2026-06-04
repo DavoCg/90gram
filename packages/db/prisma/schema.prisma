@@ -1,0 +1,46 @@
+// Prisma is the SOLE owner of this schema and its migrations.
+// The Python scraper (apps/scraper) only writes rows; it reflects these tables at
+// runtime (SQLAlchemy autoload) and never runs DDL. Keep the snake_case @map/@@map
+// names stable so the scraper's target columns do not drift. See the db skill.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
+}
+
+datasource db {
+  // Prisma 7: the connection URL lives in prisma.config.ts (for Migrate) and is
+  // supplied to PrismaClient via the pg driver adapter (see src/index.ts).
+  provider = "postgresql"
+}
+
+/// A vinyl record listing. Carries app fields plus the marketplace fields the
+/// scraper populates. Unique on (source, externalId) for idempotent upserts.
+model Record {
+  id String @id @default(cuid())
+
+  // App / display fields
+  title       String
+  artist      String
+  year        Int?
+  coverArtUrl String? @map("cover_art_url")
+  previewUrl  String? @map("preview_url")
+
+  // Marketplace fields (populated by the scraper)
+  source       String // e.g. "discogs"
+  externalId   String   @map("external_id") // id on that source
+  sourceUrl    String?  @map("source_url")
+  price        Decimal? @db.Decimal(10, 2)
+  currency     String?
+  availability String?
+  scrapedAt    DateTime? @map("scraped_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([source, externalId], name: "source_externalId")
+  @@index([source])
+  @@map("records")
+}

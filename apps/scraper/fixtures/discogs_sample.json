@@ -1,0 +1,54 @@
+[
+  {
+    "source": "discogs",
+    "external_id": "249504",
+    "title": "Random Access Memories",
+    "artist": "Daft Punk",
+    "year": 2013,
+    "cover_art_url": "https://picsum.photos/seed/ram/600/600",
+    "preview_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3",
+    "source_url": "https://www.discogs.com/release/249504",
+    "price": 34.99,
+    "currency": "USD",
+    "availability": "in_stock"
+  },
+  {
+    "source": "discogs",
+    "external_id": "367788",
+    "title": "Kind of Blue",
+    "artist": "Miles Davis",
+    "year": 1959,
+    "cover_art_url": "https://picsum.photos/seed/kindofblue/600/600",
+    "preview_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+    "source_url": "https://www.discogs.com/release/367788",
+    "price": 28.5,
+    "currency": "USD",
+    "availability": "in_stock"
+  },
+  {
+    "source": "discogs",
+    "external_id": "112233",
+    "title": "Rumours",
+    "artist": "Fleetwood Mac",
+    "year": 1977,
+    "cover_art_url": "https://picsum.photos/seed/rumours/600/600",
+    "preview_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3",
+    "source_url": "https://www.discogs.com/release/112233",
+    "price": 22.0,
+    "currency": "USD",
+    "availability": "preorder"
+  },
+  {
+    "source": "discogs",
+    "external_id": "445566",
+    "title": "Discovery",
+    "artist": "Daft Punk",
+    "year": 2001,
+    "cover_art_url": "https://picsum.photos/seed/discovery/600/600",
+    "preview_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3",
+    "source_url": "https://www.discogs.com/release/445566",
+    "price": 30.0,
+    "currency": "USD",
+    "availability": "in_stock"
+  }
+]

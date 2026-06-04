@@ -1,0 +1,29 @@
+{
+  "name": "@getvinyls/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "gen:openapi": "tsx scripts/dump-openapi.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@getvinyls/db": "workspace:*",
+    "@hono/node-server": "^2.0.4",
+    "@hono/zod-openapi": "^1.4.0",
+    "@scalar/hono-api-reference": "^0.10.20",
+    "dotenv": "^17.4.2",
+    "hono": "^4.12.23",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@getvinyls/tsconfig": "workspace:*",
+    "@types/node": "^22.19.0",
+    "tsx": "^4.22.4",
+    "typescript": "~5.9.0"
+  }
+}

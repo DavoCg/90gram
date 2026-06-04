@@ -1,0 +1,11 @@
+packages:
+  - apps/api
+  - apps/mobile
+  - apps/scraper
+  - packages/db
+  - packages/api-client
+  - packages/tsconfig
+
+# apps/scraper is a Python (Scrapy) project. It is a workspace member ONLY so Turbo can
+# orchestrate it: its thin package.json declares NO JS dependencies and its scripts shell
+# out to uv / ruff / pyright. All real dependencies are Python, managed by uv (pyproject.toml).
