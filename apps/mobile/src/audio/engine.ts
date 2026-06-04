@@ -263,6 +263,9 @@ export const audioEngine = {
     const clamped = Math.max(0, Math.min(toSec, decodedBuffer.duration));
     const wasPlaying = player$.status.get() === 'playing';
     if (wasPlaying) {
+      // Reflect the new position immediately so the UI does not flash the old
+      // timestamp before the next position-timer tick lands on the seek target.
+      player$.positionSec.set(clamped);
       playFromOffset(clamped);
     } else {
       startOffsetSec = clamped;
