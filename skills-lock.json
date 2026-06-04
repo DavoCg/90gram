@@ -85,12 +85,6 @@
       "skillPath": "plugins/expo/skills/expo-observe/SKILL.md",
       "computedHash": "4fdd09a1b7067e9c8a2d3db1e6782ae01205858f007c282cba80efd6e7181ad0"
     },
-    "expo-tailwind-setup": {
-      "source": "expo/skills",
-      "sourceType": "github",
-      "skillPath": "plugins/expo/skills/expo-tailwind-setup/SKILL.md",
-      "computedHash": "d39e806942fe880347f161056729b588a3cb0f1796270eebf52633fe11cfdce1"
-    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
