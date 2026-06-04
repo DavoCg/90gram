@@ -16,9 +16,14 @@ We build the player layer ourselves. It lives entirely under `apps/mobile/src/au
 
 ## One AudioContext for the whole app
 
-Create it once (module singleton / ref guard), `initSuspended: true`, and `resume()` on the first user
-gesture. Never instantiate per screen. The graph is imperative and lives in refs; only serializable UI
+Create it once (module singleton in `src/audio/engine.ts`) and `resume()` on the first user gesture.
+Never instantiate per screen. The graph is imperative and lives in module refs; only serializable UI
 state lives in the store.
+
+Version note (react-native-audio-api 0.12.2): the `AudioContext` constructor does NOT accept
+`initSuspended`, so we create it lazily and resume on the first gesture instead. There is also no
+`playbackRate` AudioParam on `AudioBufferSourceNode` in this version, so the player exposes gain
+(volume) but not a playback-rate control. Keep this in sync if the library version changes.
 
 ## Node graph
 
@@ -37,18 +42,27 @@ single-use: create a fresh `createBufferSource({ pitchCorrection: true })` for e
 Holds only serializable UI state: current record, play state, position/offset, playback rate, gain. It does
 NOT hold node instances. Components select narrow slices.
 
-## Lock screen + remote controls (AudioManager)
+## Lock screen + remote controls (0.12.2 API)
 
-`enableRemoteCommand('remotePlay'|'remotePause'|'remoteNextTrack'|'remoteChangePlaybackPosition', true)`,
-register handlers with `addSystemEventListener`, push metadata via `setLockScreenInfo({ title, artist,
-artwork, duration, elapsedTime, speed, state })`. Handle the `'interruption'` event (calls, other apps) by
-pausing.
+In 0.12.2 the now-playing / lock-screen controls live on `PlaybackNotificationManager`, not the older
+`enableRemoteCommand` / `setLockScreenInfo` names:
+
+- `PlaybackNotificationManager.enableControl('play' | 'pause' | 'seekTo', true)` to expose controls.
+- `PlaybackNotificationManager.show({ title, artist, artwork, duration, elapsedTime, speed, state })` to
+  push/update metadata; `hide()` to clear it.
+- `PlaybackNotificationManager.addEventListener('playbackNotificationPlay' | 'playbackNotificationPause' |
+  'playbackNotificationSeekTo', handler)` for remote actions.
+- Configure the session once with `AudioManager.setAudioSessionOptions({ iosCategory: 'playback' })`,
+  `AudioManager.setAudioSessionActivity(true)`, `AudioManager.observeAudioInterruptions(true)`.
+- Handle `AudioManager.addSystemEventListener('interruption', e => ...)` (calls, other apps) by pausing on
+  `e.type === 'began'` and resuming on `e.type === 'ended' && e.shouldResume`.
 
 ## Subscription hygiene (REQUIRED, the #1 bug with this library)
 
-Every `addSystemEventListener` returns a subscription. On unmount / effect re-run, remove ALL of them and
-call `AudioManager.resetLockScreenInfo()`. Get this right once in the player module so handlers do not leak
-or double-fire.
+Every `addSystemEventListener` / `addEventListener` returns a subscription (or undefined). Keep them in an
+array and, on unmount, call `.remove()` on ALL of them and `PlaybackNotificationManager.hide()`. The engine's
+`teardown()` does this once; the root layout calls it on unmount. Get this right in one place so handlers do
+not leak or double-fire.
 
 ## Visualizer
 

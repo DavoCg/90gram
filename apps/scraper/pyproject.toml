@@ -1,0 +1,33 @@
+[project]
+name = "getvinyls-scraper"
+version = "0.1.0"
+description = "Scrapy spiders that write vinyl listings directly into the getvinyls Postgres."
+requires-python = ">=3.12"
+dependencies = [
+  "scrapy>=2.13",
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.9",
+  "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.8",
+  "pyright>=1.1.390",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+include = ["getvinyls_scraper"]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+reportMissingTypeStubs = false
