@@ -57,9 +57,20 @@ source of truth, and `setupSession()` registers foreground listeners that MIRROR
 
 - `Event.PlaybackState` -> map RNTP `State` to our `PlayerStatus` (`mapState`) and set
   `player$.status`; start/stop the position timer.
+- `Event.PlaybackPlayWhenReadyChanged` -> set `player$.playWhenReady` (the user's play/pause
+  INTENT). The transport button and list-row indicators read THIS, not `status`: intent does not
+  dip while a track switch buffers, so the button never flashes the play icon mid-swap. The engine
+  also sets it optimistically in `playQueue`/`resume`/`pause`/`toggle`.
 - `Event.PlaybackActiveTrackChanged` -> set `queueIndex` from `event.index`, `record` from
   `player$.queue[index]`, reset position, publish duration / `canSeek`.
-- `Event.PlaybackQueueEnded` -> status `paused`, position 0.
+- `Event.PlaybackQueueEnded` -> status `paused`, `playWhenReady` false, position 0.
+
+A track switch is a full `setQueue` (+ `skip`), which makes RNTP emit a transient burst before it
+settles: `ActiveTrackChanged` passes through `index: undefined` (would null `record`) and `index: 0`
+(would flash the queue's first track), and `PlaybackState` dips through Ready/None/Paused. The
+engine records the id of the track it asked for (`pendingStartId`, set in `playQueue`) and the
+`ActiveTrackChanged` handler ignores every change until that track is active. Combined with reading
+intent (`playWhenReady`) for the button, this is what keeps a track switch flash-free.
 - Position: a ~250ms `setInterval` polls `TrackPlayer.getProgress()` while playing and writes
   `positionSec` / `durationSec` / `canSeek`, keeping the SeekBar smooth.
 

@@ -14,7 +14,8 @@ const LIST_BOTTOM_PADDING = 140;
 export default function HomeScreen() {
   const { data, isLoading, isError, refetch } = useRecords();
   const currentId = use$(player$.record)?.id;
-  const status = use$(player$.status);
+  // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
+  const playWhenReady = use$(player$.playWhenReady);
 
   // Play the whole visible list as a queue, starting at the tapped row, so the player's
   // prev/next transport walks the list.
@@ -32,11 +33,11 @@ export default function HomeScreen() {
       <RecordRow
         record={item}
         isCurrent={item.id === currentId}
-        isPlaying={status === 'playing'}
+        isPlaying={playWhenReady}
         onPress={onPressRecord}
       />
     ),
-    [currentId, status, onPressRecord],
+    [currentId, playWhenReady, onPressRecord],
   );
 
   if (isLoading) {
@@ -71,7 +72,7 @@ export default function HomeScreen() {
         data={data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        extraData={`${currentId ?? ''}:${status}`}
+        extraData={`${currentId ?? ''}:${String(playWhenReady)}`}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
     </View>

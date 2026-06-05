@@ -12,6 +12,11 @@ export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused';
 export interface PlayerState {
   record: RecordDto | null;
   status: PlayerStatus;
+  // The user's play/pause INTENT, mirrored from RNTP's `playWhenReady`. This is what the
+  // transport button reads: it stays true across a track switch (setQueue resets the native
+  // `status` through Ready/None/Buffering, but intent does not change), so the button does not
+  // flash to the play icon while the new track buffers. `status` still reflects raw playback.
+  playWhenReady: boolean;
   positionSec: number;
   durationSec: number;
   gain: number;
@@ -28,6 +33,7 @@ export interface PlayerState {
 export const player$ = observable<PlayerState>({
   record: null,
   status: 'idle',
+  playWhenReady: false,
   positionSec: 0,
   durationSec: 0,
   gain: 1,

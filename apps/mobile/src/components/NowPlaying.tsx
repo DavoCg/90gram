@@ -61,7 +61,7 @@ export function NowPlaying({
   drag: SharedValue<number>;
 }) {
   const record = use$(player$.record);
-  const status = use$(player$.status);
+  const playWhenReady = use$(player$.playWhenReady);
   const positionSec = use$(player$.positionSec);
   const durationSec = use$(player$.durationSec);
   const canSeek = use$(player$.canSeek);
@@ -76,7 +76,10 @@ export function NowPlaying({
   // updates per animation frame.
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const isPlaying = status === 'playing';
+  // The transport icon (and artwork scale) follow the user's play/pause INTENT, not raw playback
+  // state. Intent stays true across a track switch while the new track buffers, so the button
+  // does not flash to the play triangle; it only shows play when genuinely paused.
+  const isPlaying = playWhenReady;
   const hasNext = queueIndex >= 0 && queueIndex < queue.length - 1;
   const progress = durationSec > 0 ? Math.min(Math.max(positionSec / durationSec, 0), 1) : 0;
 

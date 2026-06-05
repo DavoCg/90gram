@@ -80,6 +80,14 @@ const subscriptions: Subscription[] = [];
 let listenersRegistered = false;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
 
+// When we build a queue and skip into it, RNTP emits a burst of transient
+// PlaybackActiveTrackChanged events before settling: setQueue first resets the active track
+// (an `index: undefined` change, which would null `record` and make the player vanish), passes
+// through index 0 (which would flash the queue's first track), and only then does the skip land
+// on the tapped track. Mirroring any of those would flash the UI. We record the id of the track
+// we actually asked for and ignore every change until that track becomes active.
+let pendingStartId: string | null = null;
+
 // setupPlayer must run exactly once before any other call. Memoize the promise so the mount
 // effect and the first playQueue share one initialization.
 let setupPromise: Promise<void> | null = null;
@@ -158,6 +166,13 @@ function stopPositionTimer(): void {
 // next/previous) into the store. `player$.queue` is the same playable list we set, so the RNTP
 // index maps straight onto it.
 function onActiveTrackChanged(index: number | undefined, track: Track | undefined): void {
+  // While a programmatic queue swap is in flight, ignore the transient changes (undefined index,
+  // index 0, ...) until the track we asked for is active, so the player neither vanishes nor
+  // flashes the wrong track. Match by id, not index, since the burst passes through both.
+  if (pendingStartId !== null) {
+    if (track?.mediaId !== pendingStartId) return;
+    pendingStartId = null;
+  }
   if (index === undefined) {
     player$.assign({ record: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
     return;
@@ -186,6 +201,8 @@ export const audioEngine = {
 
     subscriptions.push(
       TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
+        // Mirror raw playback state. The transport button reads `playWhenReady` (intent), not this,
+        // so the transient paused/idle a queue swap passes through never flashes the play icon.
         player$.status.set(mapState(state));
         if (state === State.Playing) {
           startPositionTimer();
@@ -193,12 +210,19 @@ export const audioEngine = {
           stopPositionTimer();
         }
       }),
+      // Mirror the user's play/pause INTENT. This is what the transport button reads, and it
+      // does not dip during a track switch the way raw playback state does. Ignore a transient
+      // `false` while a swap is in flight: we asked to play the new track, so keep intent true.
+      TrackPlayer.addEventListener(Event.PlaybackPlayWhenReadyChanged, ({ playWhenReady }) => {
+        if (pendingStartId !== null && !playWhenReady) return;
+        player$.playWhenReady.set(playWhenReady);
+      }),
       TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (event) => {
         onActiveTrackChanged(event.index, event.track);
       }),
       TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
         stopPositionTimer();
-        player$.assign({ status: 'paused', positionSec: 0 });
+        player$.assign({ status: 'paused', playWhenReady: false, positionSec: 0 });
       }),
     );
   },
@@ -221,18 +245,24 @@ export const audioEngine = {
     const startRecord = playable[startIndex];
     if (!startRecord) return;
 
-    // Optimistic UI: show the tapped track as loading before the native calls land.
+    // Optimistic UI: show the tapped track as loading, and set intent to play so the transport
+    // button shows pause immediately (and stays there) instead of flashing the play icon.
     player$.assign({
       record: startRecord,
       queue: playable,
       queueIndex: startIndex,
       status: 'loading',
+      playWhenReady: true,
       positionSec: 0,
       durationSec: 0,
       canSeek: false,
     });
 
     await ensureSetup();
+    // Mark the track we are switching to so the transient track-changed burst setQueue/skip emit
+    // is ignored until this track is active (see onActiveTrackChanged). setQueue resets the active
+    // track even when startIndex is 0, so this guard is needed regardless of the target index.
+    pendingStartId = startRecord.id;
     await TrackPlayer.setQueue(playable.map(toTrack));
     if (startIndex > 0) {
       await TrackPlayer.skip(startIndex);
@@ -267,20 +297,23 @@ export const audioEngine = {
     void TrackPlayer.skipToPrevious();
   },
 
-  /** Toggle play/pause for the active track. */
-  async toggle(): Promise<void> {
-    if (player$.status.get() === 'playing') {
-      await TrackPlayer.pause();
+  /** Toggle play/pause for the active track. Keys off intent (what the button shows). */
+  toggle(): void {
+    if (player$.playWhenReady.get()) {
+      this.pause();
     } else {
-      await TrackPlayer.play();
+      this.resume();
     }
   },
 
   pause(): void {
+    // Reflect intent immediately so the button flips without waiting on the native event.
+    player$.playWhenReady.set(false);
     void TrackPlayer.pause();
   },
 
   resume(): void {
+    player$.playWhenReady.set(true);
     void TrackPlayer.play();
   },
 
@@ -308,10 +341,12 @@ export const audioEngine = {
     subscriptions.length = 0;
     listenersRegistered = false;
     setupPromise = null;
+    pendingStartId = null;
     await TrackPlayer.reset();
     player$.assign({
       record: null,
       status: 'idle',
+      playWhenReady: false,
       positionSec: 0,
       durationSec: 0,
       canSeek: false,
