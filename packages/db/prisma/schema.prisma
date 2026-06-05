@@ -55,6 +55,7 @@ model Vinyl {
   tracks     Track[]
   shopVinyls ShopVinyl[]
   genres     VinylGenre[]
+  favorites  Favorite[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -102,6 +103,8 @@ model Track {
   title           String
   durationSeconds Int?    @map("duration_seconds")
   previewUrl      String? @map("preview_url") // audio source for the player
+
+  favorites Favorite[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -218,8 +221,9 @@ model User {
   emailVerified Boolean @default(false) @map("email_verified")
   image         String?
 
-  sessions Session[]
-  accounts Account[]
+  sessions  Session[]
+  accounts  Account[]
+  favorites Favorite[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -285,4 +289,35 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+// ----------------------------------------------------------------------------
+// Favorites (per-user)
+//
+// A favorite targets EITHER a canonical Vinyl OR a single Track, never both and
+// never neither. Modeled as one table with two nullable FKs; the "exactly one
+// target" rule is a CHECK constraint added in the migration SQL (not expressible
+// in the Prisma schema). Both FKs cascade-delete so favorites vanish with their
+// target. The two partial uniques dedupe a target per user: Postgres treats NULLs
+// as distinct, so a user can hold many vinyl favorites (track_id null) and many
+// track favorites (vinyl_id null) without collision. See the db skill.
+// ----------------------------------------------------------------------------
+
+/// A user's saved vinyl or track. Exactly one of vinylId / trackId is set.
+model Favorite {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  vinylId String? @map("vinyl_id")
+  vinyl   Vinyl?  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  trackId String? @map("track_id")
+  track   Track?  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, vinylId], name: "userId_vinylId")
+  @@unique([userId, trackId], name: "userId_trackId")
+  @@index([userId])
+  @@map("favorites")
 }

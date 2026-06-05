@@ -102,6 +102,66 @@ export const ErrorSchema = z
   })
   .openapi('Error');
 
+// --- Favorites (per-user) ---
+
+export const FavoriteTargetTypeSchema = z
+  .enum(['vinyl', 'track'])
+  .openapi('FavoriteTargetType');
+
+// A favorited track, enriched with just enough of its parent vinyl to render and navigate
+// in the Favorites tab without a follow-up fetch.
+export const FavoriteTrackSchema = TrackSchema.extend({
+  vinyl: z.object({
+    id: z.string().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+    title: z.string().openapi({ example: 'Midnight Grooves' }),
+    artist: z.string().openapi({ example: 'The Turntables' }),
+    coverArtUrl: z.url().nullable().openapi({ example: 'https://example.com/cover.jpg' }),
+  }),
+}).openapi('FavoriteTrack');
+
+// The signed-in user's favorites, split by target type and each enriched for direct rendering.
+export const FavoritesSchema = z
+  .object({
+    vinyls: z.array(VinylSummarySchema),
+    tracks: z.array(FavoriteTrackSchema),
+    total: z.number().int(),
+  })
+  .openapi('Favorites');
+
+export const CreateFavoriteSchema = z
+  .object({
+    targetType: FavoriteTargetTypeSchema,
+    targetId: z
+      .string()
+      .min(1)
+      .openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+  })
+  .openapi('CreateFavorite');
+
+export const FavoriteRefSchema = z
+  .object({
+    id: z.string().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+    targetType: FavoriteTargetTypeSchema,
+    targetId: z.string().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+    createdAt: z.iso.datetime().openapi({ example: '2026-06-05T12:00:00.000Z' }),
+  })
+  .openapi('FavoriteRef');
+
+export const MutationResultSchema = z
+  .object({ success: z.boolean() })
+  .openapi('MutationResult');
+
+export const TargetTypeParamSchema = z.object({
+  targetType: FavoriteTargetTypeSchema.openapi({
+    param: { name: 'targetType', in: 'path' },
+    example: 'vinyl',
+  }),
+  targetId: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'targetId', in: 'path' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+});
+
 export const IdParamSchema = z.object({
   id: z
     .string()
@@ -211,5 +271,20 @@ export function toVinylDto(row: VinylDetailRow): Vinyl {
   return {
     ...toVinylSummaryDto(row),
     offers: row.shopVinyls.flatMap((sv) => sv.offers.map((offer) => toOfferDto(offer, sv))),
+  };
+}
+
+// A favorited track row carries its parent vinyl (for display + navigation in the Favorites tab).
+type FavoriteTrackRow = Prisma.TrackGetPayload<{ include: { vinyl: true } }>;
+
+export function toFavoriteTrackDto(row: FavoriteTrackRow): z.infer<typeof FavoriteTrackSchema> {
+  return {
+    ...toTrackDto(row),
+    vinyl: {
+      id: row.vinyl.id,
+      title: row.vinyl.title,
+      artist: row.vinyl.artist,
+      coverArtUrl: row.vinyl.coverArtUrl,
+    },
   };
 }

@@ -25,7 +25,7 @@ import TrackPlayer, {
   State,
   type Track,
 } from 'react-native-track-player';
-import type { VinylSummaryDto } from '@getvinyls/api-client';
+import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { player$, type PlayableTrack, type PlayerStatus } from './store';
 
 // How far the lock-screen / notification jump buttons move, and how often we poll position.
@@ -50,6 +50,20 @@ function toPlayableTracks(vinyl: VinylSummaryDto): PlayableTrack[] {
     });
   }
   return tracks;
+}
+
+// Build a single playable track from a favorited track, which carries just enough of its parent
+// vinyl (artist/cover/id) to play and display on its own. Null when the track has no preview.
+function favoriteToPlayableTrack(track: FavoriteTrackDto): PlayableTrack | null {
+  if (track.previewUrl === null) return null;
+  return {
+    id: track.id,
+    url: track.previewUrl,
+    title: track.title,
+    artist: track.vinyl.artist,
+    artwork: track.vinyl.coverArtUrl ?? undefined,
+    vinylId: track.vinyl.id,
+  };
 }
 
 // Map a PlayableTrack onto an RNTP Track. We stash the track id in `mediaId` (a typed field)
@@ -269,6 +283,17 @@ export const audioEngine = {
       }
     }
     await this.playQueue(tracks, 0);
+  },
+
+  /**
+   * Play a single favorited track on its own (a one-item queue). The Favorites tab plays just the
+   * tapped track rather than its parent album, so prev()/next() have nothing to walk. A track with
+   * no preview URL is a no-op.
+   */
+  async playTrack(track: FavoriteTrackDto): Promise<void> {
+    const playable = favoriteToPlayableTrack(track);
+    if (!playable) return;
+    await this.playQueue([playable], 0);
   },
 
   /**

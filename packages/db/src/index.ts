@@ -14,6 +14,7 @@ import type {
   Price as PriceRow,
   Genre as GenreRow,
   VinylGenre as VinylGenreRow,
+  Favorite as FavoriteRow,
   Prisma,
 } from './generated/prisma/client.js';
 import { StockStatus } from './generated/prisma/enums.js';
@@ -46,5 +47,6 @@ export type {
   PriceRow,
   GenreRow,
   VinylGenreRow,
+  FavoriteRow,
   Prisma,
 };
