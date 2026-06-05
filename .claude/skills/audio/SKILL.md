@@ -32,24 +32,45 @@ to actual output level. Start with `analyser.fftSize = 256`, `smoothingTimeConst
 source is recreated on every play; always connect it into `gainNode` (never straight to `destination`, or
 the visualizer goes silent).
 
-## Buffer-based preview playback
+## Two playback modes (engine picks per track)
 
-`fetch(previewUrl) -> response.arrayBuffer() -> ctx.decodeAudioData() -> AudioBuffer`. Source nodes are
-single-use: create a fresh `createBufferSource({ pitchCorrection: true })` for every play. Keep the decoded
-`AudioBuffer` in a ref (cached per record id so replay/seek/resume does not re-download); read
-`buffer.duration` for progress. Track playback offset yourself and use `start(0, offset)` to resume/seek
-after pause. On seek-while-playing, set `player$.positionSec` to the target BEFORE recreating the source so
-the bar does not flash the old timestamp. A `playGeneration` counter guards against a slow decode clobbering
-a newer `playRecord`, and `playRecord` tears down the current source immediately so the old preview does not
-keep sounding while the next one decodes.
+Previews are full-length tracks, so a fast start matters. The engine has a master switch `STREAMING_ENABLED`
+(in `engine.ts`) and chooses per track:
 
-### Do NOT use the streaming nodes (createStreamer / createFileSource)
+### STREAM mode (fast start, no seek) — DISABLED by default
 
-We tried true progressive streaming so playback could start before the full download. In this build those
-native paths CRASH the app (they do not safely return null when FFmpeg / remote-URL support is missing, and
-a JS try/catch cannot catch a native crash). So previews stay buffer-based. `player$.canSeek` exists and is
-always `true` here; it is plumbing kept for a future streaming source that cannot seek. Only revisit
-streaming behind an FFmpeg build that has been verified on a real device first.
+`ctx.createStreamer(previewUrl)` plays a remote URL progressively. FFmpeg is present and it DOES stream, but
+in react-native-audio-api 0.12.2 the native `StreamerNode` throws on the CoreAudio render thread
+(`AURemoteIO::IOThread` -> `std::terminate` -> SIGABRT) and hard-crashes the app. A JS try/catch cannot
+catch a crash on the audio render thread. So `STREAMING_ENABLED` is `false` and previews use the buffer
+mode. Only flip it on to test a build where the upstream bug is fixed. When testing, connect the streamer
+straight to `ctx.destination` (NOT through gain/analyser) and do NOT use `ctx.suspend()` to pause it (the
+crash shows the streamer's producer queue stalling) - tear it down and restart instead.
+
+Remote streams CANNOT seek (maintainer confirmed in issue #895: you would have to drain the socket and open
+a new connection). So in stream mode set `player$.canSeek = false` and `durationSec = 0`; the `SeekBar`
+renders read-only (elapsed counts up, no scrub, label shows `live`). Pause/resume uses `ctx.suspend()` /
+`ctx.resume()` to freeze the whole context in place (the stream cannot resume from an offset); `currentTime`
+stops advancing while suspended, so the position estimate stays continuous.
+
+### BUFFER mode (seekable fallback)
+
+`fetch(previewUrl) -> arrayBuffer -> ctx.decodeAudioData() -> AudioBuffer`, then a fresh
+`createBufferSource({ pitchCorrection: true })` per play with `start(0, offset)`. Used when streaming is
+disabled, the URL is local, the offset is non-zero (streaming ignores offsets), or createStreamer is
+unavailable. Cache the decoded `AudioBuffer` per record id (replay/seek/resume does not re-download). Set
+`canSeek = true` and publish `buffer.duration`. On seek-while-playing, set `player$.positionSec` to the
+target BEFORE recreating the source so the bar does not flash the old timestamp.
+
+### Shared rules
+
+Always connect the active source into `gainNode` (volume + analyser/visualizer). A `playGeneration` counter
+guards against a slow decode clobbering a newer `playRecord`, and `playRecord` tears down the current source
+immediately so the old preview does not keep sounding while the next starts. Position is estimated from the
+context clock on a ~250ms timer in both modes (the streamer reports no `currentTime`).
+
+WARNING: do not pass a remote URL to `createFileSource` (it expects a local path or an ArrayBuffer and
+crashes on a URL). For remote progressive playback use `createStreamer` only.
 
 ## Player store (Legend State)
 

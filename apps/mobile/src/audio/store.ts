@@ -18,6 +18,11 @@ export interface PlayerState {
   // True when the active source supports seeking (the file source). The streamer
   // fallback streams but cannot seek, so the UI shows a read-only progress indicator.
   canSeek: boolean;
+  // The play queue and the index of the currently-playing item within it. `record` always
+  // mirrors `queue[queueIndex]`. The queue is the list the user tapped into (e.g. the Home
+  // list), so the transport prev/next buttons skip whole tracks. queueIndex is -1 when idle.
+  queue: RecordDto[];
+  queueIndex: number;
 }
 
 export const player$ = observable<PlayerState>({
@@ -27,4 +32,6 @@ export const player$ = observable<PlayerState>({
   durationSec: 0,
   gain: 1,
   canSeek: false,
+  queue: [],
+  queueIndex: -1,
 });

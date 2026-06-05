@@ -5,18 +5,27 @@ import type { RecordDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, Text, View } from '../../src/theme/uniwind';
 import { useRecords } from '../../src/api/hooks';
 import { RecordRow } from '../../src/components/RecordRow';
-import { PlayerBar } from '../../src/components/PlayerBar';
 import { audioEngine } from '../../src/audio/engine';
 import { player$ } from '../../src/audio/store';
+
+// Leaves room at the bottom of the list for the floating mini-player + the tab bar.
+const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
   const { data, isLoading, isError, refetch } = useRecords();
   const currentId = use$(player$.record)?.id;
   const status = use$(player$.status);
 
-  const onPressRecord = useCallback((record: RecordDto) => {
-    void audioEngine.playRecord(record);
-  }, []);
+  // Play the whole visible list as a queue, starting at the tapped row, so the player's
+  // prev/next transport walks the list.
+  const onPressRecord = useCallback(
+    (record: RecordDto) => {
+      const records = data ?? [];
+      const index = records.findIndex((r) => r.id === record.id);
+      void audioEngine.playQueue(records, index >= 0 ? index : 0);
+    },
+    [data],
+  );
 
   const renderItem = useCallback(
     ({ item }: { item: RecordDto }) => (
@@ -63,8 +72,8 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         extraData={`${currentId ?? ''}:${status}`}
+        contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
-      <PlayerBar />
     </View>
   );
 }

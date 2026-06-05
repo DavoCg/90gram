@@ -1,7 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
 import { Text, View } from '../theme/uniwind';
 import { useThemeColors } from '../theme/colors';
-import { PlayerBar } from './PlayerBar';
 
 interface PlaceholderProps {
   icon: LucideIcon;
@@ -9,8 +8,8 @@ interface PlaceholderProps {
   subtitle: string;
 }
 
-// Empty-state scaffold for tabs that are not built out yet. Keeps the PlayerBar mounted so
-// playback controls stay reachable from every tab (it renders null when nothing is playing).
+// Empty-state scaffold for tabs that are not built out yet. The Now Playing surface is
+// mounted globally at the app root, so playback controls stay reachable from every tab.
 export function Placeholder({ icon: Icon, title, subtitle }: PlaceholderProps) {
   const colors = useThemeColors();
 
@@ -21,7 +20,6 @@ export function Placeholder({ icon: Icon, title, subtitle }: PlaceholderProps) {
         <Text className="text-xl font-semibold text-text">{title}</Text>
         <Text className="text-center text-sm text-muted">{subtitle}</Text>
       </View>
-      <PlayerBar />
     </View>
   );
 }

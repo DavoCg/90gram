@@ -26,6 +26,11 @@ function formatTime(seconds: number): string {
   return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
+function formatRemaining(seconds: number): string {
+  'worklet';
+  return `-${formatTime(seconds)}`;
+}
+
 // Draggable progress bar. Renders the full "elapsed / track / duration" row and drives
 // seeking by sliding. Everything that moves during a drag (fill, thumb, elapsed label) is
 // driven by Reanimated shared values on the UI thread, so dragging triggers ZERO React
@@ -36,12 +41,16 @@ export function SeekBar({
   positionSec,
   durationSec,
   canSeek = true,
+  showRemaining = false,
   onSeek,
 }: {
   positionSec: number;
   durationSec: number;
   // False while streaming a non-seekable source: the bar becomes a read-only indicator.
   canSeek?: boolean;
+  // When true the right-hand label counts down the time remaining (e.g. "-2:27") and
+  // tracks the scrub position, matching the full-screen player. Default shows total length.
+  showRemaining?: boolean;
   onSeek: (seconds: number) => void;
 }) {
   // Keep the latest onSeek without recreating the gesture each render.
@@ -160,6 +169,13 @@ export function SeekBar({
     return { text: formatTime(seconds) } as object;
   });
 
+  // Remaining time, computed on the UI thread so it tracks the scrub like the elapsed label.
+  const remainingProps = useAnimatedProps(() => {
+    const elapsed =
+      scrubbing.value || holding.value ? fraction.value * durationShared.value : positionShared.value;
+    return { text: formatRemaining(Math.max(0, durationShared.value - elapsed)) } as object;
+  });
+
   const onLayout = (e: LayoutChangeEvent) => {
     trackWidth.value = e.nativeEvent.layout.width;
   };
@@ -214,7 +230,28 @@ export function SeekBar({
         </View>
       </GestureDetector>
 
-      <Text className="w-10 text-right text-xs text-muted">{formatTime(durationSec)}</Text>
+      {/* While streaming there is no known duration; show a live dot instead of a fake 0:00. */}
+      {showRemaining && durationSec > 0 ? (
+        <AnimatedTextInput
+          editable={false}
+          underlineColorAndroid="transparent"
+          defaultValue={formatRemaining(Math.max(0, durationSec - positionSec))}
+          animatedProps={remainingProps}
+          style={{
+            width: 44,
+            fontSize: 12,
+            lineHeight: 16,
+            padding: 0,
+            textAlign: 'right',
+            color: mutedColor,
+            includeFontPadding: false,
+          }}
+        />
+      ) : (
+        <Text className="w-10 text-right text-xs text-muted">
+          {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
+        </Text>
+      )}
     </View>
   );
 }
