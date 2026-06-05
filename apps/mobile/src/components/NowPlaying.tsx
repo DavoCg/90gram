@@ -28,6 +28,7 @@ import { use$ } from '@legendapp/state/react';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
 import { Pressable, View } from '../theme/uniwind';
+import { Button } from './button/button';
 import { MarqueeText } from './marquee-text';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
@@ -232,24 +233,31 @@ export function NowPlaying({
             </Text>
           </View>
         </Pressable>
-        <Pressable
+        <Button
           onPress={() => void audioEngine.toggle()}
-          className="h-10 w-10 items-center justify-center"
-        >
-          {isPlaying ? (
-            <Pause color={colors.text} size={22} fill={colors.text} />
-          ) : (
-            <Play color={colors.text} size={22} fill={colors.text} />
-          )}
-        </Pressable>
-        <Pressable
+          variant="ghost"
+          size="xs"
+          layout="square"
+          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+          startSlot={
+            isPlaying ? (
+              <Pause color={colors.text} size={22} fill={colors.text} />
+            ) : (
+              <Play color={colors.text} size={22} fill={colors.text} />
+            )
+          }
+        />
+        <Button
           onPress={() => audioEngine.next()}
           disabled={!hasNext}
-          className="h-10 w-10 items-center justify-center"
+          preserveDisabledStyle
+          variant="ghost"
+          size="xs"
+          layout="square"
+          accessibilityLabel="Next track"
           style={{ opacity: hasNext ? 1 : 0.35 }}
-        >
-          <SkipForward color={colors.text} size={22} fill={colors.text} />
-        </Pressable>
+          startSlot={<SkipForward color={colors.text} size={22} fill={colors.text} />}
+        />
         {/* Thin static progress line at the bottom edge of the bar. */}
         <View
           style={{
@@ -327,12 +335,26 @@ export function NowPlaying({
                 </Text>
               </View>
               {/* Decorative for now (no favorites / menu backing yet). */}
-              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full curve-continuous bg-surface-2">
-                <Star color={colors.text} size={18} />
-              </Pressable>
-              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full curve-continuous bg-surface-2">
-                <MoreHorizontal color={colors.text} size={18} />
-              </Pressable>
+              <View className="ml-2">
+                <Button
+                  variant="soft"
+                  color="neutral"
+                  size="2xs"
+                  layout="square"
+                  accessibilityLabel="Favorite"
+                  startSlot={<Star color={colors.text} size={18} />}
+                />
+              </View>
+              <View className="ml-2">
+                <Button
+                  variant="soft"
+                  color="neutral"
+                  size="2xs"
+                  layout="square"
+                  accessibilityLabel="More"
+                  startSlot={<MoreHorizontal color={colors.text} size={18} />}
+                />
+              </View>
             </View>
 
             <SeekBar
@@ -346,33 +368,49 @@ export function NowPlaying({
             {/* Flexible slack centers the transport between the progress bar and the volume. */}
             <View style={{ flex: 1 }} />
 
-            {/* Transport row. */}
+            {/* Transport row. Gap tuned down from 44 to keep the glyph spacing now that each control
+                is a square Button box rather than a bare icon. */}
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 44,
+                gap: 22,
               }}
             >
-              <Pressable onPress={() => audioEngine.prev()} hitSlop={12}>
-                <SkipBack color={colors.text} size={32} fill={colors.text} />
-              </Pressable>
-              <Pressable onPress={() => void audioEngine.toggle()} hitSlop={12}>
-                {isPlaying ? (
-                  <Pause color={colors.text} size={44} fill={colors.text} />
-                ) : (
-                  <Play color={colors.text} size={44} fill={colors.text} />
-                )}
-              </Pressable>
-              <Pressable
+              <Button
+                onPress={() => audioEngine.prev()}
+                variant="ghost"
+                size="md"
+                layout="square"
+                accessibilityLabel="Previous track"
+                startSlot={<SkipBack color={colors.text} size={32} fill={colors.text} />}
+              />
+              <Button
+                onPress={() => void audioEngine.toggle()}
+                variant="ghost"
+                size="lg"
+                layout="square"
+                accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
+                startSlot={
+                  isPlaying ? (
+                    <Pause color={colors.text} size={44} fill={colors.text} />
+                  ) : (
+                    <Play color={colors.text} size={44} fill={colors.text} />
+                  )
+                }
+              />
+              <Button
                 onPress={() => audioEngine.next()}
                 disabled={!hasNext}
-                hitSlop={12}
+                preserveDisabledStyle
+                variant="ghost"
+                size="md"
+                layout="square"
+                accessibilityLabel="Next track"
                 style={{ opacity: hasNext ? 1 : 0.35 }}
-              >
-                <SkipForward color={colors.text} size={32} fill={colors.text} />
-              </Pressable>
+                startSlot={<SkipForward color={colors.text} size={32} fill={colors.text} />}
+              />
             </View>
 
             {/* Push the volume + bottom icons down to the bottom of the sheet. */}

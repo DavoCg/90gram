@@ -6,6 +6,7 @@ import { Play, Shuffle } from 'lucide-react-native';
 import type { FavoriteTrackDto, TrackDto, VinylDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
 import { Text } from '../components/text';
+import { PressableScale } from '../components/pressable-scale';
 import { CoverArt } from '../components/cover-art';
 import { useVinyl } from '../api/hooks';
 import { AppHeader } from '../components/AppHeader';
@@ -96,12 +97,12 @@ export default function VinylDetailScreen() {
           <AppHeader />
           <View className="flex-1 items-center justify-center gap-3 px-6">
             <Text align="center">Could not load this record.</Text>
-            <Pressable
+            <PressableScale
               onPress={() => void refetch()}
               className="rounded-full curve-continuous bg-accent px-5 py-2"
             >
               <Text color="white">Retry</Text>
-            </Pressable>
+            </PressableScale>
           </View>
         </View>
       );
@@ -152,7 +153,7 @@ export default function VinylDetailScreen() {
 
         {/* Play + Shuffle. Dimmed when nothing in the tracklist has a preview. */}
         <View className="flex-row gap-3 px-6 pb-4">
-          <Pressable
+          <PressableScale
             onPress={onPressPlay}
             disabled={!hasPlayable}
             style={{ opacity: hasPlayable ? 1 : 0.4 }}
@@ -162,8 +163,8 @@ export default function VinylDetailScreen() {
             <Text weight="semibold" color="accent">
               Play
             </Text>
-          </Pressable>
-          <Pressable
+          </PressableScale>
+          <PressableScale
             onPress={onPressShuffle}
             disabled={!hasPlayable}
             style={{ opacity: hasPlayable ? 1 : 0.4 }}
@@ -173,7 +174,7 @@ export default function VinylDetailScreen() {
             <Text weight="semibold" color="accent">
               Shuffle
             </Text>
-          </Pressable>
+          </PressableScale>
         </View>
 
         {/* Tracklist. Tap a row to play from there; rows without a preview are dimmed. */}

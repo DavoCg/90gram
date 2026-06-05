@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ActivityIndicator } from 'react-native';
-import { Pressable, View } from '../../theme/uniwind';
+import { View } from '../../theme/uniwind';
+import { PressableScale } from '../pressable-scale';
 import { Text } from '../text';
 import { buttonRecipe } from './button-recipe';
 import type { ButtonProps } from './button-types';
@@ -52,8 +53,9 @@ export function Button({
     blur,
   });
 
+  // PressableScale carries the recipe `root` (layout: shrink-0 / flex-1) and the press bounce.
   return (
-    <Pressable
+    <PressableScale
       onPress={isFunctionallyDisabled ? undefined : onPress}
       disabled={isFunctionallyDisabled}
       className={classes.root()}
@@ -77,6 +79,6 @@ export function Button({
           ))
         )}
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

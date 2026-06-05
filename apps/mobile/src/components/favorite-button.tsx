@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
 import { Heart } from 'lucide-react-native';
 import type { VinylSummaryDto, FavoriteTrackDto } from '@getvinyls/api-client';
-import { Pressable } from '../theme/uniwind';
+import { Button } from './button/button';
 import { useIsFavorite, useToggleFavorite } from '../api/hooks';
 import { useThemeColors } from '../theme/colors';
 
@@ -36,18 +36,20 @@ export function FavoriteButton(props: FavoriteButtonProps) {
   }, [props, toggle]);
 
   return (
-    <Pressable
+    <Button
       onPress={onPress}
+      variant="ghost"
+      size="xs"
+      layout="square"
       hitSlop={8}
-      accessibilityRole="button"
       accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      className="h-9 w-9 items-center justify-center"
-    >
-      <Heart
-        color={isFavorite ? colors.accent : colors.text}
-        fill={isFavorite ? colors.accent : 'transparent'}
-        size={size}
-      />
-    </Pressable>
+      startSlot={
+        <Heart
+          color={isFavorite ? colors.accent : colors.text}
+          fill={isFavorite ? colors.accent : 'transparent'}
+          size={size}
+        />
+      }
+    />
   );
 }

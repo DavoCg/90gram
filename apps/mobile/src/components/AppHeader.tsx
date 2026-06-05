@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
-import { Pressable, View } from '../theme/uniwind';
+import { View } from '../theme/uniwind';
+import { Button } from './button/button';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 
@@ -29,13 +30,17 @@ export function AppHeader({ title, showBack, right }: AppHeaderProps) {
     <View style={{ paddingTop: insets.top }} className="bg-bg">
       <View className="h-12 flex-row items-center gap-1 px-4">
         {canGoBack ? (
-          <Pressable
-            onPress={() => router.back()}
-            hitSlop={8}
-            className="-ml-2 h-9 w-9 items-center justify-center"
-          >
-            <ChevronLeft color={colors.text} size={28} />
-          </Pressable>
+          <View className="-ml-2">
+            <Button
+              onPress={() => router.back()}
+              variant="ghost"
+              size="xs"
+              layout="square"
+              hitSlop={8}
+              accessibilityLabel="Go back"
+              startSlot={<ChevronLeft color={colors.text} size={28} />}
+            />
+          </View>
         ) : null}
         {title ? (
           <Text numberOfLines={1} size="2xl" weight="bold" className="flex-1">
