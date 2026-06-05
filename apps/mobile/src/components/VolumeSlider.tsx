@@ -6,12 +6,11 @@ import { useCSSVariable } from 'uniwind';
 import type { LayoutChangeEvent } from 'react-native';
 import { View } from '../theme/uniwind';
 
-const THUMB_SIZE = 14;
-
-// Horizontal volume (gain) slider, modeled on SeekBar: everything that moves during a drag
-// is driven by Reanimated shared values on the UI thread (transforms, never layout), so
-// dragging triggers ZERO React renders. It is uncontrolled, the engine is the sole writer
-// of gain, so we seed from the current value once and push changes out via onChange.
+// Horizontal volume (gain) slider, modeled on SeekBar (Apple Music style: thin track, no thumb,
+// neutral fill). Everything that moves during a drag is driven by Reanimated shared values on the
+// UI thread (transforms, never layout), so dragging triggers ZERO React renders. It is
+// uncontrolled, the engine is the sole writer of gain, so we seed from the current value once and
+// push changes out via onChange.
 export function VolumeSlider({
   initialValue,
   onChange,
@@ -23,8 +22,9 @@ export function VolumeSlider({
   onChangeRef.current = onChange;
   const emit = (value: number) => onChangeRef.current(value);
 
+  // Accent fill for the active (filled) portion, on the dimmer surface-2 track.
   const accent = useCSSVariable('--color-accent');
-  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#e879f9';
+  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#46a758';
   const muted = useCSSVariable('--color-muted');
   const mutedColor = typeof muted === 'string' && muted.length > 0 ? muted : '#9ca3af';
 
@@ -54,10 +54,6 @@ export function VolumeSlider({
     transform: [{ scaleX: Math.max(fraction.value, 0) }],
   }));
 
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: fraction.value * trackWidth.value - THUMB_SIZE / 2 }],
-  }));
-
   const onLayout = (e: LayoutChangeEvent) => {
     trackWidth.value = e.nativeEvent.layout.width;
   };
@@ -68,11 +64,11 @@ export function VolumeSlider({
       <GestureDetector gesture={gesture}>
         {/* Tall, transparent hit area so the thin visual track is easy to grab. */}
         <View className="h-6 flex-1 justify-center" onLayout={onLayout}>
-          <View className="h-1 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
+          <View className="h-2 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
             <Animated.View
               style={[
                 {
-                  height: 4,
+                  height: 8,
                   width: '100%',
                   borderRadius: 9999,
                   backgroundColor: accentColor,
@@ -82,19 +78,6 @@ export function VolumeSlider({
               ]}
             />
           </View>
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                left: 0,
-                width: THUMB_SIZE,
-                height: THUMB_SIZE,
-                borderRadius: THUMB_SIZE / 2,
-                backgroundColor: accentColor,
-              },
-              thumbStyle,
-            ]}
-          />
         </View>
       </GestureDetector>
       <Volume2 color={mutedColor} size={18} />

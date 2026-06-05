@@ -56,6 +56,20 @@ navigator plus the global mini-player only mount once signed in. Read the sessio
 NOT go through the generated api-client; that client only forwards the better-auth cookie so future
 per-user endpoints are authenticated.
 
+## Forms
+
+- **Every form uses TanStack Form** (`@tanstack/react-form`). Use `useForm({ defaultValues, onSubmit })`
+  directly (no `createFormHook` factory); never hand-roll `useState` per field. Render fields with
+  `<form.Field name validators={{ onChange }}>` and gate the submit button with
+  `<form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting]}>`. Field-level validation lives on the
+  form; surface server errors (e.g. better-auth) in separate local state. `apps/(auth)/sign-in.tsx` is the
+  reference (an email form and a code form, one per step).
+- Text fields use the `Input` component (`src/components/input`); one-time codes use the `OTPInput`
+  component (`src/components/otp-input`, built on `input-otp-native`): six per-digit slots, a blinking
+  caret, and a shake-on-error (`useShake` + `expo-haptics`) driven by its `state` prop
+  (`idle`/`error`/`loading`/`success`). Wire it to a field with `value`/`onChange` and submit on
+  `onComplete`.
+
 ## State management
 
 - **Server/data state: TanStack Query** (the hooks above). **Client/UI state: Legend State** observables

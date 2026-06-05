@@ -1,71 +1,61 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { TextInput, View } from '../../src/theme/uniwind';
+import { useForm } from '@tanstack/react-form';
+import { View } from '../../src/theme/uniwind';
 import { Text } from '../../src/components/text';
 import { Button } from '../../src/components/button';
-import { useThemeColors } from '../../src/theme/colors';
+import { Input } from '../../src/components/input';
+import { OTPInput, type OTPInputState } from '../../src/components/otp-input';
 import { authClient } from '../../src/auth/client';
 
-// Passwordless sign-in. Two steps in one screen: enter an email to receive a one-time code, then
-// enter the code to sign in. On success the better-auth session updates and the root layout's auth
-// gate redirects into the app, so there is no manual navigation here.
+// Passwordless sign-in. Two steps in one screen, each its own TanStack Form: enter an email to
+// receive a one-time code, then enter the 6-digit code to sign in. On success the better-auth
+// session updates and the root layout's auth gate redirects into the app (no manual navigation).
 type Step = 'email' | 'otp';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignInScreen() {
-  const colors = useThemeColors();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<Step>('email');
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Server-side errors from better-auth (field-level validation lives on the forms themselves).
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  const sendCode = async () => {
-    const trimmed = email.trim();
-    if (!EMAIL_RE.test(trimmed)) {
-      setError('Enter a valid email address.');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const { error: sendError } = await authClient.emailOtp.sendVerificationOtp({
-      email: trimmed,
-      type: 'sign-in',
-    });
-    setBusy(false);
-    if (sendError) {
-      setError(sendError.message ?? 'Could not send the code. Try again.');
-      return;
-    }
-    setEmail(trimmed);
-    setOtp('');
-    setStep('otp');
-  };
+  const emailForm = useForm({
+    defaultValues: { email: '' },
+    onSubmit: async ({ value }) => {
+      setServerError(null);
+      const { error } = await authClient.emailOtp.sendVerificationOtp({
+        email: value.email.trim(),
+        type: 'sign-in',
+      });
+      if (error) {
+        setServerError(error.message ?? 'Could not send the code. Try again.');
+        return;
+      }
+      setStep('otp');
+    },
+  });
 
-  const verify = async () => {
-    if (otp.trim().length < 6) {
-      setError('Enter the 6-digit code from your email.');
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    const { error: verifyError } = await authClient.signIn.emailOtp({ email, otp: otp.trim() });
-    setBusy(false);
-    if (verifyError) {
-      setError(verifyError.message ?? 'That code did not work. Try again.');
-    }
-    // On success the session listener flips and the root gate navigates away.
-  };
+  const codeForm = useForm({
+    defaultValues: { code: '' },
+    onSubmit: async ({ value }) => {
+      setServerError(null);
+      const { error } = await authClient.signIn.emailOtp({
+        email: emailForm.state.values.email.trim(),
+        otp: value.code.trim(),
+      });
+      if (error) {
+        setServerError(error.message ?? 'That code did not work. Try again.');
+      }
+      // On success the session listener flips and the root gate navigates away.
+    },
+  });
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View
         className="flex-1 justify-center bg-bg px-6"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
@@ -77,96 +67,125 @@ export default function SignInScreen() {
           <Text color="neutral-soft" className="mt-2">
             {step === 'email'
               ? 'Enter your email and we will send you a one-time code.'
-              : `We sent a 6-digit code to ${email}.`}
+              : `We sent a 6-digit code to ${emailForm.state.values.email}.`}
           </Text>
         </View>
 
         {step === 'email' ? (
-          <TextInput
-            className="h-14 rounded-2xl curve-continuous border-hairline border-border bg-surface-2 px-4 text-lg"
-            style={{ color: colors.text }}
-            placeholder="you@example.com"
-            placeholderTextColor={colors.muted}
-            selectionColor={colors.accent}
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setError(null);
-            }}
-            autoCapitalize="none"
-            autoCorrect={false}
-            autoComplete="email"
-            keyboardType="email-address"
-            inputMode="email"
-            returnKeyType="send"
-            editable={!busy}
-            onSubmitEditing={() => void sendCode()}
-          />
+          <emailForm.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
+            {([canSubmit, isSubmitting]) => (
+              <>
+                <emailForm.Field
+                  name="email"
+                  validators={{
+                    onChange: ({ value }) =>
+                      EMAIL_RE.test(value.trim()) ? undefined : 'Enter a valid email address.',
+                  }}
+                >
+                  {(field) => {
+                    const showError =
+                      field.state.meta.isTouched && field.state.meta.errors.length > 0;
+                    return (
+                      <Input
+                        size="lg"
+                        placeholder="you@example.com"
+                        value={field.state.value}
+                        onChangeText={field.handleChange}
+                        onBlur={field.handleBlur}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        autoComplete="email"
+                        keyboardType="email-address"
+                        inputMode="email"
+                        returnKeyType="send"
+                        editable={!isSubmitting}
+                        onSubmitEditing={() => void emailForm.handleSubmit()}
+                        variant={showError ? 'error' : 'default'}
+                        helperText={showError ? field.state.meta.errors.join(', ') : undefined}
+                      />
+                    );
+                  }}
+                </emailForm.Field>
+
+                <View className="mt-6">
+                  <Button
+                    label="Send code"
+                    color="accent"
+                    layout="flex"
+                    loading={isSubmitting}
+                    disabled={isSubmitting || !canSubmit}
+                    onPress={() => void emailForm.handleSubmit()}
+                  />
+                </View>
+              </>
+            )}
+          </emailForm.Subscribe>
         ) : (
-          <TextInput
-            className="h-14 rounded-2xl curve-continuous border-hairline border-border bg-surface-2 px-4 text-center text-2xl tracking-[8px]"
-            style={{ color: colors.text }}
-            placeholder="000000"
-            placeholderTextColor={colors.muted}
-            selectionColor={colors.accent}
-            value={otp}
-            onChangeText={(text) => {
-              setOtp(text.replace(/[^0-9]/g, '').slice(0, 6));
-              setError(null);
+          <codeForm.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
+            {([canSubmit, isSubmitting]) => {
+              const otpState: OTPInputState = isSubmitting
+                ? 'loading'
+                : serverError
+                  ? 'error'
+                  : 'idle';
+              return (
+                <>
+                  <codeForm.Field
+                    name="code"
+                    validators={{
+                      onChange: ({ value }) =>
+                        value.trim().length === 6
+                          ? undefined
+                          : 'Enter the 6-digit code from your email.',
+                    }}
+                  >
+                    {(field) => (
+                      <OTPInput
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                        maxLength={6}
+                        placeholder="000000"
+                        placeholderChar="0"
+                        autoFocus
+                        state={otpState}
+                        onComplete={() => void codeForm.handleSubmit()}
+                      />
+                    )}
+                  </codeForm.Field>
+
+                  <View className="mt-6 gap-3">
+                    <Button
+                      label="Verify and sign in"
+                      color="accent"
+                      layout="flex"
+                      loading={isSubmitting}
+                      disabled={isSubmitting || !canSubmit}
+                      onPress={() => void codeForm.handleSubmit()}
+                    />
+                    <Button
+                      label="Use a different email"
+                      variant="ghost"
+                      color="neutral"
+                      layout="flex"
+                      disabled={isSubmitting}
+                      onPress={() => {
+                        setServerError(null);
+                        codeForm.reset();
+                        setStep('email');
+                      }}
+                    />
+                  </View>
+                </>
+              );
             }}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            textContentType="oneTimeCode"
-            autoComplete="sms-otp"
-            maxLength={6}
-            returnKeyType="done"
-            editable={!busy}
-            autoFocus
-            onSubmitEditing={() => void verify()}
-          />
+          </codeForm.Subscribe>
         )}
 
-        {error ? (
-          <Text size="sm" color="critical" className="mt-3">
-            {error}
+        {serverError ? (
+          <Text size="sm" color="critical" align="center" className="mt-4">
+            {serverError}
           </Text>
         ) : null}
-
-        <View className="mt-6 gap-3">
-          {step === 'email' ? (
-            <Button
-              label="Send code"
-              color="accent"
-              layout="flex"
-              loading={busy}
-              disabled={busy}
-              onPress={() => void sendCode()}
-            />
-          ) : (
-            <>
-              <Button
-                label="Verify and sign in"
-                color="accent"
-                layout="flex"
-                loading={busy}
-                disabled={busy}
-                onPress={() => void verify()}
-              />
-              <Button
-                label="Use a different email"
-                variant="ghost"
-                color="neutral"
-                layout="flex"
-                disabled={busy}
-                onPress={() => {
-                  setStep('email');
-                  setOtp('');
-                  setError(null);
-                }}
-              />
-            </>
-          )}
-        </View>
       </View>
     </KeyboardAvoidingView>
   );

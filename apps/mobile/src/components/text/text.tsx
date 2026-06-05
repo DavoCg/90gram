@@ -37,7 +37,15 @@ export const Text = forwardRef<RNText, TextProps>(
 			tabularNums,
 		});
 
-		return <RNText {...props} ref={ref} className={resolvedClassName} allowFontScaling={false} style={style} />;
+		return (
+			<RNText
+				{...props}
+				ref={ref}
+				className={resolvedClassName}
+				allowFontScaling={false}
+				style={style}
+			/>
+		);
 	},
 );
 

@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && tsx watch src/index.ts",
+    "start": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && node dist/index.js",
     "build": "tsc",
     "gen:openapi": "tsx scripts/dump-openapi.ts",
     "typecheck": "tsc --noEmit",

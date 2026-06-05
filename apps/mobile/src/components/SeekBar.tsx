@@ -13,8 +13,6 @@ import type { LayoutChangeEvent } from 'react-native';
 import { View } from '../theme/uniwind';
 import { Text } from './text';
 
-const THUMB_SIZE = 14;
-
 // Animated TextInput whose `text` prop is driven from a worklet, so the elapsed label can
 // update on the UI thread without a React re-render on every gesture frame.
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
@@ -32,12 +30,12 @@ function formatRemaining(seconds: number): string {
   return `-${formatTime(seconds)}`;
 }
 
-// Draggable progress bar. Renders the full "elapsed / track / duration" row and drives
-// seeking by sliding. Everything that moves during a drag (fill, thumb, elapsed label) is
-// driven by Reanimated shared values on the UI thread, so dragging triggers ZERO React
-// renders. The fill/thumb use transforms (scaleX / translateX), never layout props, so the
-// UI thread never re-runs layout per frame. We only call onSeek once, on release, which
-// matches the engine (a fresh AudioBufferSourceNode starts at the new offset).
+// Draggable progress bar (Apple Music style: thin track, no thumb, time labels beneath).
+// Everything that moves during a drag (the fill and the elapsed/remaining labels) is driven by
+// Reanimated shared values on the UI thread, so dragging triggers ZERO React renders. The fill
+// uses a transform (scaleX), never layout props, so the UI thread never re-runs layout per frame.
+// We only call onSeek once, on release, which matches the engine (a fresh source starts at the
+// new offset).
 export function SeekBar({
   positionSec,
   durationSec,
@@ -59,8 +57,9 @@ export function SeekBar({
   onSeekRef.current = onSeek;
   const seek = (seconds: number) => onSeekRef.current(seconds);
 
+  // Accent fill for the active (played) portion, on the dimmer surface-2 track.
   const accent = useCSSVariable('--color-accent');
-  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#e879f9';
+  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#46a758';
   const muted = useCSSVariable('--color-muted');
   const mutedColor = typeof muted === 'string' && muted.length > 0 ? muted : '#9ca3af';
 
@@ -158,11 +157,6 @@ export function SeekBar({
     transform: [{ scaleX: Math.max(fraction.value, 0) }],
   }));
 
-  // translateX instead of animating left, and account for the track width measured on layout.
-  const thumbStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: fraction.value * trackWidth.value - THUMB_SIZE / 2 }],
-  }));
-
   const elapsedProps = useAnimatedProps(() => {
     const seconds =
       scrubbing.value || holding.value ? fraction.value * durationShared.value : positionShared.value;
@@ -182,30 +176,15 @@ export function SeekBar({
   };
 
   return (
-    <View className="mt-3 flex-row items-center gap-2">
-      <AnimatedTextInput
-        editable={false}
-        underlineColorAndroid="transparent"
-        defaultValue={formatTime(positionSec)}
-        animatedProps={elapsedProps}
-        style={{
-          width: 40,
-          fontSize: 12,
-          lineHeight: 16,
-          padding: 0,
-          color: mutedColor,
-          includeFontPadding: false,
-        }}
-      />
-
+    <View className="mt-3">
       <GestureDetector gesture={gesture}>
-        {/* Tall, transparent hit area so the thin visual track is easy to grab. */}
-        <View className="h-6 flex-1 justify-center" onLayout={onLayout}>
-          <View className="h-1 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
+        {/* Tall, transparent hit area so the thin visual track is easy to grab. No thumb. */}
+        <View className="h-6 justify-center" onLayout={onLayout}>
+          <View className="h-2 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
             <Animated.View
               style={[
                 {
-                  height: 4,
+                  height: 8,
                   width: '100%',
                   borderRadius: 9999,
                   backgroundColor: accentColor,
@@ -215,44 +194,48 @@ export function SeekBar({
               ]}
             />
           </View>
-          <Animated.View
-            style={[
-              {
-                position: 'absolute',
-                left: 0,
-                width: THUMB_SIZE,
-                height: THUMB_SIZE,
-                borderRadius: THUMB_SIZE / 2,
-                backgroundColor: accentColor,
-              },
-              thumbStyle,
-            ]}
-          />
         </View>
       </GestureDetector>
 
-      {/* While streaming there is no known duration; show a live dot instead of a fake 0:00. */}
-      {showRemaining && durationSec > 0 ? (
+      {/* Time labels beneath the track: elapsed left, remaining (or total) right. */}
+      <View className="flex-row justify-between">
         <AnimatedTextInput
           editable={false}
           underlineColorAndroid="transparent"
-          defaultValue={formatRemaining(Math.max(0, durationSec - positionSec))}
-          animatedProps={remainingProps}
+          defaultValue={formatTime(positionSec)}
+          animatedProps={elapsedProps}
           style={{
-            width: 44,
+            width: 48,
             fontSize: 12,
             lineHeight: 16,
             padding: 0,
-            textAlign: 'right',
             color: mutedColor,
             includeFontPadding: false,
           }}
         />
-      ) : (
-        <Text size="xs" color="neutral-soft" align="right" className="w-10">
-          {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
-        </Text>
-      )}
+        {/* While streaming there is no known duration; show a live label instead of a fake 0:00. */}
+        {showRemaining && durationSec > 0 ? (
+          <AnimatedTextInput
+            editable={false}
+            underlineColorAndroid="transparent"
+            defaultValue={formatRemaining(Math.max(0, durationSec - positionSec))}
+            animatedProps={remainingProps}
+            style={{
+              width: 48,
+              fontSize: 12,
+              lineHeight: 16,
+              padding: 0,
+              textAlign: 'right',
+              color: mutedColor,
+              includeFontPadding: false,
+            }}
+          />
+        ) : (
+          <Text size="xs" color="neutral-soft" align="right" className="w-12">
+            {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }

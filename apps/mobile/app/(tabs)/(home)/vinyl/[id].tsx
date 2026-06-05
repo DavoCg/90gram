@@ -1,21 +1,24 @@
 import { useCallback, useMemo } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
-import { AudioLines, Play, Shuffle } from 'lucide-react-native';
+import { Play, Shuffle } from 'lucide-react-native';
 import type { TrackDto, VinylDto } from '@getvinyls/api-client';
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   View,
 } from '../../../../src/theme/uniwind';
 import { Text } from '../../../../src/components/text';
+import { CoverArt } from '../../../../src/components/cover-art';
 import { useVinyl } from '../../../../src/api/hooks';
 import { AppHeader } from '../../../../src/components/AppHeader';
+import { EqualizerBars } from '../../../../src/components/equalizer-bars';
 import { audioEngine } from '../../../../src/audio/engine';
 import { player$ } from '../../../../src/audio/store';
 import { useThemeColors } from '../../../../src/theme/colors';
+import { BIG_COVER_MAX } from '../../../../src/theme/sizes';
 
 // Leaves room at the bottom of the scroll for the floating mini-player.
 const LIST_BOTTOM_PADDING = 160;
@@ -38,6 +41,11 @@ export default function VinylScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: vinyl, isLoading, isError, refetch } = useVinyl(id ?? '');
   const colors = useThemeColors();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Match the full player's cover sizing so a "big cover" is the same size everywhere: capped at
+  // BIG_COVER_MAX, shrinking only on narrow screens to fit within the page padding (px-6 = 24).
+  const coverSize = Math.min(screenWidth - 48, BIG_COVER_MAX);
 
   // The active track (by id) and play/pause intent drive the row highlight. Reading intent
   // (not raw status) keeps the indicator steady while a tapped track buffers.
@@ -109,11 +117,7 @@ export default function VinylScreen() {
       >
         {/* Cover art + identity. */}
         <View className="items-center px-6 pb-4 pt-1">
-          <Image
-            source={vinyl.coverArtUrl ? { uri: vinyl.coverArtUrl } : undefined}
-            className="aspect-square w-72 rounded-xl curve-continuous bg-surface-2"
-            contentFit="cover"
-          />
+          <CoverArt uri={vinyl.coverArtUrl} size={coverSize} />
           <Text numberOfLines={2} size="2xl" weight="bold" align="center" className="mt-5">
             {vinyl.title}
           </Text>
@@ -175,7 +179,11 @@ export default function VinylScreen() {
               >
                 <View className="w-7 items-center">
                   {isCurrent ? (
-                    <AudioLines color={colors.accent} size={16} />
+                    <EqualizerBars
+                      playing={playWhenReady}
+                      color={colors.accent}
+                      size={14}
+                    />
                   ) : (
                     <Text size="sm" color="neutral-soft">
                       {track.position}

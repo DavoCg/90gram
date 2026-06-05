@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
-import { Image, Pressable, View } from '../theme/uniwind';
+import { Pressable, View } from '../theme/uniwind';
+import { CoverArt } from './cover-art';
 import { Text } from './text';
 
 export interface VinylRowProps {
@@ -25,10 +26,7 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
       onPress={() => onPress(vinyl)}
       className={`flex-row items-center gap-3 px-4 py-3 ${isCurrent ? 'bg-surface-2' : 'bg-bg'}`}
     >
-      <Image
-        source={vinyl.coverArtUrl ? { uri: vinyl.coverArtUrl } : undefined}
-        className="h-14 w-14 rounded-md curve-continuous bg-surface-2"
-      />
+      <CoverArt uri={vinyl.coverArtUrl} size={56} radius={8} />
       <View className="flex-1">
         <Text numberOfLines={1} weight="semibold">
           {vinyl.title}

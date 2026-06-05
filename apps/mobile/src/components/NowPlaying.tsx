@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import {
@@ -17,8 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Extrapolation,
   interpolate,
+  ReduceMotion,
   runOnJS,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -26,8 +28,10 @@ import { use$ } from '@legendapp/state/react';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
 import { Pressable, View } from '../theme/uniwind';
+import { MarqueeText } from './marquee-text';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
+import { BIG_COVER_MAX, BIG_COVER_RADIUS } from '../theme/sizes';
 import { SeekBar } from './SeekBar';
 import { VolumeSlider } from './VolumeSlider';
 
@@ -39,11 +43,13 @@ const TAB_BAR_BASE = Platform.OS === 'ios' ? 49 : 56;
 const MINI_HEIGHT = 60;
 const MINI_MARGIN = 8;
 const MINI_ART = 44;
-const PAD = 24;
+const PAD = 20;
 // iOS form-sheet corner radius. Constant: it does not change with the drag.
 const SHEET_RADIUS = 38;
 
 const SPRING = { damping: 22, stiffness: 180, mass: 0.7 } as const;
+// Snappier spring for the play/pause cover scale: stiffer and lighter so it pops quickly.
+const SCALE_SPRING = { damping: 18, stiffness: 380, mass: 0.5 } as const;
 
 // The single, globally-mounted Now Playing surface. Motion is two shared values created in the
 // root layout and passed in:
@@ -84,9 +90,23 @@ export function NowPlaying({
   const hasNext = queueIndex >= 0 && queueIndex < queue.length - 1;
   const progress = durationSec > 0 ? Math.min(Math.max(positionSec / durationSec, 0), 1) : 0;
 
+  // The expanded cover shrinks when paused and grows back when playing (Apple Music). Drive the
+  // target through a shared value so the change springs smoothly instead of snapping. ReduceMotion
+  // .Never keeps the spring even with the OS setting on (otherwise it would jump to the end).
+  const playScale = useSharedValue(isPlaying ? 1 : 0.86);
+  useEffect(() => {
+    playScale.value = withSpring(isPlaying ? 1 : 0.86, {
+      ...SCALE_SPRING,
+      reduceMotion: ReduceMotion.Never,
+    });
+  }, [isPlaying, playScale]);
+
   // --- Geometry: large (expanded) artwork rect and the mini (collapsed) thumbnail rect. ---
   const tabBarHeight = TAB_BAR_BASE + insets.bottom;
-  const large = Math.min(W - PAD * 2, H * 0.42);
+  const large = Math.min(W - PAD * 2, BIG_COVER_MAX, H * 0.5);
+  // Center the cover, and inset the controls to its actual edges so the title still lines up with
+  // the artwork even when the cover is capped narrower than the screen.
+  const sidePad = (W - large) / 2;
   const artTop = insets.top + 44;
   const largeCenterX = W / 2;
   const largeCenterY = artTop + large / 2;
@@ -146,11 +166,16 @@ export function NowPlaying({
     const scale = interpolate(
       expand.value,
       [0, 1],
-      [collapsedScale, isPlaying ? 1 : 0.86],
+      [collapsedScale, playScale.value],
       Extrapolation.CLAMP,
     );
     return {
-      borderRadius: interpolate(expand.value, [0, 1], [collapsedRadius, 16], Extrapolation.CLAMP),
+      borderRadius: interpolate(
+        expand.value,
+        [0, 1],
+        [collapsedRadius, BIG_COVER_RADIUS],
+        Extrapolation.CLAMP,
+      ),
       transform: [
         { translateX: interpolate(expand.value, [0, 1], [collapsedTX, 0], Extrapolation.CLAMP) },
         {
@@ -201,9 +226,7 @@ export function NowPlaying({
         <Pressable onPress={openPlayer} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: MINI_ART + 16 }} />
           <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} weight="semibold">
-              {track.title}
-            </Text>
+            <MarqueeText weight="semibold">{track.title}</MarqueeText>
             <Text numberOfLines={1} size="xs" color="neutral-soft">
               {track.artist}
             </Text>
@@ -270,8 +293,8 @@ export function NowPlaying({
           <View
             style={{
               position: 'absolute',
-              left: PAD,
-              right: PAD,
+              left: sidePad,
+              right: sidePad,
               top: artTop + large + 28,
               bottom: insets.bottom + 16,
             }}
@@ -280,9 +303,9 @@ export function NowPlaying({
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text numberOfLines={1} size="2xl" weight="bold">
+                  <MarqueeText size="2xl" weight="bold" containerStyle={{ flexShrink: 1 }}>
                     {track.title}
-                  </Text>
+                  </MarqueeText>
                   <View
                     style={{
                       width: 16,
@@ -320,6 +343,9 @@ export function NowPlaying({
               onSeek={(seconds) => audioEngine.seek(seconds)}
             />
 
+            {/* Flexible slack centers the transport between the progress bar and the volume. */}
+            <View style={{ flex: 1 }} />
+
             {/* Transport row. */}
             <View
               style={{
@@ -327,7 +353,6 @@ export function NowPlaying({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 44,
-                marginTop: 20,
               }}
             >
               <Pressable onPress={() => audioEngine.prev()} hitSlop={12}>
@@ -350,6 +375,9 @@ export function NowPlaying({
               </Pressable>
             </View>
 
+            {/* Push the volume + bottom icons down to the bottom of the sheet. */}
+            <View style={{ flex: 1 }} />
+
             <VolumeSlider
               initialValue={player$.gain.peek()}
               onChange={(value) => audioEngine.setGain(value)}
@@ -361,7 +389,7 @@ export function NowPlaying({
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginTop: 'auto',
+                marginTop: 18,
                 paddingHorizontal: 24,
               }}
             >
