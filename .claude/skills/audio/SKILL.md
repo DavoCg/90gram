@@ -25,7 +25,7 @@ bump (or a move to the licensed build) is a one-file change.
 
 `src/audio/engine.ts` is the sole module that imports and calls `TrackPlayer`. Components and
 screens call the engine, never `TrackPlayer` directly. Public API (keep it stable, the UI depends
-on it): `setupSession()`, `teardown()`, `playQueue(records, index)`, `playRecord(record)`,
+on it): `setupSession()`, `teardown()`, `playVinyl(vinyl, startIndex?)`, `playQueue(tracks, index)`,
 `next()`, `prev()`, `toggle()`, `pause()`, `resume()`, `seek(sec)`, `setGain(value)`.
 
 ## Setup and the playback service (two distinct registrations)
@@ -79,12 +79,16 @@ state stays in TanStack Query.
 
 ## The queue is real; keep `player$.queue` aligned with the native queue
 
-`playQueue(records, index)` filters the list to playable records (non-null `previewUrl`), maps them
-to RNTP `Track`s (stash the record id in the typed `mediaId` field; never read Track's `any` index
-signature), `setQueue`s them, `skip`s to the tapped index, and `play`s. Set `player$.queue` to that
-SAME filtered list so the native index maps straight onto it. `next()`/`prev()` walk the queue
-(`prev()` uses Apple-Music semantics: restart the track if past ~3s or it is the first, else skip
-back). The queue auto-advances natively at track end, no manual chaining.
+`playVinyl(vinyl)` builds the queue from the vinyl's tracks: each track with a non-null `previewUrl`
+becomes a `PlayableTrack` (`{ id, url, title, artist, artwork?, vinylId }`, defined in `store.ts`),
+carrying the track's title/preview plus the vinyl's artist/cover for display and `vinylId` so a list
+row can tell whether its vinyl is the current one. `playQueue(tracks, index)` maps those to RNTP
+`Track`s (stash the track id in the typed `mediaId` field; never read Track's `any` index signature),
+`setQueue`s them, `skip`s to the start index, and `play`s. Set `player$.queue` to that SAME list so
+the native index maps straight onto it; `player$.track` mirrors `queue[queueIndex]`. `next()`/`prev()`
+walk the queue, now the album's tracklist (`prev()` uses Apple-Music semantics: restart the track if
+past ~3s or it is the first, else skip back). The queue auto-advances natively at track end, no manual
+chaining.
 
 ## Lock screen / remote controls
 

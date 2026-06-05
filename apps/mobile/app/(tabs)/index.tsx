@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { FlashList } from '@shopify/flash-list';
 import { use$ } from '@legendapp/state/react';
-import type { RecordDto } from '@getvinyls/api-client';
+import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, Text, View } from '../../src/theme/uniwind';
-import { useRecords } from '../../src/api/hooks';
-import { RecordRow } from '../../src/components/RecordRow';
+import { useVinyls } from '../../src/api/hooks';
+import { VinylRow } from '../../src/components/VinylRow';
 import { audioEngine } from '../../src/audio/engine';
 import { player$ } from '../../src/audio/store';
 
@@ -12,32 +12,28 @@ import { player$ } from '../../src/audio/store';
 const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
-  const { data, isLoading, isError, refetch } = useRecords();
-  const currentId = use$(player$.record)?.id;
+  const { data, isLoading, isError, refetch } = useVinyls();
+  // The current vinyl is whichever vinyl the playing track belongs to.
+  const currentVinylId = use$(player$.track)?.vinylId;
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
   const playWhenReady = use$(player$.playWhenReady);
 
-  // Play the whole visible list as a queue, starting at the tapped row, so the player's
-  // prev/next transport walks the list.
-  const onPressRecord = useCallback(
-    (record: RecordDto) => {
-      const records = data ?? [];
-      const index = records.findIndex((r) => r.id === record.id);
-      void audioEngine.playQueue(records, index >= 0 ? index : 0);
-    },
-    [data],
-  );
+  // Tapping a vinyl plays its tracklist as the queue, so the player's prev/next transport
+  // walks the album.
+  const onPressVinyl = useCallback((vinyl: VinylSummaryDto) => {
+    void audioEngine.playVinyl(vinyl);
+  }, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: RecordDto }) => (
-      <RecordRow
-        record={item}
-        isCurrent={item.id === currentId}
+    ({ item }: { item: VinylSummaryDto }) => (
+      <VinylRow
+        vinyl={item}
+        isCurrent={item.id === currentVinylId}
         isPlaying={playWhenReady}
-        onPress={onPressRecord}
+        onPress={onPressVinyl}
       />
     ),
-    [currentId, playWhenReady, onPressRecord],
+    [currentVinylId, playWhenReady, onPressVinyl],
   );
 
   if (isLoading) {
@@ -72,7 +68,7 @@ export default function HomeScreen() {
         data={data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        extraData={`${currentId ?? ''}:${String(playWhenReady)}`}
+        extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
     </View>

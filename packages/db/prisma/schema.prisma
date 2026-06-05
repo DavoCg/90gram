@@ -16,31 +16,154 @@ datasource db {
   provider = "postgresql"
 }
 
-/// A vinyl record listing. Carries app fields plus the marketplace fields the
-/// scraper populates. Unique on (source, externalId) for idempotent upserts.
-model Record {
+/// An online shop / marketplace that lists vinyls for sale. The Europe focus lives in
+/// `country`. Discogs-as-a-whole is modeled as a single shop for now.
+model Shop {
+  id      String  @id @default(cuid())
+  slug    String  @unique // stable handle, e.g. "discogs", "juno"
+  name    String
+  baseUrl String? @map("base_url")
+  country String? // ISO-3166 alpha-2, e.g. "DE", "FR"
+
+  offers Offer[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("shops")
+}
+
+/// A canonical vinyl release, the unit of discovery. Identified by the catalog source it
+/// was created from, e.g. a Discogs release: (catalogSource, catalogId). Many shop offers
+/// can point at one vinyl, which is what makes cross-shop price comparison possible.
+model Vinyl {
   id String @id @default(cuid())
 
-  // App / display fields
-  title       String
-  artist      String
-  year        Int?
-  coverArtUrl String? @map("cover_art_url")
-  previewUrl  String? @map("preview_url")
+  // Canonical catalog identity (the upsert key for the catalog, not the shop listing).
+  catalogSource String @map("catalog_source") // e.g. "discogs"
+  catalogId     String @map("catalog_id") // release id on that source
 
-  // Marketplace fields (populated by the scraper)
-  source       String // e.g. "discogs"
-  externalId   String   @map("external_id") // id on that source
-  sourceUrl    String?  @map("source_url")
-  price        Decimal? @db.Decimal(10, 2)
-  currency     String?
-  availability String?
-  scrapedAt    DateTime? @map("scraped_at")
+  title         String
+  artist        String
+  year          Int?
+  coverArtUrl   String? @map("cover_art_url")
+  label         String?
+  catalogNumber String? @map("catalog_number")
+  format        String? // "LP", "EP", "7\"", "12\""
+
+  tracks Track[]
+  offers Offer[]
+  genres VinylGenre[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([catalogSource, catalogId], name: "catalogSource_catalogId")
+  @@index([artist])
+  @@map("vinyls")
+}
+
+/// The genre taxonomy (Disco, Jazz, Rock, ...). Deduped via unique name/slug so genres can
+/// be filtered on rather than stored as free text on the vinyl.
+model Genre {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  vinyls VinylGenre[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("genres")
+}
+
+/// Explicit many-to-many join between Vinyl and Genre. Explicit (not Prisma's implicit
+/// `_GenreToVinyl`) so the reflective scraper can upsert named snake_case columns.
+model VinylGenre {
+  vinylId String @map("vinyl_id")
+  genreId String @map("genre_id")
+
+  vinyl Vinyl @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([vinylId, genreId])
+  @@index([genreId])
+  @@map("vinyl_genres")
+}
+
+/// A track on a vinyl. Carries the preview URL the audio player streams.
+model Track {
+  id      String @id @default(cuid())
+  vinylId String @map("vinyl_id")
+  vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+
+  position        String // "A1", "B2"
+  title           String
+  durationSeconds Int?    @map("duration_seconds")
+  previewUrl      String? @map("preview_url") // audio source for the player
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([vinylId, position], name: "vinylId_position")
+  @@index([vinylId])
+  @@map("tracks")
+}
+
+/// A vinyl listed for sale at a shop: the scraped listing unit. Unique on (source,
+/// externalId) for idempotent upserts (source == the shop's slug). Holds the current
+/// price/stock; `Price` keeps the history.
+model Offer {
+  id      String @id @default(cuid())
+  vinylId String @map("vinyl_id")
+  vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  shopId  String @map("shop_id")
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  // Scraper natural key (source == shop slug, kept stable for idempotent upserts).
+  source     String
+  externalId String  @map("external_id") // listing id on that shop
+  sourceUrl  String? @map("source_url")
+
+  stockStatus     StockStatus @default(unknown) @map("stock_status")
+  condition       String? // media/sleeve grade, e.g. "VG+", "NM"
+  currentPrice    Decimal?    @map("current_price") @db.Decimal(10, 2)
+  currentCurrency String?     @map("current_currency")
+  scrapedAt       DateTime?   @map("scraped_at")
+
+  prices Price[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([source, externalId], name: "source_externalId")
-  @@index([source])
-  @@map("records")
+  @@index([vinylId])
+  @@index([shopId])
+  @@map("offers")
+}
+
+/// Append-only price history for an offer. The latest row by observedAt is the current
+/// price (also denormalized onto Offer for cheap reads).
+model Price {
+  id      String @id @default(cuid())
+  offerId String @map("offer_id")
+  offer   Offer  @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String
+
+  observedAt DateTime @default(now()) @map("observed_at")
+
+  @@index([offerId, observedAt])
+  @@map("prices")
+}
+
+enum StockStatus {
+  in_stock
+  out_of_stock
+  preorder
+  unknown
+
+  @@map("stock_status")
 }

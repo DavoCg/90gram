@@ -1,6 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import { Scalar } from '@scalar/hono-api-reference';
-import { recordsRouter } from './routes/records.js';
+import { vinylsRouter } from './routes/vinyls.js';
 
 // The OpenAPI document is GENERATED from the registered Zod routes, never authored by hand.
 export function createApp(): OpenAPIHono {
@@ -9,7 +9,7 @@ export function createApp(): OpenAPIHono {
   app.get('/', (c) => c.json({ name: 'getvinyls-api', status: 'ok' }));
   app.get('/health', (c) => c.json({ status: 'ok' }));
 
-  app.route('/', recordsRouter);
+  app.route('/', vinylsRouter);
 
   // OpenAPI 3.1 JSON. This is the contract consumed by `pnpm gen:api-types`.
   app.doc31('/openapi.json', {

@@ -18,8 +18,10 @@ Hono + `@hono/zod-openapi` (requires Zod v4). Read-only public API over the shar
   schemas; validation and typing both come from them. Never hand-author OpenAPI JSON.
 - Register schemas/routes on an `OpenAPIHono` instance; expose the generated document at `GET /openapi.json`
   as OpenAPI **3.1**, and a docs UI (Scalar) at `GET /docs`.
-- Endpoints for the slice: `GET /records` (list) and `GET /records/:id` (detail). Add new read endpoints the
-  same way; keep the API read-only.
+- Endpoints for the slice: `GET /vinyls` (list, returns vinyl summaries with tracks/genres and a
+  cheapest-price summary), `GET /vinyls/{id}` (detail, adds the shop offers), plus `GET /shops` and
+  `GET /genres`. The list returns the lighter `VinylSummary`; detail extends it with `offers`. Add new read
+  endpoints the same way; keep the API read-only.
 - Centralize env in `src/env.ts` (Zod-validated, fail fast). Read `DATABASE_URL` and `API_PORT` there.
 - Responses are typed from Zod output schemas. Map Prisma rows to the response schema explicitly (dates to
   ISO strings, Decimal to number/string) so the wire shape is stable and matches what openapi-typescript sees.

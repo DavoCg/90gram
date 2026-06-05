@@ -1,12 +1,21 @@
 // Singleton PrismaClient for the whole app. Consumers import from "@getvinyls/db",
-// never from the generated path. The model is named `Record` in Prisma; we re-export
-// its row type as `RecordRow` to avoid shadowing the built-in TS `Record<K, V>` utility.
+// never from the generated path. Row types are re-exported with a `Row` suffix.
 //
 // Prisma 7 requires a driver adapter for the runtime connection. We use the pg adapter,
 // built from DATABASE_URL. Load env before importing this module (e.g. dotenv/config).
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/prisma/client.js';
-import type { Record as RecordRow, Prisma } from './generated/prisma/client.js';
+import type {
+  Vinyl as VinylRow,
+  Track as TrackRow,
+  Shop as ShopRow,
+  Offer as OfferRow,
+  Price as PriceRow,
+  Genre as GenreRow,
+  VinylGenre as VinylGenreRow,
+  Prisma,
+} from './generated/prisma/client.js';
+import { StockStatus } from './generated/prisma/enums.js';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -26,5 +35,14 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-export { PrismaClient };
-export type { RecordRow, Prisma };
+export { PrismaClient, StockStatus };
+export type {
+  VinylRow,
+  TrackRow,
+  ShopRow,
+  OfferRow,
+  PriceRow,
+  GenreRow,
+  VinylGenreRow,
+  Prisma,
+};

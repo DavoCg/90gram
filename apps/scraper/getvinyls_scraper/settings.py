@@ -53,7 +53,6 @@ ITEM_PIPELINES = {"getvinyls_scraper.pipelines.PostgresPipeline": 300}
 
 # Database (shared with Prisma; the scraper writes rows ONLY) ----------------
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
-POSTGRES_BATCH_SIZE = 50
 
 # Scrapy runtime defaults ---------------------------------------------------
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"

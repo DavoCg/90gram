@@ -60,7 +60,7 @@ export function NowPlaying({
   expand: SharedValue<number>;
   drag: SharedValue<number>;
 }) {
-  const record = use$(player$.record);
+  const track = use$(player$.track);
   const playWhenReady = use$(player$.playWhenReady);
   const positionSec = use$(player$.positionSec);
   const durationSec = use$(player$.durationSec);
@@ -166,9 +166,9 @@ export function NowPlaying({
   }));
 
   // All hooks above are unconditional; only now do we bail out when nothing is playing.
-  if (!record) return null;
+  if (!track) return null;
 
-  const artwork = record.coverArtUrl ? { uri: record.coverArtUrl } : undefined;
+  const artwork = track.artwork ? { uri: track.artwork } : undefined;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -200,10 +200,10 @@ export function NowPlaying({
           <View style={{ width: MINI_ART + 16 }} />
           <View style={{ flex: 1 }}>
             <Text numberOfLines={1} className="text-base font-semibold text-text">
-              {record.title}
+              {track.title}
             </Text>
             <Text numberOfLines={1} className="text-xs text-muted">
-              {record.artist}
+              {track.artist}
             </Text>
           </View>
         </Pressable>
@@ -278,7 +278,7 @@ export function NowPlaying({
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text numberOfLines={1} className="text-2xl font-bold text-text">
-                    {record.title}
+                    {track.title}
                   </Text>
                   <View
                     style={{
@@ -294,7 +294,7 @@ export function NowPlaying({
                   </View>
                 </View>
                 <Text numberOfLines={1} className="mt-1 text-lg text-muted">
-                  {record.artist}
+                  {track.artist}
                 </Text>
               </View>
               {/* Decorative for now (no favorites / menu backing yet). */}

@@ -25,8 +25,8 @@ import TrackPlayer, {
   State,
   type Track,
 } from 'react-native-track-player';
-import type { RecordDto } from '@getvinyls/api-client';
-import { player$, type PlayerStatus } from './store';
+import type { VinylSummaryDto } from '@getvinyls/api-client';
+import { player$, type PlayableTrack, type PlayerStatus } from './store';
 
 // How far the lock-screen / notification jump buttons move, and how often we poll position.
 const JUMP_INTERVAL_SEC = 15;
@@ -34,24 +34,35 @@ const POSITION_TICK_MS = 250;
 // Apple-Music "previous" semantics: past this many seconds, previous restarts the track.
 const PREV_RESTART_THRESHOLD_SEC = 3;
 
-// A record we can actually enqueue: one whose preview URL is non-null.
-type PlayableRecord = RecordDto & { previewUrl: string };
-
-function isPlayable(record: RecordDto): record is PlayableRecord {
-  return record.previewUrl !== null;
+// Build the playable tracklist for a vinyl: its tracks that have a non-null preview URL,
+// each carrying the vinyl's artist/cover for display and `vinylId` so a row can match.
+function toPlayableTracks(vinyl: VinylSummaryDto): PlayableTrack[] {
+  const tracks: PlayableTrack[] = [];
+  for (const track of vinyl.tracks) {
+    if (track.previewUrl === null) continue;
+    tracks.push({
+      id: track.id,
+      url: track.previewUrl,
+      title: track.title,
+      artist: vinyl.artist,
+      artwork: vinyl.coverArtUrl ?? undefined,
+      vinylId: vinyl.id,
+    });
+  }
+  return tracks;
 }
 
-// Map our typed RecordDto onto an RNTP Track. We stash the record id in `mediaId` (a typed
-// field) so the native layer and any future external controller can identify the item; the UI
-// matches by queue index, which stays aligned because `player$.queue` is this same list.
-function toTrack(record: PlayableRecord): Track {
+// Map a PlayableTrack onto an RNTP Track. We stash the track id in `mediaId` (a typed field)
+// so the native layer and any future external controller can identify the item; the UI matches
+// by queue index, which stays aligned because `player$.queue` is this same list.
+function toTrack(track: PlayableTrack): Track {
   return {
-    url: record.previewUrl,
-    title: record.title,
-    artist: record.artist,
-    artwork: record.coverArtUrl ?? undefined,
+    url: track.url,
+    title: track.title,
+    artist: track.artist,
+    artwork: track.artwork,
     duration: undefined,
-    mediaId: record.id,
+    mediaId: track.id,
     // iOS time-pitch algorithm tuned for music (keeps any future rate change musical).
     pitchAlgorithm: PitchAlgorithm.Music,
   };
@@ -174,15 +185,15 @@ function onActiveTrackChanged(index: number | undefined, track: Track | undefine
     pendingStartId = null;
   }
   if (index === undefined) {
-    player$.assign({ record: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
+    player$.assign({ track: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
     return;
   }
   const queue = player$.queue.get();
-  const record = queue[index] ?? player$.record.get();
+  const current = queue[index] ?? player$.track.get();
   const duration = track?.duration ?? 0;
   player$.assign({
     queueIndex: index,
-    record,
+    track: current,
     positionSec: 0,
     durationSec: duration,
     canSeek: duration > 0,
@@ -228,29 +239,31 @@ export const audioEngine = {
   },
 
   /**
-   * Play a queue starting at `index`. The queue is the list the user tapped into (e.g. the Home
-   * list); prev()/next() and the lock-screen transport walk it. Records without a preview URL
-   * are dropped, and `player$.queue` is set to that same playable list so indices stay aligned.
+   * Play a vinyl's tracklist as the queue, starting at `startIndex`. The queue is the album, so
+   * prev()/next() and the lock-screen transport walk its tracks. Tracks without a preview URL are
+   * dropped. A vinyl with no playable track leaves current playback untouched.
    */
-  async playQueue(records: RecordDto[], index: number): Promise<void> {
-    const tapped = records[index];
-    // Tapping a record with no preview leaves current playback untouched.
-    if (!tapped || !isPlayable(tapped)) return;
+  async playVinyl(vinyl: VinylSummaryDto, startIndex = 0): Promise<void> {
+    const tracks = toPlayableTracks(vinyl);
+    if (tracks.length === 0) return;
+    const start = Math.min(Math.max(startIndex, 0), tracks.length - 1);
+    await this.playQueue(tracks, start);
+  },
 
-    const playable = records.filter(isPlayable);
-    const startIndex = Math.max(
-      0,
-      playable.findIndex((r) => r.id === tapped.id),
-    );
-    const startRecord = playable[startIndex];
-    if (!startRecord) return;
+  /**
+   * Play a prepared queue of tracks starting at `index`. prev()/next() and the lock-screen
+   * transport walk it; `player$.queue` is set to this same list so indices stay aligned.
+   */
+  async playQueue(tracks: PlayableTrack[], index: number): Promise<void> {
+    const startTrack = tracks[index];
+    if (!startTrack) return;
 
     // Optimistic UI: show the tapped track as loading, and set intent to play so the transport
     // button shows pause immediately (and stays there) instead of flashing the play icon.
     player$.assign({
-      record: startRecord,
-      queue: playable,
-      queueIndex: startIndex,
+      track: startTrack,
+      queue: tracks,
+      queueIndex: index,
       status: 'loading',
       playWhenReady: true,
       positionSec: 0,
@@ -261,18 +274,13 @@ export const audioEngine = {
     await ensureSetup();
     // Mark the track we are switching to so the transient track-changed burst setQueue/skip emit
     // is ignored until this track is active (see onActiveTrackChanged). setQueue resets the active
-    // track even when startIndex is 0, so this guard is needed regardless of the target index.
-    pendingStartId = startRecord.id;
-    await TrackPlayer.setQueue(playable.map(toTrack));
-    if (startIndex > 0) {
-      await TrackPlayer.skip(startIndex);
+    // track even when index is 0, so this guard is needed regardless of the target index.
+    pendingStartId = startTrack.id;
+    await TrackPlayer.setQueue(tracks.map(toTrack));
+    if (index > 0) {
+      await TrackPlayer.skip(index);
     }
     await TrackPlayer.play();
-  },
-
-  /** Play a single record (a one-item queue). */
-  async playRecord(record: RecordDto): Promise<void> {
-    await this.playQueue([record], 0);
   },
 
   /** Skip to the next queued track. No-op at the end of the queue. */
@@ -344,7 +352,7 @@ export const audioEngine = {
     pendingStartId = null;
     await TrackPlayer.reset();
     player$.assign({
-      record: null,
+      track: null,
       status: 'idle',
       playWhenReady: false,
       positionSec: 0,

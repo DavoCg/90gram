@@ -40,8 +40,8 @@ This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the wor
 
 - Import `createApiClient` from `@getvinyls/api-client` and instantiate ONE client (base URL from
   `EXPO_PUBLIC_API_BASE_URL`). The react-query hooks live HERE, not in the client package.
-- Hooks: `useRecords()` (list), `useRecord(id)` (detail). Query keys are stable and centralized
-  (`queryKeys.records.all`, `queryKeys.records.detail(id)`). Wrap the app in `QueryClientProvider`.
+- Hooks: `useVinyls()` (list), `useVinyl(id)` (detail). Query keys are stable and centralized
+  (`queryKeys.vinyls.all`, `queryKeys.vinyls.detail(id)`). Wrap the app in `QueryClientProvider`.
 - No hand-written fetch. Every call goes through the typed client; responses are fully typed, zero `any`.
 
 ## State management
