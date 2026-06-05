@@ -1,4 +1,4 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import type { VinylDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { apiClient } from './client';
 import { queryKeys } from './queryKeys';
@@ -20,9 +20,17 @@ export function useVinyls(): UseQueryResult<VinylSummaryDto[]> {
 }
 
 export function useVinyl(id: string): UseQueryResult<VinylDto> {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: queryKeys.vinyls.detail(id),
     enabled: id.length > 0,
+    // Seed from the cached list so the detail sheet renders instantly. A summary has everything
+    // the detail needs except offers; the query then fills those in. Vinyl = VinylSummary + offers.
+    placeholderData: (): VinylDto | undefined => {
+      const list = queryClient.getQueryData<VinylSummaryDto[]>(queryKeys.vinyls.all);
+      const summary = list?.find((vinyl) => vinyl.id === id);
+      return summary ? { ...summary, offers: [] } : undefined;
+    },
     queryFn: async (): Promise<VinylDto> => {
       const { data, error } = await apiClient.GET('/vinyls/{id}', {
         params: { path: { id } },

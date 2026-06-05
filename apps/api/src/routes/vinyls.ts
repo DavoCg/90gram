@@ -34,7 +34,7 @@ vinylsRouter.openapi(listVinylsRoute, async (c) => {
     include: {
       tracks: { orderBy: { position: 'asc' } },
       genres: { include: { genre: true } },
-      offers: { select: { currentPrice: true, currentCurrency: true } },
+      shopVinyls: { select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } } },
     },
   });
   return c.json({ vinyls: rows.map(toVinylSummaryDto), total: rows.length }, 200);
@@ -65,7 +65,7 @@ vinylsRouter.openapi(getVinylRoute, async (c) => {
     include: {
       tracks: { orderBy: { position: 'asc' } },
       genres: { include: { genre: true } },
-      offers: { include: { shop: true }, orderBy: { currentPrice: 'asc' } },
+      shopVinyls: { include: { shop: true, offers: { orderBy: { currentPrice: 'asc' } } } },
     },
   });
   if (!row) {

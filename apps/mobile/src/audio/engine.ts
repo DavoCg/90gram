@@ -251,6 +251,27 @@ export const audioEngine = {
   },
 
   /**
+   * Play a vinyl's tracklist in a random order. Builds the same playable list as playVinyl
+   * (tracks with a preview URL), shuffles it, and plays from the top, so prev()/next() and the
+   * lock-screen transport walk the shuffled order. A vinyl with no playable track is a no-op.
+   */
+  async shuffleVinyl(vinyl: VinylSummaryDto): Promise<void> {
+    const tracks = toPlayableTracks(vinyl);
+    if (tracks.length === 0) return;
+    // Fisher-Yates shuffle in place. The local consts satisfy noUncheckedIndexedAccess.
+    for (let i = tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const a = tracks[i];
+      const b = tracks[j];
+      if (a && b) {
+        tracks[i] = b;
+        tracks[j] = a;
+      }
+    }
+    await this.playQueue(tracks, 0);
+  },
+
+  /**
    * Play a prepared queue of tracks starting at `index`. prev()/next() and the lock-screen
    * transport walk it; `player$.queue` is set to this same list so indices stay aligned.
    */

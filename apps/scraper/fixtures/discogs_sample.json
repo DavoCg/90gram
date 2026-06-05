@@ -3,8 +3,6 @@
     "shop_slug": "discogs",
     "shop_name": "Discogs",
     "shop_country": "US",
-    "catalog_source": "discogs",
-    "catalog_id": "249504",
     "title": "Random Access Memories",
     "artist": "Daft Punk",
     "year": 2013,
@@ -12,7 +10,10 @@
     "label": "Columbia",
     "catalog_number": "88883716861",
     "format": "LP",
-    "genres": ["Electronic", "Disco"],
+    "genres": [
+      "Electronic",
+      "Disco"
+    ],
     "tracks": [
       {
         "position": "A1",
@@ -39,8 +40,6 @@
     "shop_slug": "discogs",
     "shop_name": "Discogs",
     "shop_country": "US",
-    "catalog_source": "discogs",
-    "catalog_id": "367788",
     "title": "Kind of Blue",
     "artist": "Miles Davis",
     "year": 1959,
@@ -48,7 +47,9 @@
     "label": "Columbia",
     "catalog_number": "CL 1355",
     "format": "LP",
-    "genres": ["Jazz"],
+    "genres": [
+      "Jazz"
+    ],
     "tracks": [
       {
         "position": "A1",
@@ -75,8 +76,6 @@
     "shop_slug": "discogs",
     "shop_name": "Discogs",
     "shop_country": "GB",
-    "catalog_source": "discogs",
-    "catalog_id": "112233",
     "title": "Rumours",
     "artist": "Fleetwood Mac",
     "year": 1977,
@@ -84,7 +83,10 @@
     "label": "Warner Bros.",
     "catalog_number": "BSK 3010",
     "format": "LP",
-    "genres": ["Rock", "Pop"],
+    "genres": [
+      "Rock",
+      "Pop"
+    ],
     "tracks": [
       {
         "position": "A1",
@@ -111,8 +113,6 @@
     "shop_slug": "discogs",
     "shop_name": "Discogs",
     "shop_country": "FR",
-    "catalog_source": "discogs",
-    "catalog_id": "445566",
     "title": "Discovery",
     "artist": "Daft Punk",
     "year": 2001,
@@ -120,7 +120,10 @@
     "label": "Virgin",
     "catalog_number": "7243 8 49606 1 8",
     "format": "LP",
-    "genres": ["Electronic", "House"],
+    "genres": [
+      "Electronic",
+      "House"
+    ],
     "tracks": [
       {
         "position": "A1",

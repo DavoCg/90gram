@@ -29,9 +29,9 @@ class ListingItem(BaseModel):
     shop_name: str = Field(min_length=1)
     shop_country: str | None = None
 
-    # Canonical vinyl release (the catalog identity, deduped on (catalog_source, catalog_id)).
-    catalog_source: str = Field(min_length=1)
-    catalog_id: str = Field(min_length=1)
+    # Canonical vinyl release. The pipeline derives a shop-agnostic match_key from
+    # (artist, title, catalog_number) and upserts the Vinyl on it, so the same release from
+    # several shops collapses onto one row. No shop/source identity lives on the Vinyl.
     title: str = Field(min_length=1)
     artist: str = Field(min_length=1)
     year: int | None = None

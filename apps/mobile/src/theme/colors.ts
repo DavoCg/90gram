@@ -21,7 +21,8 @@ const light: ThemeColors = {
   text: '#18181b',
   muted: '#6b7280',
   border: '#e7e2d8',
-  accent: '#c026d3',
+  // Accent now follows the reference design system: grass-9 (green).
+  accent: '#46a758',
 };
 
 const dark: ThemeColors = {
@@ -31,7 +32,7 @@ const dark: ThemeColors = {
   text: '#f5f5f4',
   muted: '#a1a1aa',
   border: '#2a2a2e',
-  accent: '#e879f9',
+  accent: '#46a758',
 };
 
 export function useThemeColors(): ThemeColors {

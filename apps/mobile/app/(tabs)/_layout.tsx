@@ -12,20 +12,20 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        // Native headers are disabled app-wide; every screen renders the custom <AppHeader>
+        // instead (src/components/AppHeader.tsx).
+        headerShown: false,
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
         },
-        headerStyle: { backgroundColor: colors.surface },
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="(home)"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,

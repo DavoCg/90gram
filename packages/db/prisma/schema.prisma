@@ -25,7 +25,7 @@ model Shop {
   baseUrl String? @map("base_url")
   country String? // ISO-3166 alpha-2, e.g. "DE", "FR"
 
-  offers Offer[]
+  shopVinyls ShopVinyl[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -33,15 +33,16 @@ model Shop {
   @@map("shops")
 }
 
-/// A canonical vinyl release, the unit of discovery. Identified by the catalog source it
-/// was created from, e.g. a Discogs release: (catalogSource, catalogId). Many shop offers
-/// can point at one vinyl, which is what makes cross-shop price comparison possible.
+/// A canonical vinyl release, the unit of discovery. Shop-agnostic: it carries NO source or
+/// shop identity, only the release itself (title, artist, tracks, genres). Many `ShopVinyl`s
+/// (one per shop that lists this record) point at one `Vinyl`, which is what makes cross-shop
+/// price comparison possible. Identity is `matchKey`, a normalized `artist|title|catalogNumber`
+/// the scraper upserts on, so the same release scraped from several shops collapses into one row.
 model Vinyl {
   id String @id @default(cuid())
 
-  // Canonical catalog identity (the upsert key for the catalog, not the shop listing).
-  catalogSource String @map("catalog_source") // e.g. "discogs"
-  catalogId     String @map("catalog_id") // release id on that source
+  // Canonical identity: a normalized match key. NOT a shop/source id. Match-or-create upserts here.
+  matchKey String @unique @map("match_key")
 
   title         String
   artist        String
@@ -51,14 +52,13 @@ model Vinyl {
   catalogNumber String? @map("catalog_number")
   format        String? // "LP", "EP", "7\"", "12\""
 
-  tracks Track[]
-  offers Offer[]
-  genres VinylGenre[]
+  tracks     Track[]
+  shopVinyls ShopVinyl[]
+  genres     VinylGenre[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@unique([catalogSource, catalogId], name: "catalogSource_catalogId")
   @@index([artist])
   @@map("vinyls")
 }
@@ -111,20 +111,51 @@ model Track {
   @@map("tracks")
 }
 
-/// A vinyl listed for sale at a shop: the scraped listing unit. Unique on (source,
-/// externalId) for idempotent upserts (source == the shop's slug). Holds the current
-/// price/stock; `Price` keeps the history.
-model Offer {
+/// One record as catalogued by one shop: the per-shop scraped record. Links a shop to the
+/// canonical `Vinyl` it was matched to (`vinylId`, set by the scraper's match-or-create upsert).
+/// Holds the shop's catalog identity (`source`, `externalId`, `sourceUrl`) and the raw values it
+/// reported, kept for transparency and re-matching. Unique on (source, externalId), source == the
+/// shop's slug. Its commercial terms live in `Offer` (a marketplace listing can have several).
+model ShopVinyl {
   id      String @id @default(cuid())
   vinylId String @map("vinyl_id")
   vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
   shopId  String @map("shop_id")
   shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  // Scraper natural key (source == shop slug, kept stable for idempotent upserts).
+  // Per-shop catalog identity (source == shop slug, kept stable for idempotent upserts).
   source     String
-  externalId String  @map("external_id") // listing id on that shop
+  externalId String  @map("external_id") // product/listing id on that shop
   sourceUrl  String? @map("source_url")
+
+  // What the shop reported, retained for transparency and re-matching against `Vinyl.matchKey`.
+  rawTitle         String? @map("raw_title")
+  rawArtist        String? @map("raw_artist")
+  rawCatalogNumber String? @map("raw_catalog_number")
+
+  offers Offer[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([source, externalId], name: "source_externalId")
+  @@index([vinylId])
+  @@index([shopId])
+  @@map("shop_vinyls")
+}
+
+/// A purchasable offer for a `ShopVinyl`: the commercial terms. One for a single retailer, many
+/// for a marketplace listing (e.g. per-seller copies). Unique on (source, externalId) for
+/// idempotent upserts. Holds the current price/stock; `Price` keeps the history.
+model Offer {
+  id          String    @id @default(cuid())
+  shopVinylId String    @map("shop_vinyl_id")
+  shopVinyl   ShopVinyl @relation(fields: [shopVinylId], references: [id], onDelete: Cascade)
+
+  // Scraper natural key (source == shop slug). For a single retailer externalId == the product id;
+  // for a marketplace it is the per-seller offer id, so one ShopVinyl can carry several offers.
+  source     String
+  externalId String @map("external_id")
 
   stockStatus     StockStatus @default(unknown) @map("stock_status")
   condition       String? // media/sleeve grade, e.g. "VG+", "NM"
@@ -138,8 +169,7 @@ model Offer {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([source, externalId], name: "source_externalId")
-  @@index([vinylId])
-  @@index([shopId])
+  @@index([shopVinylId])
   @@map("offers")
 }
 

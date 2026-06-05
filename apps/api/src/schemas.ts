@@ -117,7 +117,7 @@ type VinylSummaryRow = Prisma.VinylGetPayload<{
   include: {
     tracks: true;
     genres: { include: { genre: true } };
-    offers: { select: { currentPrice: true; currentCurrency: true } };
+    shopVinyls: { select: { shopId: true; offers: { select: { currentPrice: true; currentCurrency: true } } } };
   };
 }>;
 
@@ -125,11 +125,12 @@ type VinylDetailRow = Prisma.VinylGetPayload<{
   include: {
     tracks: true;
     genres: { include: { genre: true } };
-    offers: { include: { shop: true } };
+    shopVinyls: { include: { shop: true; offers: true } };
   };
 }>;
 
-type OfferWithShopRow = VinylDetailRow['offers'][number];
+type ShopVinylWithOffersRow = VinylDetailRow['shopVinyls'][number];
+type OfferRow = ShopVinylWithOffersRow['offers'][number];
 
 export function toShopDto(row: ShopRow): z.infer<typeof ShopSchema> {
   return { id: row.id, slug: row.slug, name: row.name, baseUrl: row.baseUrl, country: row.country };
@@ -149,38 +150,47 @@ export function toTrackDto(row: VinylSummaryRow['tracks'][number]): z.infer<type
   };
 }
 
-export function toOfferDto(row: OfferWithShopRow): z.infer<typeof OfferSchema> {
+// An offer's shop and source URL live on its parent ShopVinyl, so the mapper takes both.
+export function toOfferDto(
+  offer: OfferRow,
+  shopVinyl: ShopVinylWithOffersRow,
+): z.infer<typeof OfferSchema> {
   return {
-    id: row.id,
-    shop: toShopDto(row.shop),
-    sourceUrl: row.sourceUrl,
-    stockStatus: row.stockStatus,
-    condition: row.condition,
-    price: row.currentPrice === null ? null : Number(row.currentPrice),
-    currency: row.currentCurrency,
-    scrapedAt: row.scrapedAt === null ? null : row.scrapedAt.toISOString(),
+    id: offer.id,
+    shop: toShopDto(shopVinyl.shop),
+    sourceUrl: shopVinyl.sourceUrl,
+    stockStatus: offer.stockStatus,
+    condition: offer.condition,
+    price: offer.currentPrice === null ? null : Number(offer.currentPrice),
+    currency: offer.currentCurrency,
+    scrapedAt: offer.scrapedAt === null ? null : offer.scrapedAt.toISOString(),
   };
 }
 
-// Compute the cheapest current price (and its currency) across a vinyl's offers.
+// Compute the cheapest current price (and its currency) across all offers on all of a vinyl's
+// shop listings.
 function lowestOffer(
-  offers: { currentPrice: Prisma.Decimal | null; currentCurrency: string | null }[],
+  shopVinyls: { offers: { currentPrice: Prisma.Decimal | null; currentCurrency: string | null }[] }[],
 ): { lowestPrice: number | null; currency: string | null } {
   let lowestPrice: number | null = null;
   let currency: string | null = null;
-  for (const offer of offers) {
-    if (offer.currentPrice === null) continue;
-    const value = Number(offer.currentPrice);
-    if (lowestPrice === null || value < lowestPrice) {
-      lowestPrice = value;
-      currency = offer.currentCurrency;
+  for (const shopVinyl of shopVinyls) {
+    for (const offer of shopVinyl.offers) {
+      if (offer.currentPrice === null) continue;
+      const value = Number(offer.currentPrice);
+      if (lowestPrice === null || value < lowestPrice) {
+        lowestPrice = value;
+        currency = offer.currentCurrency;
+      }
     }
   }
   return { lowestPrice, currency };
 }
 
 export function toVinylSummaryDto(row: VinylSummaryRow): VinylSummary {
-  const { lowestPrice, currency } = lowestOffer(row.offers);
+  const { lowestPrice, currency } = lowestOffer(row.shopVinyls);
+  // One ShopVinyl per shop that lists this record; count the distinct shops.
+  const shopCount = new Set(row.shopVinyls.map((sv) => sv.shopId)).size;
   return {
     id: row.id,
     title: row.title,
@@ -193,13 +203,13 @@ export function toVinylSummaryDto(row: VinylSummaryRow): VinylSummary {
     tracks: row.tracks.map(toTrackDto),
     lowestPrice,
     currency,
-    shopCount: row.offers.length,
+    shopCount,
   };
 }
 
 export function toVinylDto(row: VinylDetailRow): Vinyl {
   return {
     ...toVinylSummaryDto(row),
-    offers: row.offers.map(toOfferDto),
+    offers: row.shopVinyls.flatMap((sv) => sv.offers.map((offer) => toOfferDto(offer, sv))),
   };
 }

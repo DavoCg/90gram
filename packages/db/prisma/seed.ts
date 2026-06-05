@@ -1,8 +1,8 @@
-// Seed a handful of vinyls so the app works without running the scraper. Each vinyl gets a
-// few tracks whose previewUrl points at real, reachable audio (the audio slice needs
-// something to decode and play), one Offer at a seed shop with a current price + one Price
-// history row, and one or more Genres linked through VinylGenre. catalogSource = "seed" keeps
-// these distinct from scraped rows. Re-running is idempotent (upsert on the catalog key).
+// Seed a handful of canonical vinyls so the app works without running the scraper. Each Vinyl
+// (identified by a normalized matchKey) gets a few tracks whose previewUrl points at real,
+// reachable audio (the audio slice needs something to decode and play), one or more Genres linked
+// through VinylGenre, and a per-shop ShopVinyl at a seed shop with one Offer (current price) + one
+// Price history row. Re-running is idempotent (upsert on matchKey / (source, externalId)).
 import { loadRootEnv } from '../load-root-env.js';
 
 loadRootEnv();
@@ -157,6 +157,24 @@ function slugify(name: string): string {
     .replace(/(^-|-$)/g, '');
 }
 
+// Normalized canonical identity for a release. Kept in lockstep with the scraper's match_key
+// (apps/scraper): lower-cased, accents stripped, non-alphanumerics collapsed to single spaces,
+// then artist|title|catalogNumber joined. The same release from several shops yields one Vinyl.
+function normalizeForKey(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function makeMatchKey(artist: string, title: string, catalogNumber: string | null): string {
+  return [normalizeForKey(artist), normalizeForKey(title), normalizeForKey(catalogNumber ?? '')].join(
+    '|',
+  );
+}
+
 async function main(): Promise<void> {
   const shop = await prisma.shop.upsert({
     where: { slug: SEED_SHOP.slug },
@@ -167,11 +185,11 @@ async function main(): Promise<void> {
   for (const seed of SEED_VINYLS) {
     const now = new Date();
 
+    const matchKey = makeMatchKey(seed.artist, seed.title, seed.catalogNumber);
     const vinyl = await prisma.vinyl.upsert({
-      where: { catalogSource_catalogId: { catalogSource: 'seed', catalogId: seed.catalogId } },
+      where: { matchKey },
       create: {
-        catalogSource: 'seed',
-        catalogId: seed.catalogId,
+        matchKey,
         title: seed.title,
         artist: seed.artist,
         year: seed.year,
@@ -209,7 +227,8 @@ async function main(): Promise<void> {
       },
     });
 
-    const offer = await prisma.offer.upsert({
+    // The seed shop's catalog entry for this release, matched to the canonical Vinyl above.
+    const shopVinyl = await prisma.shopVinyl.upsert({
       where: { source_externalId: { source: SEED_SHOP.slug, externalId: seed.catalogId } },
       create: {
         vinylId: vinyl.id,
@@ -217,6 +236,19 @@ async function main(): Promise<void> {
         source: SEED_SHOP.slug,
         externalId: seed.catalogId,
         sourceUrl: `${SEED_SHOP.baseUrl}/records/${seed.catalogId}`,
+        rawTitle: seed.title,
+        rawArtist: seed.artist,
+        rawCatalogNumber: seed.catalogNumber,
+      },
+      update: { vinylId: vinyl.id },
+    });
+
+    const offer = await prisma.offer.upsert({
+      where: { source_externalId: { source: SEED_SHOP.slug, externalId: seed.catalogId } },
+      create: {
+        shopVinylId: shopVinyl.id,
+        source: SEED_SHOP.slug,
+        externalId: seed.catalogId,
         stockStatus: seed.stockStatus,
         currentPrice: seed.price,
         currentCurrency: seed.currency,
@@ -233,16 +265,17 @@ async function main(): Promise<void> {
     void offer;
   }
 
-  const [vinyls, tracks, offers, prices, genres] = await Promise.all([
+  const [vinyls, tracks, shopVinyls, offers, prices, genres] = await Promise.all([
     prisma.vinyl.count(),
     prisma.track.count(),
+    prisma.shopVinyl.count(),
     prisma.offer.count(),
     prisma.price.count(),
     prisma.genre.count(),
   ]);
   console.log(
-    `Seed complete. ${vinyls} vinyl(s), ${tracks} track(s), ${offers} offer(s), ` +
-      `${prices} price(s), ${genres} genre(s).`,
+    `Seed complete. ${vinyls} vinyl(s), ${tracks} track(s), ${shopVinyls} shop-vinyl(s), ` +
+      `${offers} offer(s), ${prices} price(s), ${genres} genre(s).`,
   );
 }
 

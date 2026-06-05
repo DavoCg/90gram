@@ -120,12 +120,10 @@ class DiscogsSpider(scrapy.Spider):
             label = label_raw
 
         return ListingItem(
-            # Discogs is modeled as a single shop for now; it is also the catalog source.
+            # Discogs is modeled as a single shop for now.
             shop_slug="discogs",
             shop_name="Discogs",
             shop_country=str(result.get("country")) if result.get("country") else None,
-            catalog_source="discogs",
-            catalog_id=release_id,
             title=(album or str(raw_title)).strip(),
             artist=(artist or "Unknown").strip(),
             year=_safe_int(result.get("year")),
