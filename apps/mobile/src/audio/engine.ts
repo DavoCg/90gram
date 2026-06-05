@@ -1,134 +1,149 @@
-// The audio engine: a single imperative module that owns the whole audio graph.
-// Built on react-native-audio-api (Web Audio model). There is no jukebox here; we
-// build playback ourselves. See the audio skill for the rules this follows.
+// The audio engine: the single module that owns playback. Built on react-native-track-player
+// (RNTP), which is a real jukebox: it owns a NATIVE queue, background playback, full-track
+// streaming with seeking, and the OS remote controls. So this module no longer builds a Web
+// Audio graph, decodes buffers, or tracks position by hand (all of which the old
+// react-native-audio-api build had to do).
 //
-// Graph (created once): source -> gain -> analyser -> destination. The analyser sits
-// AFTER gain so the visualizer reacts to the actual output level. The active source is
-// recreated on every play and ALWAYS connected into gain (never straight to destination,
-// or the visualizer goes silent).
+// The UI still reads a Legend State store (`player$`); RNTP is the native source of truth and
+// this engine MIRRORS its state into `player$` through event listeners, so NowPlaying / the
+// Home list keep reading the same observable slices they always have. The engine is the sole
+// writer of `player$`.
 //
-// Two playback modes, chosen per track:
-//   - STREAM (fast start): `ctx.createStreamer(url)` plays a remote URL progressively, so
-//     sound starts before the file is downloaded. Per the library maintainers, remote
-//     streams CANNOT seek (issue #895), so the seek bar is a read-only indicator
-//     (player$.canSeek = false) and there is no duration. Pause/resume freezes and
-//     resumes the whole context (ctx.suspend / ctx.resume) so position is kept.
-//   - BUFFER (fallback): fetch -> decodeAudioData -> a fresh AudioBufferSourceNode per
-//     play. Downloads fully before sound, but supports seeking. Used when streaming is
-//     disabled, the URL is local, or createStreamer is unavailable.
+// The OS remote-control buttons (lock screen, Control Center, headset, Android Auto) are wired
+// in the headless playback service (./service.ts), which is registered at the JS entry. The
+// listeners here run in the foreground and exist only to reflect native state into `player$`.
 //
-// Streaming requires the FFmpeg-enabled native build (the default for this package, wired
-// by the `react-native-audio-api` Expo plugin). On a build WITHOUT FFmpeg, createStreamer
-// throws and we fall back to the buffer mode. Set STREAMING_ENABLED = false to force buffer.
-//
-// Note on the installed library version (0.12.2): the AudioContext constructor does not
-// accept `initSuspended`, so we create the context lazily and resume() it on the first
-// user gesture. Lock-screen / now-playing is handled by PlaybackNotificationManager.
-import {
-  AudioContext,
-  AudioManager,
-  PlaybackNotificationManager,
-  type AnalyserNode,
-  type AudioBuffer,
-  type AudioBufferSourceNode,
-  type AudioEventSubscription,
-  type GainNode,
-} from 'react-native-audio-api';
+// Version note (5.0.0-alpha0): pre-release of the New Architecture rewrite. Keep this wrapper
+// as the ONLY place that talks to TrackPlayer so a version bump (or a move to the licensed v5
+// build) stays a one-file change.
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+  Event,
+  IOSCategory,
+  PitchAlgorithm,
+  State,
+  type Track,
+} from 'react-native-track-player';
 import type { RecordDto } from '@getvinyls/api-client';
-import { player$ } from './store';
+import { player$, type PlayerStatus } from './store';
 
-const FFT_SIZE = 256;
-const SMOOTHING = 0.8;
+// How far the lock-screen / notification jump buttons move, and how often we poll position.
+const JUMP_INTERVAL_SEC = 15;
 const POSITION_TICK_MS = 250;
+// Apple-Music "previous" semantics: past this many seconds, previous restarts the track.
+const PREV_RESTART_THRESHOLD_SEC = 3;
 
-// Master switch for progressive streaming. DEFAULT OFF: react-native-audio-api 0.12.2's
-// native StreamerNode throws on the CoreAudio render thread (AURemoteIO::IOThread ->
-// std::terminate -> abort), which hard-crashes the app. A JS try/catch cannot catch a
-// crash on the audio render thread. Until that is fixed upstream, we stay on the buffer
-// path. Flip to true only to test the streamer on a build where the bug is resolved.
-const STREAMING_ENABLED = false;
+// A record we can actually enqueue: one whose preview URL is non-null.
+type PlayableRecord = RecordDto & { previewUrl: string };
 
-// The StreamerNode type, derived from the factory so we do not import the class as a value.
-type StreamerNode = ReturnType<AudioContext['createStreamer']>;
-
-type PlaybackMode = 'stream' | 'buffer';
-
-function isRemote(url: string): boolean {
-  return /^https?:\/\//i.test(url);
+function isPlayable(record: RecordDto): record is PlayableRecord {
+  return record.previewUrl !== null;
 }
 
-let context: AudioContext | null = null;
-let gainNode: GainNode | null = null;
-let analyserNode: AnalyserNode | null = null;
+// Map our typed RecordDto onto an RNTP Track. We stash the record id in `mediaId` (a typed
+// field) so the native layer and any future external controller can identify the item; the UI
+// matches by queue index, which stays aligned because `player$.queue` is this same list.
+function toTrack(record: PlayableRecord): Track {
+  return {
+    url: record.previewUrl,
+    title: record.title,
+    artist: record.artist,
+    artwork: record.coverArtUrl ?? undefined,
+    duration: undefined,
+    mediaId: record.id,
+    // iOS time-pitch algorithm tuned for music (keeps any future rate change musical).
+    pitchAlgorithm: PitchAlgorithm.Music,
+  };
+}
 
-// Exactly one of these is set while playing.
-let streamerNode: StreamerNode | null = null;
-let bufferSource: AudioBufferSourceNode | null = null;
-let mode: PlaybackMode | null = null;
+// Translate RNTP's playback State into the four-value status the UI understands.
+function mapState(state: State): PlayerStatus {
+  switch (state) {
+    case State.Playing:
+      return 'playing';
+    case State.Loading:
+    case State.Buffering:
+      return 'loading';
+    case State.None:
+    case State.Error:
+      return 'idle';
+    default:
+      // Ready, Paused, Stopped, Ended.
+      return 'paused';
+  }
+}
 
-// Buffer-mode state (cached so replaying the same record does not re-download).
-let decodedBuffer: AudioBuffer | null = null;
-let loadedRecordId: string | null = null;
+type Subscription = ReturnType<typeof TrackPlayer.addEventListener>;
 
-let currentRecord: RecordDto | null = null;
-
-// Position bookkeeping (both modes estimate from the context clock; the streamer cannot
-// seek, so its offset is always 0).
-let startOffsetSec = 0;
-let startedAtCtxTime = 0;
+const subscriptions: Subscription[] = [];
+let listenersRegistered = false;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
 
-// Bumped on every playRecord call so a slow decode cannot start playback after the user
-// has already switched to a newer track.
-let playGeneration = 0;
+// setupPlayer must run exactly once before any other call. Memoize the promise so the mount
+// effect and the first playQueue share one initialization.
+let setupPromise: Promise<void> | null = null;
 
-const subscriptions: AudioEventSubscription[] = [];
-let sessionConfigured = false;
+async function doSetup(): Promise<void> {
+  try {
+    await TrackPlayer.setupPlayer({
+      // Let RNTP pause/resume around calls and other apps natively (replaces the manual
+      // interruption handling the old engine needed).
+      autoHandleInterruptions: true,
+      iosCategory: IOSCategory.Playback,
+    });
+  } catch {
+    // setupPlayer throws if the native player is already initialized, which happens after a JS
+    // hot reload (native state outlives the JS bundle). Safe to fall through to updateOptions.
+  }
 
-function ensureGraph(): {
-  ctx: AudioContext;
-  gain: GainNode;
-  analyser: AnalyserNode;
-} {
-  if (!context) {
-    context = new AudioContext();
-  }
-  if (!gainNode) {
-    gainNode = context.createGain();
-    gainNode.gain.value = player$.gain.get();
-  }
-  if (!analyserNode) {
-    analyserNode = context.createAnalyser();
-    analyserNode.fftSize = FFT_SIZE;
-    analyserNode.smoothingTimeConstant = SMOOTHING;
-    gainNode.connect(analyserNode);
-    analyserNode.connect(context.destination);
-  }
-  return { ctx: context, gain: gainNode, analyser: analyserNode };
+  await TrackPlayer.updateOptions({
+    capabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.Stop,
+      Capability.SeekTo,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.JumpForward,
+      Capability.JumpBackward,
+    ],
+    // The subset shown in the compact Android notification.
+    notificationCapabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.SeekTo,
+    ],
+    forwardJumpInterval: JUMP_INTERVAL_SEC,
+    backwardJumpInterval: JUMP_INTERVAL_SEC,
+    android: {
+      // Keep playing when the app is swiped out of recents.
+      appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+    },
+  });
 }
 
-async function resumeContext(): Promise<void> {
-  const { ctx } = ensureGraph();
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
+function ensureSetup(): Promise<void> {
+  if (!setupPromise) {
+    setupPromise = doSetup();
   }
+  return setupPromise;
 }
 
-function currentPositionSec(): number {
-  if (!context || player$.status.get() !== 'playing') {
-    return startOffsetSec;
-  }
-  return startOffsetSec + (context.currentTime - startedAtCtxTime);
-}
-
+// Poll the native progress while playing and publish it to the store. RNTP also emits a
+// progress event, but a fixed tick keeps the SeekBar as smooth as the old engine's 250ms timer.
 function startPositionTimer(): void {
   stopPositionTimer();
   positionTimer = setInterval(() => {
-    const durationSec = player$.durationSec.get();
-    const raw = currentPositionSec();
-    const pos = durationSec > 0 ? Math.min(raw, durationSec) : raw;
-    player$.positionSec.set(pos);
-    void updateNotification('playing', pos);
+    void TrackPlayer.getProgress().then((progress) => {
+      player$.assign({
+        positionSec: progress.position,
+        durationSec: progress.duration,
+        canSeek: progress.duration > 0,
+      });
+    });
   }, POSITION_TICK_MS);
 }
 
@@ -139,243 +154,90 @@ function stopPositionTimer(): void {
   }
 }
 
-function teardownSource(): void {
-  if (streamerNode) {
-    streamerNode.onEnded = null;
-    try {
-      streamerNode.stop(0);
-    } catch {
-      // May not have been started or already stopped; safe to ignore.
-    }
-    try {
-      streamerNode.disconnect();
-    } catch {
-      // Already detached.
-    }
-    streamerNode = null;
-  }
-  if (bufferSource) {
-    bufferSource.onEnded = null;
-    try {
-      bufferSource.stop();
-    } catch {
-      // Same as above.
-    }
-    try {
-      bufferSource.disconnect();
-    } catch {
-      // Already detached.
-    }
-    bufferSource = null;
-  }
-  mode = null;
-}
-
-// Fast-start streaming. createStreamer throws on a build without FFmpeg; we normalize that
-// to "false" so the caller falls back to the buffer mode.
-function startStreamer(url: string): boolean {
-  const { ctx } = ensureGraph();
-  let streamer: StreamerNode;
-  try {
-    streamer = ctx.createStreamer(url);
-    // Mitigation: connect the streamer straight to destination rather than through
-    // gain -> analyser. Keeping the streamer out of the analyser's render path reduces
-    // the chance of contributing to the native StreamerNode render-thread crash. The
-    // tradeoff is the visualizer does not react to streamed audio.
-    streamer.connect(ctx.destination);
-    streamer.onEnded = () => {
-      handleEnded();
-    };
-    startOffsetSec = 0;
-    startedAtCtxTime = ctx.currentTime;
-    streamer.start(ctx.currentTime);
-  } catch {
-    teardownSource();
-    return false;
-  }
-  streamerNode = streamer;
-  bufferSource = null;
-  mode = 'stream';
-  // Duration is unknown for a live stream; the bar shows elapsed time only.
-  player$.assign({ status: 'playing', canSeek: false, durationSec: 0 });
-  void updateNotification('playing', 0);
-  startPositionTimer();
-  return true;
-}
-
-// Buffer playback from an offset (seekable).
-function startBufferFromOffset(offsetSec: number): void {
-  const { ctx, gain } = ensureGraph();
-  if (!decodedBuffer) return;
-  teardownSource();
-  const src = ctx.createBufferSource({ pitchCorrection: true });
-  src.buffer = decodedBuffer;
-  src.connect(gain);
-  src.onEnded = () => {
-    handleEnded();
-  };
-  startOffsetSec = offsetSec;
-  startedAtCtxTime = ctx.currentTime;
-  src.start(0, offsetSec);
-  bufferSource = src;
-  mode = 'buffer';
-  player$.assign({ status: 'playing', canSeek: true, durationSec: decodedBuffer.duration });
-  void updateNotification('playing', offsetSec);
-  startPositionTimer();
-}
-
-async function decode(record: RecordDto): Promise<boolean> {
-  if (!record.previewUrl) return false;
-  const { ctx } = ensureGraph();
-  const response = await fetch(record.previewUrl);
-  const arrayBuffer = await response.arrayBuffer();
-  decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
-  loadedRecordId = record.id;
-  return true;
-}
-
-// Start a record from an offset, preferring the streamer. Streaming ignores the offset, so
-// it is only used when starting from the beginning. Returns true if playback started.
-async function startRecord(record: RecordDto, offsetSec: number, generation: number): Promise<boolean> {
-  if (!record.previewUrl) return false;
-
-  if (STREAMING_ENABLED && offsetSec === 0 && isRemote(record.previewUrl)) {
-    if (startStreamer(record.previewUrl)) return true;
-  }
-
-  try {
-    if (loadedRecordId !== record.id || !decodedBuffer) {
-      const ok = await decode(record);
-      if (!ok) return false;
-    }
-  } catch {
-    return false;
-  }
-  // A newer playRecord superseded this one while decoding; let it win.
-  if (generation !== playGeneration) return false;
-  startBufferFromOffset(offsetSec);
-  return true;
-}
-
-function handleEnded(): void {
-  // Natural end of the clip. Tear the source down, then auto-advance to the next queued
-  // track if there is one; otherwise reset to the start and mark paused.
-  stopPositionTimer();
-  teardownSource();
-  startOffsetSec = 0;
-  const queue = player$.queue.get();
-  const index = player$.queueIndex.get();
-  if (index >= 0 && index < queue.length - 1) {
-    void audioEngine.playQueue(queue, index + 1);
+// Reflect a track change (whether driven by us, the queue auto-advancing, or a remote
+// next/previous) into the store. `player$.queue` is the same playable list we set, so the RNTP
+// index maps straight onto it.
+function onActiveTrackChanged(index: number | undefined, track: Track | undefined): void {
+  if (index === undefined) {
+    player$.assign({ record: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
     return;
   }
-  player$.assign({ status: 'paused', positionSec: 0 });
-  void updateNotification('paused', 0);
-}
-
-async function updateNotification(state: 'playing' | 'paused', elapsedSec: number): Promise<void> {
-  const record = player$.record.get();
-  if (!record) return;
-  try {
-    await PlaybackNotificationManager.show({
-      title: record.title,
-      artist: record.artist,
-      artwork: record.coverArtUrl ? { uri: record.coverArtUrl } : undefined,
-      duration: player$.durationSec.get(),
-      elapsedTime: elapsedSec,
-      speed: 1,
-      state,
-    });
-  } catch {
-    // Notifications are best-effort (e.g. permissions not granted); never crash playback.
-  }
+  const queue = player$.queue.get();
+  const record = queue[index] ?? player$.record.get();
+  const duration = track?.duration ?? 0;
+  player$.assign({
+    queueIndex: index,
+    record,
+    positionSec: 0,
+    durationSec: duration,
+    canSeek: duration > 0,
+  });
 }
 
 export const audioEngine = {
-  /** Configure the audio session and register lock-screen + interruption handlers once. */
+  /**
+   * Initialize the native player + remote controls and start mirroring native state into the
+   * store. Idempotent; the root layout calls it on mount.
+   */
   setupSession(): void {
-    if (sessionConfigured) return;
-    sessionConfigured = true;
+    void ensureSetup();
+    if (listenersRegistered) return;
+    listenersRegistered = true;
 
-    AudioManager.setAudioSessionOptions({ iosCategory: 'playback', iosMode: 'default' });
-    void AudioManager.setAudioSessionActivity(true);
-    AudioManager.observeAudioInterruptions(true);
-
-    // Pause on interruption (calls, other apps); resume when the system allows.
     subscriptions.push(
-      AudioManager.addSystemEventListener('interruption', (event) => {
-        if (event.type === 'began') {
-          void audioEngine.pause();
-        } else if (event.type === 'ended' && event.shouldResume) {
-          void audioEngine.resume();
+      TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
+        player$.status.set(mapState(state));
+        if (state === State.Playing) {
+          startPositionTimer();
+        } else {
+          stopPositionTimer();
         }
       }),
+      TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (event) => {
+        onActiveTrackChanged(event.index, event.track);
+      }),
+      TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
+        stopPositionTimer();
+        player$.assign({ status: 'paused', positionSec: 0 });
+      }),
     );
-
-    // Lock-screen / now-playing controls.
-    PlaybackNotificationManager.enableControl('play', true);
-    PlaybackNotificationManager.enableControl('pause', true);
-    PlaybackNotificationManager.enableControl('seekTo', true);
-
-    const playSub = PlaybackNotificationManager.addEventListener('playbackNotificationPlay', () => {
-      void audioEngine.resume();
-    });
-    const pauseSub = PlaybackNotificationManager.addEventListener(
-      'playbackNotificationPause',
-      () => {
-        void audioEngine.pause();
-      },
-    );
-    const seekSub = PlaybackNotificationManager.addEventListener(
-      'playbackNotificationSeekTo',
-      (event) => {
-        audioEngine.seek(event.value);
-      },
-    );
-    for (const sub of [playSub, pauseSub, seekSub]) {
-      if (sub) subscriptions.push(sub);
-    }
   },
 
   /**
-   * Play a queue from `index`. The queue is the list the user tapped into; prev()/next()
-   * walk it. Streams for a fast start (no seek), falling back to decoded-buffer playback so
-   * a track always loads.
+   * Play a queue starting at `index`. The queue is the list the user tapped into (e.g. the Home
+   * list); prev()/next() and the lock-screen transport walk it. Records without a preview URL
+   * are dropped, and `player$.queue` is set to that same playable list so indices stay aligned.
    */
   async playQueue(records: RecordDto[], index: number): Promise<void> {
-    const record = records[index];
-    if (!record) return;
+    const tapped = records[index];
+    // Tapping a record with no preview leaves current playback untouched.
+    if (!tapped || !isPlayable(tapped)) return;
 
-    const generation = ++playGeneration;
+    const playable = records.filter(isPlayable);
+    const startIndex = Math.max(
+      0,
+      playable.findIndex((r) => r.id === tapped.id),
+    );
+    const startRecord = playable[startIndex];
+    if (!startRecord) return;
 
-    // Stop the current preview right away so it does not keep sounding while the next
-    // track starts. Reset progress and duration for the new track.
-    stopPositionTimer();
-    teardownSource();
-    startOffsetSec = 0;
-    currentRecord = record;
+    // Optimistic UI: show the tapped track as loading before the native calls land.
     player$.assign({
-      record,
-      queue: records,
-      queueIndex: index,
+      record: startRecord,
+      queue: playable,
+      queueIndex: startIndex,
       status: 'loading',
       positionSec: 0,
       durationSec: 0,
       canSeek: false,
     });
 
-    if (!record.previewUrl) {
-      player$.status.set('idle');
-      return;
+    await ensureSetup();
+    await TrackPlayer.setQueue(playable.map(toTrack));
+    if (startIndex > 0) {
+      await TrackPlayer.skip(startIndex);
     }
-
-    await resumeContext();
-    if (generation !== playGeneration) return;
-
-    const started = await startRecord(record, 0, generation);
-    if (!started && generation === playGeneration) {
-      player$.status.set('idle');
-    }
+    await TrackPlayer.play();
   },
 
   /** Play a single record (a one-item queue). */
@@ -383,126 +245,73 @@ export const audioEngine = {
     await this.playQueue([record], 0);
   },
 
-  /** Skip to the next queued track, if any. No-op at the end of the queue. */
+  /** Skip to the next queued track. No-op at the end of the queue. */
   next(): void {
     const queue = player$.queue.get();
     const index = player$.queueIndex.get();
     if (index >= 0 && index < queue.length - 1) {
-      void this.playQueue(queue, index + 1);
+      void TrackPlayer.skipToNext();
     }
   },
 
   /**
-   * Apple-Music semantics: restart the current track if we are past the first few seconds
-   * (or it is the first track), otherwise jump to the previous queued track.
+   * Apple-Music semantics: restart the current track when past the first few seconds (or it is
+   * the first track), otherwise jump to the previous queued track.
    */
   prev(): void {
-    const queue = player$.queue.get();
     const index = player$.queueIndex.get();
-    if (index <= 0 || player$.positionSec.get() > 3) {
+    if (index <= 0 || player$.positionSec.get() > PREV_RESTART_THRESHOLD_SEC) {
       this.seek(0);
       return;
     }
-    void this.playQueue(queue, index - 1);
+    void TrackPlayer.skipToPrevious();
   },
 
-  /** Toggle play/pause for the currently loaded record. */
+  /** Toggle play/pause for the active track. */
   async toggle(): Promise<void> {
-    const status = player$.status.get();
-    if (status === 'playing') {
-      await this.pause();
+    if (player$.status.get() === 'playing') {
+      await TrackPlayer.pause();
     } else {
-      await this.resume();
+      await TrackPlayer.play();
     }
   },
 
-  async pause(): Promise<void> {
-    if (player$.status.get() !== 'playing') return;
-    const pos = currentPositionSec();
-    stopPositionTimer();
-
-    // Tear the source down on pause for both modes. (We avoid ctx.suspend() for streams:
-    // the crash report shows the streamer's producer thread stalling in its send() queue,
-    // and suspending the render/consumer side is a likely contributor.) The streamer
-    // restarts from the beginning on resume since it cannot seek.
-    teardownSource();
-    startOffsetSec = pos;
-
-    player$.assign({ status: 'paused', positionSec: pos });
-    await updateNotification('paused', pos);
+  pause(): void {
+    void TrackPlayer.pause();
   },
 
-  async resume(): Promise<void> {
-    if (player$.status.get() === 'playing') return;
-
-    await resumeContext();
-
-    // A live buffer source paused mid-track: recreate it from the saved offset.
-    if (mode === 'buffer' && decodedBuffer) {
-      startBufferFromOffset(startOffsetSec);
-      return;
-    }
-
-    // No live source (e.g. after a stream ended): restart the current record.
-    const record = currentRecord;
-    if (!record) return;
-    const generation = playGeneration;
-    const started = await startRecord(record, startOffsetSec, generation);
-    if (!started && generation === playGeneration) {
-      player$.status.set('idle');
-    }
+  resume(): void {
+    void TrackPlayer.play();
   },
 
-  /** Seek to an absolute position (seconds). No-op while streaming (not supported). */
+  /** Seek to an absolute position in seconds within the active track. */
   seek(toSec: number): void {
-    if (mode !== 'buffer' || !decodedBuffer) return;
-    const clamped = Math.max(0, Math.min(toSec, decodedBuffer.duration));
-    const wasPlaying = player$.status.get() === 'playing';
-    if (wasPlaying) {
-      // Reflect the new position immediately so the UI does not flash the old timestamp.
-      player$.positionSec.set(clamped);
-      startBufferFromOffset(clamped);
-    } else {
-      startOffsetSec = clamped;
-      player$.positionSec.set(clamped);
-      void updateNotification('paused', clamped);
-    }
+    const clamped = Math.max(0, toSec);
+    // Reflect the new position immediately so the bar does not flash the old timestamp.
+    player$.positionSec.set(clamped);
+    void TrackPlayer.seekTo(clamped);
   },
 
+  /** Set output volume / gain (0..1). */
   setGain(value: number): void {
     const clamped = Math.max(0, Math.min(value, 1));
-    const { gain } = ensureGraph();
-    gain.gain.value = clamped;
     player$.gain.set(clamped);
+    void TrackPlayer.setVolume(clamped);
   },
 
-  /** The analyser node for the visualizer (null until the graph exists). */
-  getAnalyser(): AnalyserNode | null {
-    return analyserNode;
-  },
-
-  /** Remove every subscription and release the graph. Call on app unmount. */
+  /** Remove our listeners and clear the player. Called on root unmount. */
   async teardown(): Promise<void> {
     stopPositionTimer();
-    teardownSource();
     for (const sub of subscriptions) {
       sub.remove();
     }
     subscriptions.length = 0;
-    await PlaybackNotificationManager.hide();
-    if (context) {
-      await context.close();
-    }
-    context = null;
-    gainNode = null;
-    analyserNode = null;
-    decodedBuffer = null;
-    loadedRecordId = null;
-    currentRecord = null;
-    sessionConfigured = false;
+    listenersRegistered = false;
+    setupPromise = null;
+    await TrackPlayer.reset();
     player$.assign({
-      status: 'idle',
       record: null,
+      status: 'idle',
       positionSec: 0,
       durationSec: 0,
       canSeek: false,
