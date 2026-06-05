@@ -5,17 +5,39 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import Animated, { interpolate, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { queryClient } from '../src/api/queryClient';
+import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
 import { NowPlaying } from '../src/components/NowPlaying';
+import { ActivityIndicator, View } from '../src/theme/uniwind';
 import { initializeTheme } from '../src/theme/theme';
 
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
 initializeTheme();
 
 export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <StatusBar style="auto" />
+          <RootNavigator />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+// Auth gate + Now Playing host. Lives under the providers so it can read the better-auth session.
+// The app is fully gated: without a session the user is redirected into the (auth) group, and the
+// tab navigator (and the global mini-player) only mount once signed in.
+function RootNavigator() {
+  const { data: session, isPending } = authClient.useSession();
+  const segments = useSegments();
+  const router = useRouter();
+
   // Configure the audio session and lock-screen handlers once for the whole app.
   // Tear everything down (remove all subscriptions) on unmount.
   useEffect(() => {
@@ -24,6 +46,17 @@ export default function RootLayout() {
       void audioEngine.teardown();
     };
   }, []);
+
+  // Redirect on auth state: out to sign-in when signed out, back into the app once signed in.
+  useEffect(() => {
+    if (isPending) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!session && !inAuthGroup) {
+      router.replace('/sign-in');
+    } else if (session && inAuthGroup) {
+      router.replace('/');
+    }
+  }, [session, isPending, segments, router]);
 
   // Shared motion values for the Now Playing surface, created here so the root can recede the
   // navigator (iOS card effect) while NowPlaying drives the same values from its gestures.
@@ -51,27 +84,33 @@ export default function RootLayout() {
     };
   });
 
+  // While the persisted session is restored from SecureStore, show a neutral splash so we never
+  // flash the sign-in screen for an already-authenticated user (or vice versa).
+  if (isPending) {
+    return (
+      <View className="flex-1 items-center justify-center bg-bg">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="auto" />
-          <Animated.View style={[{ flex: 1, overflow: 'hidden' }, cardStyle]}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: 'slide_from_right',
-                animationDuration: 200,
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-            </Stack>
-          </Animated.View>
-          {/* The Now Playing surface is mounted once here, above the tab navigator, so it can
-              float as a mini-bar and expand to a full-screen player over the receding page. */}
-          <NowPlaying expand={expand} drag={drag} />
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <>
+      <Animated.View style={[{ flex: 1, overflow: 'hidden' }, cardStyle]}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            animationDuration: 200,
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+        </Stack>
+      </Animated.View>
+      {/* The Now Playing surface mounts above the tab navigator, but only once signed in: it can
+          float as a mini-bar and expand to a full-screen player over the receding page. */}
+      {session ? <NowPlaying expand={expand} drag={drag} /> : null}
+    </>
   );
 }

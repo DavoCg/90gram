@@ -197,3 +197,92 @@ enum StockStatus {
 
   @@map("stock_status")
 }
+
+// ----------------------------------------------------------------------------
+// Authentication (better-auth)
+//
+// These four models mirror better-auth's core schema (see apps/api/src/auth.ts).
+// better-auth talks to them through the Prisma adapter using the camelCase FIELD
+// names below, so those names must stay in lockstep with better-auth's expected
+// shape; the snake_case @map/@@map only affects physical columns and is invisible
+// to better-auth. better-auth supplies its own ids, so these have no @default.
+// The scraper never touches these tables. See the db skill.
+// ----------------------------------------------------------------------------
+
+/// An authenticated user. Identity is `email` (unique). Populated by better-auth on
+/// the first passwordless (email OTP) sign-in.
+model User {
+  id            String  @id
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  image         String?
+
+  sessions Session[]
+  accounts Account[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+/// A signed-in session. The `token` is the bearer the client stores (SecureStore on
+/// mobile); better-auth validates it on every authenticated request.
+model Session {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// A credential or linked provider account for a user. Unused fields (tokens, password)
+/// stay null for passwordless email-OTP users; the table exists for forward compatibility
+/// with password and social providers.
+model Account {
+  id         String @id
+  accountId  String @map("account_id")
+  providerId String @map("provider_id")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Short-lived verification records: this is where the email one-time passcodes (OTPs)
+/// live until they are consumed or expire.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}

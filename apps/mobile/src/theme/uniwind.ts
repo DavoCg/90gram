@@ -7,6 +7,7 @@ import {
   Pressable as RNPressable,
   ScrollView as RNScrollView,
   Text as RNText,
+  TextInput as RNTextInput,
   View as RNView,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
@@ -17,4 +18,5 @@ export const Text = withUniwind(RNText);
 export const Pressable = withUniwind(RNPressable);
 export const ScrollView = withUniwind(RNScrollView);
 export const ActivityIndicator = withUniwind(RNActivityIndicator);
+export const TextInput = withUniwind(RNTextInput);
 export const Image = withUniwind(ExpoImage);

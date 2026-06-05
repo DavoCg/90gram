@@ -44,6 +44,18 @@ This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the wor
   (`queryKeys.vinyls.all`, `queryKeys.vinyls.detail(id)`). Wrap the app in `QueryClientProvider`.
 - No hand-written fetch. Every call goes through the typed client; responses are fully typed, zero `any`.
 
+## Authentication (better-auth)
+
+The app is fully gated behind sign-in. `src/auth/client.ts` holds the ONE better-auth client (the
+`expoClient` plugin stores the session token in `expo-secure-store`, plus `emailOTPClient` for the
+passwordless code flow); it points at the API's `/api/auth/*` handler via `EXPO_PUBLIC_API_BASE_URL`.
+The root `app/_layout.tsx` reads `authClient.useSession()` and redirects: signed-out users go to the
+`(auth)` group (`app/(auth)/sign-in.tsx`, a two-step email then 6-digit code screen), and the tab
+navigator plus the global mini-player only mount once signed in. Read the session with
+`authClient.useSession()`, sign out with `authClient.signOut()` (the gate handles navigation). Auth does
+NOT go through the generated api-client; that client only forwards the better-auth cookie so future
+per-user endpoints are authenticated.
+
 ## State management
 
 - **Server/data state: TanStack Query** (the hooks above). **Client/UI state: Legend State** observables
