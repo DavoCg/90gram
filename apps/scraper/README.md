@@ -30,9 +30,11 @@ getvinyls_scraper/
   pipelines.py     PostgresPipeline: reflected schema + batched upsert
   middlewares.py   placeholder (politeness is all built-in via settings)
   spiders/
-    discogs.py     the one reseller spider (API mode or offline fixture mode)
+    discogs.py     Discogs spider (official API mode or offline fixture mode)
+    juno.py        Juno (juno.co.uk) spider (HTML listing mode or offline fixture mode)
 fixtures/
   discogs_sample.json   offline sample data
+  juno_sample.json      offline sample data
 ```
 
 Adding a reseller is adding a spider in `spiders/`, nothing else.
@@ -55,3 +57,18 @@ natural key, `id`, and `created_at`.
   `file://` request. Useful offline. Same pipeline, same idempotency.
 
 Re-running a crawl updates rows instead of duplicating them (unique on `source` + `external_id`).
+
+## Juno (juno.co.uk)
+
+`uv run scrapy crawl juno`. Juno has no public JSON API, so the network path parses the HTML listing pages.
+Each product lives at `/products/<slug>/<id>-<variant>/` and we use that `<id>-<variant>` as `external_id`,
+which is the stable identity to upsert on.
+
+- **Network mode (default):** crawls Juno's vinyl listing. `JUNO_START_URL` overrides the start page;
+  `JUNO_MAX_PAGES` caps how many paginated pages are followed (default `1`, keep it small). Politeness
+  (robots.txt, AutoThrottle, retry on 429/5xx, identifying User-Agent) comes from `settings.py`. Always review
+  Juno's robots.txt and terms before crawling.
+- **Fixture mode:** set `JUNO_FIXTURE` to a local JSON file to read it via a `file://` request. Same pipeline,
+  same idempotency. This is the offline/dev path and the one exercised without hitting Juno (which blocks bots).
+  The listing-card text selectors are best-effort and centralized at the top of `juno.py`; if Juno reworks its
+  markup the spider logs a "Parsed 0 products" warning, and the selectors are the place to update.

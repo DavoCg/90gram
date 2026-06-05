@@ -1,0 +1,41 @@
+[
+  {
+    "source": "juno",
+    "external_id": "891935-01",
+    "title": "Scraping By",
+    "artist": "The Tambles",
+    "year": 2023,
+    "cover_art_url": "https://imagescdn.juno.co.uk/full/CS891935-01A-BIG.jpg",
+    "preview_url": "https://www.juno.co.uk/MP3/SF891935-01-01-02.mp3",
+    "source_url": "https://www.juno.co.uk/products/the-tambles-scraping-by-cd/891935-01/",
+    "price": 11.99,
+    "currency": "GBP",
+    "availability": "in_stock"
+  },
+  {
+    "source": "juno",
+    "external_id": "742210-01",
+    "title": "Midnight Drive EP",
+    "artist": "Hauntologists",
+    "year": 2022,
+    "cover_art_url": "https://imagescdn.juno.co.uk/full/CS742210-01A-BIG.jpg",
+    "preview_url": "https://www.juno.co.uk/MP3/SF742210-01-01-02.mp3",
+    "source_url": "https://www.juno.co.uk/products/hauntologists-midnight-drive-ep/742210-01/",
+    "price": 13.5,
+    "currency": "GBP",
+    "availability": "in_stock"
+  },
+  {
+    "source": "juno",
+    "external_id": "655001-01",
+    "title": "Deep House Sessions Vol 3",
+    "artist": "Various",
+    "year": 2021,
+    "cover_art_url": "https://imagescdn.juno.co.uk/full/CS655001-01A-BIG.jpg",
+    "preview_url": null,
+    "source_url": "https://www.juno.co.uk/products/various-deep-house-sessions-vol-3/655001-01/",
+    "price": 18.99,
+    "currency": "GBP",
+    "availability": "preorder"
+  }
+]
