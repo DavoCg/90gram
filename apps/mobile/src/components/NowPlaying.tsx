@@ -25,7 +25,8 @@ import Animated, {
 import { use$ } from '@legendapp/state/react';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
-import { Pressable, Text, View } from '../theme/uniwind';
+import { Pressable, View } from '../theme/uniwind';
+import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 import { SeekBar } from './SeekBar';
 import { VolumeSlider } from './VolumeSlider';
@@ -184,6 +185,7 @@ export function NowPlaying({
             right: MINI_MARGIN,
             height: MINI_HEIGHT,
             borderRadius: 14,
+            borderCurve: 'continuous',
             backgroundColor: colors.surface,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: colors.border,
@@ -199,10 +201,10 @@ export function NowPlaying({
         <Pressable onPress={openPlayer} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: MINI_ART + 16 }} />
           <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} className="text-base font-semibold text-text">
+            <Text numberOfLines={1} weight="semibold">
               {track.title}
             </Text>
-            <Text numberOfLines={1} className="text-xs text-muted">
+            <Text numberOfLines={1} size="xs" color="neutral-soft">
               {track.artist}
             </Text>
           </View>
@@ -254,6 +256,7 @@ export function NowPlaying({
               overflow: 'hidden',
               borderTopLeftRadius: SHEET_RADIUS,
               borderTopRightRadius: SHEET_RADIUS,
+              borderCurve: 'continuous',
             },
             sheetStyle,
           ]}
@@ -277,7 +280,7 @@ export function NowPlaying({
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text numberOfLines={1} className="text-2xl font-bold text-text">
+                  <Text numberOfLines={1} size="2xl" weight="bold">
                     {track.title}
                   </Text>
                   <View
@@ -285,23 +288,26 @@ export function NowPlaying({
                       width: 16,
                       height: 16,
                       borderRadius: 3,
+                      borderCurve: 'continuous',
                       backgroundColor: colors.surface2,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: colors.muted }}>E</Text>
+                    <Text size="2xs" weight="bold" color="neutral-soft">
+                      E
+                    </Text>
                   </View>
                 </View>
-                <Text numberOfLines={1} className="mt-1 text-lg text-muted">
+                <Text numberOfLines={1} size="lg" color="neutral-soft" className="mt-1">
                   {track.artist}
                 </Text>
               </View>
               {/* Decorative for now (no favorites / menu backing yet). */}
-              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full bg-surface-2">
+              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full curve-continuous bg-surface-2">
                 <Star color={colors.text} size={18} />
               </Pressable>
-              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full bg-surface-2">
+              <Pressable className="ml-2 h-9 w-9 items-center justify-center rounded-full curve-continuous bg-surface-2">
                 <MoreHorizontal color={colors.text} size={18} />
               </Pressable>
             </View>
@@ -381,6 +387,7 @@ export function NowPlaying({
             height: large,
             backgroundColor: colors.surface2,
             overflow: 'hidden',
+            borderCurve: 'continuous',
             shadowColor: '#000',
             shadowOpacity: 0.3,
             shadowRadius: 24,

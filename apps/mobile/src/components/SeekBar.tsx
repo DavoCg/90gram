@@ -10,7 +10,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import type { LayoutChangeEvent } from 'react-native';
-import { Text, View } from '../theme/uniwind';
+import { View } from '../theme/uniwind';
+import { Text } from './text';
 
 const THUMB_SIZE = 14;
 
@@ -200,7 +201,7 @@ export function SeekBar({
       <GestureDetector gesture={gesture}>
         {/* Tall, transparent hit area so the thin visual track is easy to grab. */}
         <View className="h-6 flex-1 justify-center" onLayout={onLayout}>
-          <View className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
+          <View className="h-1 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
             <Animated.View
               style={[
                 {
@@ -248,7 +249,7 @@ export function SeekBar({
           }}
         />
       ) : (
-        <Text className="w-10 text-right text-xs text-muted">
+        <Text size="xs" color="neutral-soft" align="right" className="w-10">
           {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
         </Text>
       )}

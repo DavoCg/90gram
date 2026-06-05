@@ -8,9 +8,9 @@ import {
   Image,
   Pressable,
   ScrollView,
-  Text,
   View,
 } from '../../../../src/theme/uniwind';
+import { Text } from '../../../../src/components/text';
 import { useVinyl } from '../../../../src/api/hooks';
 import { AppHeader } from '../../../../src/components/AppHeader';
 import { audioEngine } from '../../../../src/audio/engine';
@@ -76,9 +76,12 @@ export default function VinylScreen() {
         <View className="flex-1 bg-bg">
           <AppHeader />
           <View className="flex-1 items-center justify-center gap-3 px-6">
-            <Text className="text-center text-text">Could not load this record.</Text>
-            <Pressable onPress={() => void refetch()} className="rounded-full bg-accent px-5 py-2">
-              <Text className="text-surface">Retry</Text>
+            <Text align="center">Could not load this record.</Text>
+            <Pressable
+              onPress={() => void refetch()}
+              className="rounded-full curve-continuous bg-accent px-5 py-2"
+            >
+              <Text color="white">Retry</Text>
             </Pressable>
           </View>
         </View>
@@ -108,18 +111,22 @@ export default function VinylScreen() {
         <View className="items-center px-6 pb-4 pt-1">
           <Image
             source={vinyl.coverArtUrl ? { uri: vinyl.coverArtUrl } : undefined}
-            className="aspect-square w-72 rounded-xl bg-surface-2"
+            className="aspect-square w-72 rounded-xl curve-continuous bg-surface-2"
             contentFit="cover"
           />
-          <Text numberOfLines={2} className="mt-5 text-center text-2xl font-bold text-text">
+          <Text numberOfLines={2} size="2xl" weight="bold" align="center" className="mt-5">
             {vinyl.title}
           </Text>
-          <Text numberOfLines={1} className="mt-1 text-center text-lg text-accent">
+          <Text numberOfLines={1} size="lg" color="accent" align="center" className="mt-1">
             {vinyl.artist}
           </Text>
-          {meta ? <Text className="mt-1 text-center text-sm text-muted">{meta}</Text> : null}
+          {meta ? (
+            <Text size="sm" color="neutral-soft" align="center" className="mt-1">
+              {meta}
+            </Text>
+          ) : null}
           {fromPrice ? (
-            <Text className="mt-0.5 text-center text-sm text-muted">
+            <Text size="sm" color="neutral-soft" align="center" className="mt-0.5">
               {fromPrice}
               {vinyl.shopCount > 0
                 ? ` · ${vinyl.shopCount === 1 ? '1 shop' : `${vinyl.shopCount} shops`}`
@@ -134,19 +141,23 @@ export default function VinylScreen() {
             onPress={onPressPlay}
             disabled={!hasPlayable}
             style={{ opacity: hasPlayable ? 1 : 0.4 }}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-surface-2 py-3"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl curve-continuous bg-surface-2 py-3"
           >
             <Play color={colors.accent} size={18} fill={colors.accent} />
-            <Text className="text-base font-semibold text-accent">Play</Text>
+            <Text weight="semibold" color="accent">
+              Play
+            </Text>
           </Pressable>
           <Pressable
             onPress={onPressShuffle}
             disabled={!hasPlayable}
             style={{ opacity: hasPlayable ? 1 : 0.4 }}
-            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-surface-2 py-3"
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl curve-continuous bg-surface-2 py-3"
           >
             <Shuffle color={colors.accent} size={18} />
-            <Text className="text-base font-semibold text-accent">Shuffle</Text>
+            <Text weight="semibold" color="accent">
+              Shuffle
+            </Text>
           </Pressable>
         </View>
 
@@ -166,21 +177,26 @@ export default function VinylScreen() {
                   {isCurrent ? (
                     <AudioLines color={colors.accent} size={16} />
                   ) : (
-                    <Text className="text-sm text-muted">{track.position}</Text>
+                    <Text size="sm" color="neutral-soft">
+                      {track.position}
+                    </Text>
                   )}
                 </View>
                 <Text
                   numberOfLines={1}
-                  className={`flex-1 text-base ${
-                    isCurrent ? 'text-accent' : playable ? 'text-text' : 'text-muted'
-                  }`}
+                  color={isCurrent ? 'accent' : playable ? 'neutral' : 'neutral-soft'}
+                  className="flex-1"
                 >
                   {track.title}
                 </Text>
                 {isCurrent && playWhenReady ? (
-                  <Text className="text-xs text-accent">Playing</Text>
+                  <Text size="xs" color="accent">
+                    Playing
+                  </Text>
                 ) : !playable ? (
-                  <Text className="text-xs text-muted">No preview</Text>
+                  <Text size="xs" color="neutral-soft">
+                    No preview
+                  </Text>
                 ) : null}
               </Pressable>
             );

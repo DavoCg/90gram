@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
-import { Image, Pressable, Text, View } from '../theme/uniwind';
+import { Image, Pressable, View } from '../theme/uniwind';
+import { Text } from './text';
 
 export interface VinylRowProps {
   vinyl: VinylSummaryDto;
@@ -26,26 +27,32 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
     >
       <Image
         source={vinyl.coverArtUrl ? { uri: vinyl.coverArtUrl } : undefined}
-        className="h-14 w-14 rounded-md bg-surface-2"
+        className="h-14 w-14 rounded-md curve-continuous bg-surface-2"
       />
       <View className="flex-1">
-        <Text numberOfLines={1} className="text-base font-semibold text-text">
+        <Text numberOfLines={1} weight="semibold">
           {vinyl.title}
         </Text>
-        <Text numberOfLines={1} className="text-sm text-muted">
+        <Text numberOfLines={1} size="sm" color="neutral-soft">
           {vinyl.artist}
           {vinyl.year ? ` · ${vinyl.year}` : ''}
         </Text>
         {genre ? (
-          <View className="mt-1 self-start rounded-full bg-surface-2 px-2 py-0.5">
-            <Text className="text-xs text-muted">{genre}</Text>
+          <View className="mt-1 self-start rounded-full curve-continuous bg-surface-2 px-2 py-0.5">
+            <Text size="xs" color="neutral-soft">
+              {genre}
+            </Text>
           </View>
         ) : null}
       </View>
       <View className="items-end gap-1">
-        {fromPrice ? <Text className="text-sm text-text">{fromPrice}</Text> : null}
-        {vinyl.shopCount > 0 ? <Text className="text-xs text-muted">{shops}</Text> : null}
-        <Text className="text-xs text-accent">
+        {fromPrice ? <Text size="sm">{fromPrice}</Text> : null}
+        {vinyl.shopCount > 0 ? (
+          <Text size="xs" color="neutral-soft">
+            {shops}
+          </Text>
+        ) : null}
+        <Text size="xs" color="accent">
           {isCurrent && isPlaying ? '❚❚ Playing' : '▶ Preview'}
         </Text>
       </View>

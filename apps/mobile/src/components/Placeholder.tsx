@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react-native';
-import { Text, View } from '../theme/uniwind';
+import { View } from '../theme/uniwind';
+import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 import { AppHeader } from './AppHeader';
 
@@ -17,10 +18,14 @@ export function Placeholder({ icon: Icon, title, subtitle }: PlaceholderProps) {
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title={title} />
+      {/* Tab-root screen: never a back button (a bottom-tab navigator reports canGoBack once
+          you leave the first tab, which would otherwise show a stray arrow). */}
+      <AppHeader title={title} showBack={false} />
       <View className="flex-1 items-center justify-center gap-3 px-8">
         <Icon color={colors.muted} size={48} strokeWidth={1.5} />
-        <Text className="text-center text-sm text-muted">{subtitle}</Text>
+        <Text size="sm" color="neutral-soft" align="center">
+          {subtitle}
+        </Text>
       </View>
     </View>
   );

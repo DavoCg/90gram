@@ -4,5 +4,15 @@ import { Stack } from 'expo-router';
 // bottom tab bar (owned by the parent (tabs) layout) and the global mini-player stay visible.
 // Pushing within the tab, not presenting a root modal, is what keeps both on screen.
 export default function HomeStackLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  // 200ms slide-from-right push/pop transitions for every page in this stack (vinyl detail,
+  // settings).
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        animationDuration: 200,
+      }}
+    />
+  );
 }

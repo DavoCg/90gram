@@ -10,6 +10,10 @@ import { StatusBar } from 'expo-status-bar';
 import { queryClient } from '../src/api/queryClient';
 import { audioEngine } from '../src/audio/engine';
 import { NowPlaying } from '../src/components/NowPlaying';
+import { initializeTheme } from '../src/theme/theme';
+
+// Apply the persisted dark-mode preference before the first render to avoid a theme flash.
+initializeTheme();
 
 export default function RootLayout() {
   // Configure the audio session and lock-screen handlers once for the whole app.
@@ -42,6 +46,7 @@ export default function RootLayout() {
       // Constant ~38pt corners while presented (tracks open/close only, not the drag), matching
       // the player sheet's top corners.
       borderRadius: interpolate(expand.value, [0, 1], [0, 38]),
+      borderCurve: 'continuous',
       opacity: interpolate(open, [0, 1], [1, 0.6]),
     };
   });
@@ -52,7 +57,13 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
           <Animated.View style={[{ flex: 1, overflow: 'hidden' }, cardStyle]}>
-            <Stack screenOptions={{ headerShown: false }}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: 'slide_from_right',
+                animationDuration: 200,
+              }}
+            >
               <Stack.Screen name="(tabs)" />
             </Stack>
           </Animated.View>

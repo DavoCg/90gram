@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
-import { Pressable, Text, View } from '../theme/uniwind';
+import { Pressable, View } from '../theme/uniwind';
+import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 
 interface AppHeaderProps {
@@ -37,7 +38,7 @@ export function AppHeader({ title, showBack, right }: AppHeaderProps) {
           </Pressable>
         ) : null}
         {title ? (
-          <Text numberOfLines={1} className="flex-1 text-2xl font-bold text-text">
+          <Text numberOfLines={1} size="2xl" weight="bold" className="flex-1">
             {title}
           </Text>
         ) : (

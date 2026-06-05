@@ -116,12 +116,12 @@
     }
 
     @variant dark {
-      --color-bg: #0e0e10;
-      --color-surface: #1a1a1d;
-      --color-surface-2: #232327;
-      --color-text: #f5f5f4;
-      --color-muted: #a1a1aa;
-      --color-border: #2a2a2e;
+      --color-bg: #1c1714;
+      --color-surface: #251e19;
+      --color-surface-2: #312922;
+      --color-text: #f1ebe3;
+      --color-muted: #aa9d90;
+      --color-border: #3a312a;
     }
   }
 }

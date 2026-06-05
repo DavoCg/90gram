@@ -68,7 +68,7 @@ export function VolumeSlider({
       <GestureDetector gesture={gesture}>
         {/* Tall, transparent hit area so the thin visual track is easy to grab. */}
         <View className="h-6 flex-1 justify-center" onLayout={onLayout}>
-          <View className="h-1 w-full overflow-hidden rounded-full bg-surface-2">
+          <View className="h-1 w-full overflow-hidden rounded-full curve-continuous bg-surface-2">
             <Animated.View
               style={[
                 {
