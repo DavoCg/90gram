@@ -56,10 +56,10 @@ This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the wor
 
 - Use `FlashList` (not `FlatList`) for the record list. Memoize row components (`React.memo`), pass stable
   keys, and avoid inline closures that defeat memoization in hot lists.
-- Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (see the audio
-  skill for the visualizer rules).
+- Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (the SeekBar /
+  VolumeSlider drive everything that moves during a drag with Reanimated shared values on the UI thread).
 
 ## Structure
 
 `app/` holds routes (Expo Router). `src/` holds non-route code: `api/` (client + hooks + query keys),
-`audio/` (player module, store, visualizer; see the audio skill), `components/`, `theme/`.
+`audio/` (engine + playback service + store; see the audio skill), `components/`, `theme/`.

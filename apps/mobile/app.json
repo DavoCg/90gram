@@ -11,7 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.getvinyls.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -29,22 +30,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-system-ui",
-      [
-        "react-native-audio-api",
-        {
-          "iosBackgroundMode": true,
-          "androidPermissions": [
-            "MODIFY_AUDIO_SETTINGS",
-            "FOREGROUND_SERVICE",
-            "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-          ],
-          "androidForegroundService": true,
-          "androidFSTypes": [
-            "mediaPlayback"
-          ]
-        }
-      ]
+      "expo-system-ui"
     ],
     "experiments": {
       "typedRoutes": true

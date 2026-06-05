@@ -1,108 +1,96 @@
 ---
 name: audio
 description: >-
-  Conventions for the audio layer in apps/mobile, built on react-native-audio-api (Software
-  Mansion, Web Audio model). Read this for ANYTHING audio: the single AudioContext, the
-  source -> gain -> analyser -> destination graph, buffer-based preview playback, the Legend State
-  player store, lock-screen / remote controls via AudioManager, subscription cleanup, and the
-  AnalyserNode-driven visualizer. This is the app centerpiece; build it deliberately.
+  Conventions for the audio layer in apps/mobile, built on react-native-track-player (RNTP) v5.
+  Read this for ANYTHING audio: the native queue and background playback, the headless playback
+  service that wires the OS remote controls, the single engine wrapper that owns all TrackPlayer
+  calls, how native state is mirrored into the Legend State player store, and the deliberate
+  absence of a spectrum visualizer. This is the app centerpiece; build it deliberately.
 ---
 
 # Audio (apps/mobile)
 
-`react-native-audio-api` is a Web Audio engine, not a jukebox: there is no built-in queue or `play(url)`.
-We build the player layer ourselves. It lives entirely under `apps/mobile/src/audio`. Do NOT use
-`react-native-track-player` or `react-native-audio-pro`. Audio calls are NOT scattered across components.
+The player is built on `react-native-track-player` (RNTP). Unlike the old `react-native-audio-api`
+build, RNTP IS a jukebox: it owns a NATIVE queue, background playback, full-track streaming with
+seeking, and the OS remote controls (lock screen, Control Center, headset buttons, Android Auto).
+We do NOT build a Web Audio graph, decode buffers, or track position by hand anymore. Everything
+audio lives under `apps/mobile/src/audio`, plus the JS entry `apps/mobile/index.js`.
 
-## One AudioContext for the whole app
+Installed version: `react-native-track-player@5.0.0-alpha0`. v5 is the New Architecture rewrite and
+is COMMERCIALLY licensed for production use (see rntp.dev); the public npm `5.0.0-alpha0` is a
+pre-release. Treat the version as load-bearing: keep the engine the single integration point so a
+bump (or a move to the licensed build) is a one-file change.
 
-Create it once (module singleton in `src/audio/engine.ts`) and `resume()` on the first user gesture.
-Never instantiate per screen. The graph is imperative and lives in module refs; only serializable UI
-state lives in the store.
+## The engine is the only thing that talks to TrackPlayer
 
-Version note (react-native-audio-api 0.12.2): the `AudioContext` constructor does NOT accept
-`initSuspended`, so we create it lazily and resume on the first gesture instead. There is also no
-`playbackRate` AudioParam on `AudioBufferSourceNode` in this version, so the player exposes gain
-(volume) but not a playback-rate control. Keep this in sync if the library version changes.
+`src/audio/engine.ts` is the sole module that imports and calls `TrackPlayer`. Components and
+screens call the engine, never `TrackPlayer` directly. Public API (keep it stable, the UI depends
+on it): `setupSession()`, `teardown()`, `playQueue(records, index)`, `playRecord(record)`,
+`next()`, `prev()`, `toggle()`, `pause()`, `resume()`, `seek(sec)`, `setGain(value)`.
 
-## Node graph
+## Setup and the playback service (two distinct registrations)
 
-`source -> GainNode -> AnalyserNode -> destination`. The analyser sits AFTER gain so the visualizer reacts
-to actual output level. Start with `analyser.fftSize = 256`, `smoothingTimeConstant = 0.8`. The active
-source is recreated on every play; always connect it into `gainNode` (never straight to `destination`, or
-the visualizer goes silent).
+1. **Service registration (JS entry, `apps/mobile/index.js`).** `package.json` `main` points at
+   `index.js`, which imports `expo-router/entry` (registers the root component) and then calls
+   `TrackPlayer.registerPlaybackService(() => PlaybackService)`. This MUST run at the top level of
+   the entry so it is in place when the OS spins up the headless JS task to handle a notification
+   action after the app was killed. `PlaybackService` lives in `src/audio/service.ts` and only
+   registers the `Remote*` handlers (RemotePlay/Pause/Stop/Next/Previous/Seek/JumpForward/Backward)
+   that map OS button presses to `TrackPlayer` calls. Keep it side-effect free at import time.
 
-## Two playback modes (engine picks per track)
+2. **Player setup (`engine.setupSession()`, called once from the root layout).** Kicks off a
+   memoized `setupPlayer({ autoHandleInterruptions: true, iosCategory: Playback })` then
+   `updateOptions({ capabilities, notificationCapabilities, forwardJumpInterval,
+   backwardJumpInterval, android: { appKilledPlaybackBehavior: ContinuePlayback } })`. Setup must
+   complete before any queue/playback call, so `playQueue` awaits the same memoized promise.
+   `setupPlayer` throws if the native player is already initialized (survives a JS hot reload), so
+   that one call is wrapped in try/catch and we fall through to `updateOptions`.
 
-Previews are full-length tracks, so a fast start matters. The engine has a master switch `STREAMING_ENABLED`
-(in `engine.ts`) and chooses per track:
+Interruptions (calls, other apps, ducking) are handled NATIVELY via `autoHandleInterruptions: true`.
+Do NOT hand-roll interruption pause/resume.
 
-### STREAM mode (fast start, no seek) — DISABLED by default
+## Native state is mirrored into the store; never duplicated by hand
 
-`ctx.createStreamer(previewUrl)` plays a remote URL progressively. FFmpeg is present and it DOES stream, but
-in react-native-audio-api 0.12.2 the native `StreamerNode` throws on the CoreAudio render thread
-(`AURemoteIO::IOThread` -> `std::terminate` -> SIGABRT) and hard-crashes the app. A JS try/catch cannot
-catch a crash on the audio render thread. So `STREAMING_ENABLED` is `false` and previews use the buffer
-mode. Only flip it on to test a build where the upstream bug is fixed. When testing, connect the streamer
-straight to `ctx.destination` (NOT through gain/analyser) and do NOT use `ctx.suspend()` to pause it (the
-crash shows the streamer's producer queue stalling) - tear it down and restart instead.
+The UI reads a Legend State observable (`player$` in `src/audio/store.ts`). RNTP is the native
+source of truth, and `setupSession()` registers foreground listeners that MIRROR native state into
+`player$` (the engine is the sole writer):
 
-Remote streams CANNOT seek (maintainer confirmed in issue #895: you would have to drain the socket and open
-a new connection). So in stream mode set `player$.canSeek = false` and `durationSec = 0`; the `SeekBar`
-renders read-only (elapsed counts up, no scrub, label shows `live`). Pause/resume uses `ctx.suspend()` /
-`ctx.resume()` to freeze the whole context in place (the stream cannot resume from an offset); `currentTime`
-stops advancing while suspended, so the position estimate stays continuous.
+- `Event.PlaybackState` -> map RNTP `State` to our `PlayerStatus` (`mapState`) and set
+  `player$.status`; start/stop the position timer.
+- `Event.PlaybackActiveTrackChanged` -> set `queueIndex` from `event.index`, `record` from
+  `player$.queue[index]`, reset position, publish duration / `canSeek`.
+- `Event.PlaybackQueueEnded` -> status `paused`, position 0.
+- Position: a ~250ms `setInterval` polls `TrackPlayer.getProgress()` while playing and writes
+  `positionSec` / `durationSec` / `canSeek`, keeping the SeekBar smooth.
 
-### BUFFER mode (seekable fallback)
+Components read narrow slices with `use$(player$.x)` from `@legendapp/state/react`. Server/data
+state stays in TanStack Query.
 
-`fetch(previewUrl) -> arrayBuffer -> ctx.decodeAudioData() -> AudioBuffer`, then a fresh
-`createBufferSource({ pitchCorrection: true })` per play with `start(0, offset)`. Used when streaming is
-disabled, the URL is local, the offset is non-zero (streaming ignores offsets), or createStreamer is
-unavailable. Cache the decoded `AudioBuffer` per record id (replay/seek/resume does not re-download). Set
-`canSeek = true` and publish `buffer.duration`. On seek-while-playing, set `player$.positionSec` to the
-target BEFORE recreating the source so the bar does not flash the old timestamp.
+## The queue is real; keep `player$.queue` aligned with the native queue
 
-### Shared rules
+`playQueue(records, index)` filters the list to playable records (non-null `previewUrl`), maps them
+to RNTP `Track`s (stash the record id in the typed `mediaId` field; never read Track's `any` index
+signature), `setQueue`s them, `skip`s to the tapped index, and `play`s. Set `player$.queue` to that
+SAME filtered list so the native index maps straight onto it. `next()`/`prev()` walk the queue
+(`prev()` uses Apple-Music semantics: restart the track if past ~3s or it is the first, else skip
+back). The queue auto-advances natively at track end, no manual chaining.
 
-Always connect the active source into `gainNode` (volume + analyser/visualizer). A `playGeneration` counter
-guards against a slow decode clobbering a newer `playRecord`, and `playRecord` tears down the current source
-immediately so the old preview does not keep sounding while the next starts. Position is estimated from the
-context clock on a ~250ms timer in both modes (the streamer reports no `currentTime`).
+## Lock screen / remote controls
 
-WARNING: do not pass a remote URL to `createFileSource` (it expects a local path or an ArrayBuffer and
-crashes on a URL). For remote progressive playback use `createStreamer` only.
+Driven by `updateOptions` capabilities + the `Remote*` handlers in the playback service, plus
+metadata RNTP derives from each `Track` (title, artist, artwork). There is NO manual now-playing
+API to call per tick. Expose a control by adding its `Capability` and handling its `Event.Remote*`.
 
-## Player store (Legend State)
+## No spectrum visualizer (deliberate)
 
-Client/UI state lives in a Legend State observable (`player$` in `src/audio/store.ts`): current record,
-play state, position/offset, gain. It holds ONLY serializable state, never node instances. The engine is the
-sole writer (`player$.x.set(...)` / `player$.assign({...})`); components read narrow slices with
-`use$(player$.x)` from `@legendapp/state/react` (fine-grained reactivity). Server/data state stays in
-TanStack Query. (This replaces the Zustand store the bootstrap originally specified, per a project decision.)
+RNTP exposes no `AnalyserNode` and no per-sample PCM, so a real FFT spectrum is impossible on its
+output. The visualizer was removed in the migration (decision recorded with the maintainer). Do NOT
+reintroduce a fake/synthetic one as if it were real spectrum data. If a visualizer is ever needed,
+it must be driven by playback metadata, and that tradeoff should be surfaced first.
 
-## Lock screen + remote controls (0.12.2 API)
+## Native config (Expo prebuild / EAS)
 
-In 0.12.2 the now-playing / lock-screen controls live on `PlaybackNotificationManager`, not the older
-`enableRemoteCommand` / `setLockScreenInfo` names:
-
-- `PlaybackNotificationManager.enableControl('play' | 'pause' | 'seekTo', true)` to expose controls.
-- `PlaybackNotificationManager.show({ title, artist, artwork, duration, elapsedTime, speed, state })` to
-  push/update metadata; `hide()` to clear it.
-- `PlaybackNotificationManager.addEventListener('playbackNotificationPlay' | 'playbackNotificationPause' |
-  'playbackNotificationSeekTo', handler)` for remote actions.
-- Configure the session once with `AudioManager.setAudioSessionOptions({ iosCategory: 'playback' })`,
-  `AudioManager.setAudioSessionActivity(true)`, `AudioManager.observeAudioInterruptions(true)`.
-- Handle `AudioManager.addSystemEventListener('interruption', e => ...)` (calls, other apps) by pausing on
-  `e.type === 'began'` and resuming on `e.type === 'ended' && e.shouldResume`.
-
-## Subscription hygiene (REQUIRED, the #1 bug with this library)
-
-Every `addSystemEventListener` / `addEventListener` returns a subscription (or undefined). Keep them in an
-array and, on unmount, call `.remove()` on ALL of them and `PlaybackNotificationManager.hide()`. The engine's
-`teardown()` does this once; the root layout calls it on unmount. Get this right in one place so handlers do
-not leak or double-fire.
-
-## Visualizer
-
-A hook reads `analyser.getByteFrequencyData()` on an animation-frame loop and drives a Skia or Reanimated
-view. Keep it OFF the JS render path: write to shared values / Skia directly, never `setState` per frame.
+The alpha ships NO Expo config plugin. iOS background audio needs `ios.infoPlist.UIBackgroundModes:
+["audio"]` in `app.json`. Android keeps `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_MEDIA_PLAYBACK` /
+`MODIFY_AUDIO_SETTINGS` permissions; RNTP merges its own `MusicService` declaration via Android
+manifest merging, so no plugin entry is required. This is a dev build (prebuild), not Expo Go.
