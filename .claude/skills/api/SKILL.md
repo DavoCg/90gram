@@ -27,6 +27,18 @@ Hono + `@hono/zod-openapi` (requires Zod v4). Read-only public API over the shar
   ISO strings, Decimal to number/string) so the wire shape is stable and matches what openapi-typescript sees.
 - No `any`. Errors return a typed problem shape with the right status code.
 
+## Authentication (better-auth)
+
+The public vinyl routes stay read-only. Authentication is the one exception to "no write routes": the
+better-auth handler is mounted at `/api/auth/*` in `src/app.ts` (`auth.handler` from `src/auth.ts`) and
+owns sign-in, the email one-time-code (OTP) flow, and sessions. These routes are deliberately NOT part
+of the generated OpenAPI document or the typed api-client: the mobile app talks to them through
+better-auth's own typed client. So do not try to model them as `createRoute` zod-openapi routes, and do
+not add them to `/openapi.json`. Auth config (Prisma adapter, the `expo()` + `emailOTP` plugins,
+trusted origins, secret) lives in `src/auth.ts`; secrets and the email provider are validated in
+`src/env.ts`. When no email provider is configured, sign-in codes are logged to the API console so the
+flow is usable in local development.
+
 ## Why this matters
 
 `/openapi.json` is the contract consumed by `pnpm gen:api-types`. If a route's Zod schema changes, the

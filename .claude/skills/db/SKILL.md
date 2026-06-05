@@ -54,6 +54,17 @@ The scraper's idempotency keys are `shops.slug`, **`vinyls.matchKey`**, `tracks 
 `genres.slug`, `vinyl_genres (vinylId, genreId)`, **`shop_vinyls (source, externalId)`**, and
 `offers (source, externalId)`. Do not drop or rename them without updating the scraper skill.
 
+## Auth tables (better-auth)
+
+`User`, `Session`, `Account`, `Verification` (mapped to `users`, `sessions`, `accounts`,
+`verifications`) back authentication. They MIRROR better-auth's core schema: better-auth reaches them
+through the Prisma adapter (configured in `apps/api/src/auth.ts`) using the camelCase **field** names,
+so those names must stay in lockstep with better-auth; the snake_case `@map`/`@@map` only renames the
+physical columns and is invisible to better-auth. better-auth supplies its own ids, so these models
+carry no `@default` on `id`. The scraper never touches these tables. If you bump better-auth or add an
+auth plugin that needs new columns, regenerate the expected shape and migrate here (Prisma stays the
+sole owner; never let the better-auth CLI run DDL against this database).
+
 ## Workflow
 
 - Edit `prisma/schema.prisma`, then `pnpm --filter @getvinyls/db migrate` (creates a migration + applies it).
