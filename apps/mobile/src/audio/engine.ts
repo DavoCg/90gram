@@ -16,6 +16,7 @@
 // Version note (5.0.0-alpha0): pre-release of the New Architecture rewrite. Keep this wrapper
 // as the ONLY place that talks to TrackPlayer so a version bump (or a move to the licensed v5
 // build) stays a one-file change.
+import { Platform } from 'react-native';
 import TrackPlayer, {
   AppKilledPlaybackBehavior,
   Capability,
@@ -130,17 +131,22 @@ async function doSetup(): Promise<void> {
     // hot reload (native state outlives the JS bundle). Safe to fall through to updateOptions.
   }
 
+  // iOS Control Center / lock screen shows ONE pair of side buttons: either next/previous
+  // track OR jump forward/backward by interval. If both capabilities are registered, iOS picks
+  // the jump pair and next/previous vanish. Android can render both (main row + compact row), so
+  // we only drop jump on iOS. The scrubber covers small skips on iOS via the timeline anyway.
+  const capabilities = [
+    Capability.Play,
+    Capability.Pause,
+    Capability.Stop,
+    Capability.SeekTo,
+    Capability.SkipToNext,
+    Capability.SkipToPrevious,
+    ...(Platform.OS === 'ios' ? [] : [Capability.JumpForward, Capability.JumpBackward]),
+  ];
+
   await TrackPlayer.updateOptions({
-    capabilities: [
-      Capability.Play,
-      Capability.Pause,
-      Capability.Stop,
-      Capability.SeekTo,
-      Capability.SkipToNext,
-      Capability.SkipToPrevious,
-      Capability.JumpForward,
-      Capability.JumpBackward,
-    ],
+    capabilities,
     // The subset shown in the compact Android notification.
     notificationCapabilities: [
       Capability.Play,
