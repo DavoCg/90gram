@@ -45,7 +45,12 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # loader. Dev deps (prisma CLI, tsup) are present because the install step above keeps them.
 COPY . .
 
-RUN pnpm --filter @getvinyls/db generate \
+# prisma.config.ts resolves env('DATABASE_URL') at load time and throws if it is unset, but
+# `generate` never connects to the database (it only reads the schema). There is no DATABASE_URL
+# during the build (the real one comes from Fly secrets at runtime for `migrate deploy`), so pass
+# a placeholder to satisfy the config loader for codegen only.
+RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" \
+  pnpm --filter @getvinyls/db generate \
   && pnpm --filter @getvinyls/api build
 
 ENV NODE_ENV=production
