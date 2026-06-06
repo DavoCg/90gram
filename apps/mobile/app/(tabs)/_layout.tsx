@@ -1,6 +1,6 @@
-import { Flame, Heart, Home, Radio, Search } from 'lucide-react-native';
-import { Tabs } from 'expo-router';
-import { useThemeColors } from '../../src/theme/colors';
+import { Tabs } from "expo-router";
+import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
+import { useThemeColors } from "../../src/theme/colors";
 
 // Bottom tab navigator: Home, Hot, Radio, Favorites, Search. Icons are lucide-react-native
 // (SVG), tinted by React Navigation via the `color` prop it passes to tabBarIcon. The tab
@@ -12,59 +12,69 @@ const TAB_ICON_SIZE = 20;
 const TAB_BAR_TOP_PADDING = 4;
 
 export default function TabsLayout() {
-  const colors = useThemeColors();
+	const colors = useThemeColors();
 
-  return (
-    <Tabs
-      screenOptions={{
-        // Native headers are disabled app-wide; every screen renders the custom <AppHeader>
-        // instead (src/components/AppHeader.tsx).
-        headerShown: false,
-        tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          paddingTop: TAB_BAR_TOP_PADDING,
-        },
-        sceneStyle: { backgroundColor: colors.bg },
-      }}
-    >
-      <Tabs.Screen
-        name="(home)"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Home color={color} size={TAB_ICON_SIZE} />,
-        }}
-      />
-      <Tabs.Screen
-        name="hot"
-        options={{
-          title: 'Hot',
-          tabBarIcon: ({ color }) => <Flame color={color} size={TAB_ICON_SIZE} />,
-        }}
-      />
-      <Tabs.Screen
-        name="radio"
-        options={{
-          title: 'Radio',
-          tabBarIcon: ({ color }) => <Radio color={color} size={TAB_ICON_SIZE} />,
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: 'Favorites',
-          tabBarIcon: ({ color }) => <Heart color={color} size={TAB_ICON_SIZE} />,
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: 'Search',
-          tabBarIcon: ({ color }) => <Search color={color} size={TAB_ICON_SIZE} />,
-        }}
-      />
-    </Tabs>
-  );
+	return (
+		<Tabs
+			screenOptions={{
+				// Native headers are disabled app-wide; every screen renders the custom <AppHeader>
+				// instead (src/components/AppHeader.tsx).
+				headerShown: false,
+				tabBarActiveTintColor: colors.accent,
+				tabBarInactiveTintColor: colors.muted,
+				tabBarStyle: {
+					backgroundColor: colors.surface,
+					borderTopColor: colors.border,
+					paddingTop: TAB_BAR_TOP_PADDING,
+				},
+				sceneStyle: { backgroundColor: colors.bg },
+			}}
+		>
+			<Tabs.Screen
+				name="(home)"
+				options={{
+					title: "Home",
+					tabBarIcon: ({ color }) => (
+						<Home color={color} size={TAB_ICON_SIZE} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="hot 2"
+				options={{
+					title: "Hot",
+					tabBarIcon: ({ color }) => (
+						<Flame color={color} size={TAB_ICON_SIZE} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="radio"
+				options={{
+					title: "Radio",
+					tabBarIcon: ({ color }) => (
+						<Radio color={color} size={TAB_ICON_SIZE} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="favorites"
+				options={{
+					title: "Favorites",
+					tabBarIcon: ({ color }) => (
+						<Heart color={color} size={TAB_ICON_SIZE} />
+					),
+				}}
+			/>
+			<Tabs.Screen
+				name="search"
+				options={{
+					title: "Search",
+					tabBarIcon: ({ color }) => (
+						<Search color={color} size={TAB_ICON_SIZE} />
+					),
+				}}
+			/>
+		</Tabs>
+	);
 }

@@ -2,15 +2,14 @@ name: Development build
 
 # Fingerprint-driven dev clients AND preview apps for the `develop` branch.
 #
-# On every push to `develop` we compute the native fingerprint and, per platform, only start a
+# On every push to `develop` we compute the native fingerprint per platform and only start a
 # new build when one with that fingerprint does not already exist (i.e. the native layer actually
-# changed). When the native layer is unchanged we publish an OTA update instead, so existing
-# installs pick up the JS/asset change on relaunch.
+# changed).
+#   - development profile: rebuild only when the native fingerprint changes; no OTA (dev clients
+#     run Metro locally, a published bundle would clobber that).
+#   - preview profile: rebuild when the native fingerprint changes; otherwise publish OTA to the
+#     `preview` channel so installed preview apps pick up JS/asset changes on relaunch.
 #
-# This runs twice, once per build profile, because the `development` profile (dev client + local
-# API env) and the `preview` profile produce different native fingerprints:
-#   - development -> `development` channel (dev clients, simulator/internal)
-#   - preview     -> `preview` channel (internal-distribution preview app)
 # Each fingerprint job sets `environment` to match its build profile so the get-build lookup is
 # accurate (see https://docs.expo.dev/eas/workflows/syntax/).
 #
@@ -68,24 +67,9 @@ jobs:
       platform: ios
       profile: development
 
-  # Native fingerprint unchanged -> ship the change over the air to the development channel.
-  # publish_android_update:
-  #   name: Publish Android OTA update
-  #   needs: [get_android_build]
-  #   if: ${{ needs.get_android_build.outputs.build_id }}
-  #   type: update
-  #   params:
-  #     channel: development
-  #     platform: android
-  publish_ios_update:
-    name: Publish iOS OTA update
-    needs: [get_ios_build]
-    if: ${{ needs.get_ios_build.outputs.build_id }}
-    type: update
-    environment: development
-    params:
-      channel: development
-      platform: ios
+  # Dev clients intentionally do NOT receive OTA updates: developers run Metro locally and
+  # would otherwise have their JS clobbered by a stale published bundle. When the native
+  # fingerprint is unchanged we simply do nothing for the development profile.
 
   # --- Preview app (internal distribution, `preview` channel) ---------------------------------
 
