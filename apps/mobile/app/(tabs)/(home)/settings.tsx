@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Switch } from 'react-native';
 import { Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
+import { Button } from '../../../src/components/button';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { CheckForUpdatesRow } from '../../../src/components/check-for-updates-row';
+import { toast } from '../../../src/components/toast';
 import { useThemeColors } from '../../../src/theme/colors';
 import { useDarkMode } from '../../../src/theme/theme';
 import { authClient } from '../../../src/auth/client';
@@ -25,6 +27,9 @@ export default function SettingsScreen() {
         </SettingsSection>
         <SettingsSection title="About">
           <CheckForUpdatesRow />
+        </SettingsSection>
+        <SettingsSection title="Developer">
+          <ToastDemoRow />
         </SettingsSection>
       </View>
     </View>
@@ -84,6 +89,33 @@ function SignOutRow() {
         Sign out
       </Text>
     </Pressable>
+  );
+}
+
+// Example trigger for the design-system toast (sonner-native). Fires a success toast with a
+// description and an action so the themed surface, typography, icon, and button styling are all
+// visible at once. Handy as a living reference for how to call `toast` from anywhere in the app.
+function ToastDemoRow() {
+  return (
+    <View className="px-4 py-3.5">
+      <Text weight="semibold">Toasts</Text>
+      <Text size="sm" color="neutral-soft" className="mt-0.5 mb-3">
+        Preview a design-system toast
+      </Text>
+      <Button
+        label="Show toast"
+        variant="soft"
+        color="accent"
+        layout="flex"
+        size="sm"
+        onPress={() =>
+          toast.success('Added to your collection', {
+            description: 'Pink Floyd - The Dark Side of the Moon',
+            action: { label: 'Undo', onClick: () => toast('Removed again') },
+          })
+        }
+      />
+    </View>
   );
 }
 
