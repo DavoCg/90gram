@@ -1,0 +1,39 @@
+# Deploy the getvinyls API to Fly.io.
+#
+# Runs on pushes to main that touch the API, the db package, or the deploy config, and can
+# also be triggered by hand (Actions tab -> Run workflow). The image is built remotely by
+# Fly's builder (--remote-only), so no Docker is needed on the runner. Migrations run on
+# boot via the API start script (prisma migrate deploy).
+name: Deploy API to Fly
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "apps/api/**"
+      - "packages/db/**"
+      - "packages/api-client/**"
+      - "fly.toml"
+      - ".dockerignore"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/fly-deploy.yml"
+  workflow_dispatch:
+
+# Never run two deploys at once; cancel an in-progress deploy when a newer commit lands.
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

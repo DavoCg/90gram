@@ -1,0 +1,29 @@
+# Keep the Docker build context small and deterministic. Everything the image needs is
+# installed (node_modules) or generated (Prisma client, dist) inside the build.
+**/node_modules
+**/dist
+**/.expo
+**/.turbo
+**/.venv
+**/__pycache__
+
+# Generated Prisma client: regenerated in the image, never copied from the host.
+packages/db/src/generated
+
+# Local env and secrets never go into the image. Fly secrets provide them at runtime.
+.env
+.env.*
+!.env.example
+
+# Local tooling / VCS noise.
+.git
+.github
+.vscode
+.idea
+**/*.log
+**/.DS_Store
+apps/api/tsconfig.tsbuildinfo
+
+# Mobile native build output (not part of the API image).
+apps/mobile/ios
+apps/mobile/android
