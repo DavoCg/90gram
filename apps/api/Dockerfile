@@ -3,10 +3,11 @@
 # getvinyls API for Fly.io.
 #
 # Built from the monorepo ROOT (fly.toml sets the build context to "."), because the API
-# imports @getvinyls/db by source: at runtime tsx loads the db package's TypeScript (and the
-# generated Prisma client) directly, exactly like dev. db's package `main` is a .ts file that
-# imports the generated Prisma client with a `.js` specifier, which only a TS-aware loader
-# like tsx resolves, so there is no tsc build here and we do NOT run `node dist/index.js`.
+# imports @getvinyls/db by source. At image-build time we bundle the API with tsup (esbuild)
+# into a single dist/index.js: @getvinyls/db's TypeScript source and the generated Prisma client
+# (which use bundler-style resolution, e.g. extensionless and `.js`-pointing-at-`.ts` specifiers)
+# are inlined, so plain `node dist/index.js` runs it at boot with no TS loader needed. The Prisma
+# runtime and the pg driver stay external and are resolved from node_modules.
 # pnpm's hoisted symlink resolves @getvinyls/db to its real path under packages/db.
 FROM node:22.20.0-slim AS build
 
@@ -38,17 +39,19 @@ COPY apps/scraper/package.json apps/scraper/
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
   pnpm install --frozen-lockfile --filter @getvinyls/api...
 
-# Copy the rest of the repo. The API runs from TypeScript source via tsx (see the api `start`
-# script), exactly like dev: @getvinyls/db is consumed as source (its package `main` is a .ts
-# file that imports the generated Prisma client with a `.js` specifier, which only a TS-aware
-# loader like tsx resolves). So there is no tsc build here. The start script runs
-# `prisma generate` + `prisma migrate deploy` at boot, with the real DATABASE_URL from Fly secrets.
+# Copy the rest of the repo, then build. `db generate` emits the Prisma client into
+# packages/db/src/generated, and `api build` (tsup) bundles it together with the API source into
+# apps/api/dist/index.js. Both run at build time so the runtime image needs no codegen or TS
+# loader. Dev deps (prisma CLI, tsup) are present because the install step above keeps them.
 COPY . .
+
+RUN pnpm --filter @getvinyls/db generate \
+  && pnpm --filter @getvinyls/api build
 
 ENV NODE_ENV=production
 ENV API_PORT=8787
 EXPOSE 8787
 
-# start = `prisma generate && prisma migrate deploy && node dist/index.js`
-# (see apps/api/package.json). Migrations run on boot; they are idempotent.
+# start = `prisma migrate deploy && node dist/index.js` (see apps/api/package.json). Migrations
+# run on boot against the real DATABASE_URL from Fly secrets; they are idempotent.
 CMD ["pnpm", "--filter", "@getvinyls/api", "start"]

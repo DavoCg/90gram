@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && tsx watch src/index.ts",
-    "start": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && tsx src/index.ts",
-    "build": "tsc",
+    "start": "pnpm --filter @getvinyls/db migrate:deploy && node dist/index.js",
+    "build": "tsup",
     "gen:openapi": "tsx scripts/dump-openapi.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@getvinyls/tsconfig": "workspace:*",
     "@types/node": "^22.19.0",
+    "tsup": "^8.5.0",
     "tsx": "^4.22.4",
     "typescript": "~5.9.0"
   }
