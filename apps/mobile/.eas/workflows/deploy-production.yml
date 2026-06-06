@@ -14,19 +14,21 @@ name: Deploy to production
 on:
   push:
     branches: ['main']
+  workflow_dispatch: {}
 
 jobs:
   fingerprint:
     name: Fingerprint
     type: fingerprint
 
-  get_android_build:
-    name: Check for existing Android build
-    needs: [fingerprint]
-    type: get-build
-    params:
-      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
-      profile: production
+  # Android temporarily disabled -- re-enable by uncommenting all `*_android` jobs below.
+  # get_android_build:
+  #   name: Check for existing Android build
+  #   needs: [fingerprint]
+  #   type: get-build
+  #   params:
+  #     fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+  #     profile: production
   get_ios_build:
     name: Check for existing iOS build
     needs: [fingerprint]
@@ -36,14 +38,14 @@ jobs:
       profile: production
 
   # Native fingerprint changed -> a new store build is required.
-  build_android:
-    name: Build Android (production)
-    needs: [get_android_build]
-    if: ${{ !needs.get_android_build.outputs.build_id }}
-    type: build
-    params:
-      platform: android
-      profile: production
+  # build_android:
+  #   name: Build Android (production)
+  #   needs: [get_android_build]
+  #   if: ${{ !needs.get_android_build.outputs.build_id }}
+  #   type: build
+  #   params:
+  #     platform: android
+  #     profile: production
   build_ios:
     name: Build iOS (production)
     needs: [get_ios_build]
@@ -54,14 +56,14 @@ jobs:
       profile: production
 
   # Native fingerprint unchanged -> ship the change over the air to the production channel.
-  publish_android_update:
-    name: Publish Android OTA update
-    needs: [get_android_build]
-    if: ${{ needs.get_android_build.outputs.build_id }}
-    type: update
-    params:
-      channel: production
-      platform: android
+  # publish_android_update:
+  #   name: Publish Android OTA update
+  #   needs: [get_android_build]
+  #   if: ${{ needs.get_android_build.outputs.build_id }}
+  #   type: update
+  #   params:
+  #     channel: production
+  #     platform: android
   publish_ios_update:
     name: Publish iOS OTA update
     needs: [get_ios_build]
@@ -74,13 +76,13 @@ jobs:
   # New build was produced -> submit it to the store. These only run on the build path: when we
   # OTA instead, the build jobs are skipped, so their dependent submit jobs are skipped too.
   # Requires store credentials in eas.json `submit.production` (see that file).
-  submit_android:
-    name: Submit Android to Play Store
-    needs: [build_android]
-    type: submit
-    params:
-      build_id: ${{ needs.build_android.outputs.build_id }}
-      profile: production
+  # submit_android:
+  #   name: Submit Android to Play Store
+  #   needs: [build_android]
+  #   type: submit
+  #   params:
+  #     build_id: ${{ needs.build_android.outputs.build_id }}
+  #     profile: production
   submit_ios:
     name: Submit iOS to App Store
     needs: [build_ios]

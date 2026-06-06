@@ -1,31 +1,47 @@
 name: Development build
 
-# Fingerprint-driven dev clients for the `develop` branch.
+# Fingerprint-driven dev clients AND preview apps for the `develop` branch.
 #
 # On every push to `develop` we compute the native fingerprint and, per platform, only start a
-# new dev-client build when one with that fingerprint does not already exist (i.e. the native
-# layer actually changed). When the native layer is unchanged we publish an OTA update to the
-# `development` channel instead, so existing dev clients pick up the JS/asset change on relaunch.
+# new build when one with that fingerprint does not already exist (i.e. the native layer actually
+# changed). When the native layer is unchanged we publish an OTA update instead, so existing
+# installs pick up the JS/asset change on relaunch.
+#
+# This runs twice, once per build profile, because the `development` profile (dev client + local
+# API env) and the `preview` profile produce different native fingerprints:
+#   - development -> `development` channel (dev clients, simulator/internal)
+#   - preview     -> `preview` channel (internal-distribution preview app)
+# Each fingerprint job sets `environment` to match its build profile so the get-build lookup is
+# accurate (see https://docs.expo.dev/eas/workflows/syntax/).
 #
 # Manual one-off builds still work:
 #   pnpm dlx eas-cli@latest workflow:run development-build.yml
 on:
   push:
     branches: ['develop']
-  workflow_dispatch:
+  workflow_dispatch: {}
 
 jobs:
   fingerprint:
-    name: Fingerprint
+    name: Fingerprint (development)
     type: fingerprint
-
-  get_android_build:
-    name: Check for existing Android dev client
-    needs: [fingerprint]
-    type: get-build
     params:
-      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
-      profile: development
+      environment: development
+
+  fingerprint_preview:
+    name: Fingerprint (preview)
+    type: fingerprint
+    params:
+      environment: preview
+
+  # Android temporarily disabled -- re-enable by uncommenting all `*_android*` jobs below.
+  # get_android_build:
+  #   name: Check for existing Android dev client
+  #   needs: [fingerprint]
+  #   type: get-build
+  #   params:
+  #     fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+  #     profile: development
   get_ios_build:
     name: Check for existing iOS dev client
     needs: [fingerprint]
@@ -35,14 +51,14 @@ jobs:
       profile: development
 
   # Native fingerprint changed -> build a fresh dev client (Android APK + iOS simulator).
-  build_android:
-    name: Build Android dev client (APK)
-    needs: [get_android_build]
-    if: ${{ !needs.get_android_build.outputs.build_id }}
-    type: build
-    params:
-      platform: android
-      profile: development
+  # build_android:
+  #   name: Build Android dev client (APK)
+  #   needs: [get_android_build]
+  #   if: ${{ !needs.get_android_build.outputs.build_id }}
+  #   type: build
+  #   params:
+  #     platform: android
+  #     profile: development
   build_ios:
     name: Build iOS dev client (simulator)
     needs: [get_ios_build]
@@ -53,14 +69,14 @@ jobs:
       profile: development
 
   # Native fingerprint unchanged -> ship the change over the air to the development channel.
-  publish_android_update:
-    name: Publish Android OTA update
-    needs: [get_android_build]
-    if: ${{ needs.get_android_build.outputs.build_id }}
-    type: update
-    params:
-      channel: development
-      platform: android
+  # publish_android_update:
+  #   name: Publish Android OTA update
+  #   needs: [get_android_build]
+  #   if: ${{ needs.get_android_build.outputs.build_id }}
+  #   type: update
+  #   params:
+  #     channel: development
+  #     platform: android
   publish_ios_update:
     name: Publish iOS OTA update
     needs: [get_ios_build]
@@ -68,4 +84,57 @@ jobs:
     type: update
     params:
       channel: development
+      platform: ios
+
+  # --- Preview app (internal distribution, `preview` channel) ---------------------------------
+
+  # get_android_preview_build:
+  #   name: Check for existing Android preview build
+  #   needs: [fingerprint_preview]
+  #   type: get-build
+  #   params:
+  #     fingerprint_hash: ${{ needs.fingerprint_preview.outputs.android_fingerprint_hash }}
+  #     profile: preview
+  get_ios_preview_build:
+    name: Check for existing iOS preview build
+    needs: [fingerprint_preview]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint_preview.outputs.ios_fingerprint_hash }}
+      profile: preview
+
+  # Native fingerprint changed -> build a fresh preview app.
+  # build_android_preview:
+  #   name: Build Android preview app
+  #   needs: [get_android_preview_build]
+  #   if: ${{ !needs.get_android_preview_build.outputs.build_id }}
+  #   type: build
+  #   params:
+  #     platform: android
+  #     profile: preview
+  build_ios_preview:
+    name: Build iOS preview app
+    needs: [get_ios_preview_build]
+    if: ${{ !needs.get_ios_preview_build.outputs.build_id }}
+    type: build
+    params:
+      platform: ios
+      profile: preview
+
+  # Native fingerprint unchanged -> ship the change over the air to the preview channel.
+  # publish_android_preview_update:
+  #   name: Publish Android preview OTA update
+  #   needs: [get_android_preview_build]
+  #   if: ${{ needs.get_android_preview_build.outputs.build_id }}
+  #   type: update
+  #   params:
+  #     channel: preview
+  #     platform: android
+  publish_ios_preview_update:
+    name: Publish iOS preview OTA update
+    needs: [get_ios_preview_build]
+    if: ${{ needs.get_ios_preview_build.outputs.build_id }}
+    type: update
+    params:
+      channel: preview
       platform: ios
