@@ -28,6 +28,21 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      // App Store Connect submission. Fill these in (or set them up once with
+      // `eas credentials`); EAS stores the App Store Connect API key for the non-interactive
+      // submit the production workflow runs.
+      "ios": {
+        "appleId": "APPLE_ID_EMAIL",
+        "ascAppId": "APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "APPLE_TEAM_ID"
+      },
+      // Google Play submission. Point serviceAccountKeyPath at a Play service-account JSON
+      // (keep it out of git; reference it via an EAS secret/file in CI).
+      "android": {
+        "serviceAccountKeyPath": "./credentials/play-service-account.json",
+        "track": "production"
+      }
+    }
   }
 }
