@@ -4,7 +4,8 @@ description: >-
   Conventions for packages/db: Prisma is the SOLE owner of the getvinyls Postgres schema and
   migrations. Read this when editing the Prisma schema, adding models or fields, running
   migrations, writing the seed script, or changing the snake_case table/column mapping that the
-  Python scraper writes against. Covers the Record model and the (source, externalId) upsert key.
+  Python scraper writes against. Covers the canonical Vinyl + ShopVinyl/Offer/Price/Track/Shop/Genre
+  models, the matchKey identity, and the upsert keys the scraper writes against.
 ---
 
 # Database (packages/db)
@@ -25,14 +26,51 @@ live schema at runtime and never creates or alters tables.
 - The TypeScript-facing model is camelCase; the physical schema is snake_case via explicit `@map`/`@@map`.
   This keeps the column names the scraper writes to stable and predictable. Never rename a mapped column
   without a migration and a matching update to the scraper skill.
-- The `Record` model carries app fields (title, artist, year, coverArtUrl, previewUrl) AND the marketplace
-  fields the scraper populates: source, externalId, sourceUrl, price, currency, availability, scrapedAt.
-- Unique constraint on `(source, externalId)` enables idempotent upserts. Do not drop it.
+
+## The model (normalized for cross-shop discovery)
+
+A vinyl is sold by many shops, so the data is normalized into a canonical release + per-shop layers:
+
+- `Vinyl` (`vinyls`) is the **canonical, shop-agnostic release**, the unit of discovery. It carries NO
+  source/shop identity, only the release (title, artist, year, coverArtUrl, label, catalogNumber, format).
+  Identity is **`matchKey` (`@unique`)**, a normalized `artist|title|catalogNumber`. The scraper upserts on
+  it, so the same record from several shops collapses onto one row ("match-or-create" == this upsert).
+- `Track` (`tracks`) belongs to the canonical `Vinyl`, unique on `(vinylId, position)`. Holds `previewUrl`,
+  the audio the player streams (per-track, not per-vinyl).
+- `Shop` (`shops`) is an online reseller/marketplace, unique `slug`, with `country` (the Europe focus).
+- `ShopVinyl` (`shop_vinyls`) is **one record as catalogued by one shop**: links a `Shop` to the `Vinyl` it
+  matched (`vinylId`), holds the shop's catalog identity (`source`, `externalId`, `sourceUrl`) and the raw
+  values it reported (`rawTitle`/`rawArtist`/`rawCatalogNumber`, for transparency + re-matching).
+  **Unique on `(source, externalId)`** (source == the shop's slug). Do not drop it.
+- `Offer` (`offers`) is a **purchasable offer for a `ShopVinyl`**: the commercial terms (`stockStatus` enum,
+  `condition`, denormalized `currentPrice`/`currentCurrency`, `scrapedAt`). One for a single retailer, many
+  for a marketplace listing (per-seller). **Unique on `(source, externalId)`**. Do not drop it.
+- `Price` (`prices`) is append-only price history for an `Offer`; latest by `observedAt` is the current
+  price (also denormalized onto `Offer`).
+- `Genre` (`genres`, unique name/slug) joins to the canonical `Vinyl` through the explicit `VinylGenre`
+  (`vinyl_genres`, composite PK `(vinylId, genreId)`) join table, so genres union across a vinyl's shops.
+
+The scraper's idempotency keys are `shops.slug`, **`vinyls.matchKey`**, `tracks (vinylId, position)`,
+`genres.slug`, `vinyl_genres (vinylId, genreId)`, **`shop_vinyls (source, externalId)`**, and
+`offers (source, externalId)`. Do not drop or rename them without updating the scraper skill.
+
+## Auth tables (better-auth)
+
+`User`, `Session`, `Account`, `Verification` (mapped to `users`, `sessions`, `accounts`,
+`verifications`) back authentication. They MIRROR better-auth's core schema: better-auth reaches them
+through the Prisma adapter (configured in `apps/api/src/auth.ts`) using the camelCase **field** names,
+so those names must stay in lockstep with better-auth; the snake_case `@map`/`@@map` only renames the
+physical columns and is invisible to better-auth. better-auth supplies its own ids, so these models
+carry no `@default` on `id`. The scraper never touches these tables. If you bump better-auth or add an
+auth plugin that needs new columns, regenerate the expected shape and migrate here (Prisma stays the
+sole owner; never let the better-auth CLI run DDL against this database).
 
 ## Workflow
 
 - Edit `prisma/schema.prisma`, then `pnpm --filter @getvinyls/db migrate` (creates a migration + applies it).
 - `pnpm --filter @getvinyls/db generate` regenerates the client (also wired as the Turbo `db:generate` task).
-- `pnpm --filter @getvinyls/db seed` loads sample records so the app works without the scraper. Seeds must
-  include real, reachable `previewUrl`s so the audio slice has something to play.
+- `pnpm --filter @getvinyls/db seed` loads sample canonical vinyls (with tracks + genres) plus a seed shop
+  and a ShopVinyl -> Offer -> Price per release, so the app works without the scraper. Each Vinyl is upserted
+  on a `matchKey` (kept in lockstep with the scraper's). Track seeds must include real, reachable
+  `previewUrl`s so the audio slice has something to play.
 - When you change a model, update this skill and the scraper skill in the same change if the mapping moves.

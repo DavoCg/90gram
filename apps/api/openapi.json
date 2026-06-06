@@ -7,13 +7,13 @@
   },
   "components": {
     "schemas": {
-      "RecordList": {
+      "VinylList": {
         "type": "object",
         "properties": {
-          "records": {
+          "vinyls": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Record"
+              "$ref": "#/components/schemas/VinylSummary"
             }
           },
           "total": {
@@ -21,11 +21,11 @@
           }
         },
         "required": [
-          "records",
+          "vinyls",
           "total"
         ]
       },
-      "Record": {
+      "VinylSummary": {
         "type": "object",
         "properties": {
           "id": {
@@ -55,6 +55,110 @@
             "format": "uri",
             "example": "https://example.com/cover.jpg"
           },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Groove Records"
+          },
+          "format": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "LP"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Genre"
+            }
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            }
+          },
+          "lowestPrice": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 24.99
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "EUR"
+          },
+          "shopCount": {
+            "type": "integer",
+            "example": 3
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "artist",
+          "year",
+          "coverArtUrl",
+          "label",
+          "format",
+          "genres",
+          "tracks",
+          "lowestPrice",
+          "currency",
+          "shopCount"
+        ]
+      },
+      "Genre": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "name": {
+            "type": "string",
+            "example": "Disco"
+          },
+          "slug": {
+            "type": "string",
+            "example": "disco"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug"
+        ]
+      },
+      "Track": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "position": {
+            "type": "string",
+            "example": "A1"
+          },
+          "title": {
+            "type": "string",
+            "example": "Night Drive"
+          },
+          "durationSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "example": 254
+          },
           "previewUrl": {
             "type": [
               "string",
@@ -62,14 +166,46 @@
             ],
             "format": "uri",
             "example": "https://example.com/preview.mp3"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "title",
+          "durationSeconds",
+          "previewUrl"
+        ]
+      },
+      "Vinyl": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/VinylSummary"
           },
-          "source": {
+          {
+            "type": "object",
+            "properties": {
+              "offers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            },
+            "required": [
+              "offers"
+            ]
+          }
+        ]
+      },
+      "Offer": {
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "string",
-            "example": "discogs"
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
           },
-          "externalId": {
-            "type": "string",
-            "example": "123456"
+          "shop": {
+            "$ref": "#/components/schemas/Shop"
           },
           "sourceUrl": {
             "type": [
@@ -78,6 +214,16 @@
             ],
             "format": "uri",
             "example": "https://www.discogs.com/release/123456"
+          },
+          "stockStatus": {
+            "$ref": "#/components/schemas/StockStatus"
+          },
+          "condition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "NM"
           },
           "price": {
             "type": [
@@ -91,14 +237,7 @@
               "string",
               "null"
             ],
-            "example": "USD"
-          },
-          "availability": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "example": "in_stock"
+            "example": "EUR"
           },
           "scrapedAt": {
             "type": [
@@ -107,32 +246,65 @@
             ],
             "format": "date-time",
             "example": "2026-06-01T12:00:00.000Z"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
           }
         },
         "required": [
           "id",
-          "title",
-          "artist",
-          "year",
-          "coverArtUrl",
-          "previewUrl",
-          "source",
-          "externalId",
+          "shop",
           "sourceUrl",
+          "stockStatus",
+          "condition",
           "price",
           "currency",
-          "availability",
-          "scrapedAt",
-          "createdAt",
-          "updatedAt"
+          "scrapedAt"
+        ]
+      },
+      "Shop": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "slug": {
+            "type": "string",
+            "example": "discogs"
+          },
+          "name": {
+            "type": "string",
+            "example": "Discogs"
+          },
+          "baseUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "example": "https://www.discogs.com"
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "DE"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "baseUrl",
+          "country"
+        ]
+      },
+      "StockStatus": {
+        "type": "string",
+        "enum": [
+          "in_stock",
+          "out_of_stock",
+          "preorder",
+          "unknown"
         ]
       },
       "Error": {
@@ -149,24 +321,193 @@
           "error",
           "message"
         ]
+      },
+      "ShopList": {
+        "type": "object",
+        "properties": {
+          "shops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Shop"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "shops",
+          "total"
+        ]
+      },
+      "GenreList": {
+        "type": "object",
+        "properties": {
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Genre"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "genres",
+          "total"
+        ]
+      },
+      "Favorites": {
+        "type": "object",
+        "properties": {
+          "vinyls": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VinylSummary"
+            }
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FavoriteTrack"
+            }
+          },
+          "total": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "vinyls",
+          "tracks",
+          "total"
+        ]
+      },
+      "FavoriteTrack": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Track"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "vinyl": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Midnight Grooves"
+                  },
+                  "artist": {
+                    "type": "string",
+                    "example": "The Turntables"
+                  },
+                  "coverArtUrl": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "uri",
+                    "example": "https://example.com/cover.jpg"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "artist",
+                  "coverArtUrl"
+                ]
+              }
+            },
+            "required": [
+              "vinyl"
+            ]
+          }
+        ]
+      },
+      "FavoriteRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "targetType": {
+            "$ref": "#/components/schemas/FavoriteTargetType"
+          },
+          "targetId": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-05T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "targetType",
+          "targetId",
+          "createdAt"
+        ]
+      },
+      "FavoriteTargetType": {
+        "type": "string",
+        "enum": [
+          "vinyl",
+          "track"
+        ]
+      },
+      "CreateFavorite": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/FavoriteTargetType"
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1,
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          }
+        },
+        "required": [
+          "targetType",
+          "targetId"
+        ]
+      },
+      "MutationResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ]
       }
     },
     "parameters": {}
   },
   "paths": {
-    "/records": {
+    "/vinyls": {
       "get": {
         "tags": [
-          "records"
+          "vinyls"
         ],
-        "summary": "List records",
+        "summary": "List vinyls",
         "responses": {
           "200": {
-            "description": "A list of records.",
+            "description": "A list of vinyls with their tracks, genres, and a cheapest-price summary.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RecordList"
+                  "$ref": "#/components/schemas/VinylList"
                 }
               }
             }
@@ -174,12 +515,12 @@
         }
       }
     },
-    "/records/{id}": {
+    "/vinyls/{id}": {
       "get": {
         "tags": [
-          "records"
+          "vinyls"
         ],
-        "summary": "Get a record by id",
+        "summary": "Get a vinyl by id",
         "parameters": [
           {
             "schema": {
@@ -194,17 +535,191 @@
         ],
         "responses": {
           "200": {
-            "description": "The requested record.",
+            "description": "The requested vinyl with its tracks, genres, and shop offers.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Record"
+                  "$ref": "#/components/schemas/Vinyl"
                 }
               }
             }
           },
           "404": {
-            "description": "Record not found.",
+            "description": "Vinyl not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops": {
+      "get": {
+        "tags": [
+          "shops"
+        ],
+        "summary": "List shops",
+        "responses": {
+          "200": {
+            "description": "A list of shops.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/genres": {
+      "get": {
+        "tags": [
+          "genres"
+        ],
+        "summary": "List genres",
+        "responses": {
+          "200": {
+            "description": "A list of genres.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenreList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites": {
+      "get": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "List the signed-in user favorites",
+        "responses": {
+          "200": {
+            "description": "The user's favorited vinyls and tracks, each enriched for direct rendering.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Favorites"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Add a vinyl or track to favorites",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFavorite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The favorite (idempotent: returns the existing one if already favorited).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteRef"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The target vinyl or track does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites/{targetType}/{targetId}": {
+      "delete": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "Remove a vinyl or track from favorites",
+        "parameters": [
+          {
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/FavoriteTargetType"
+                },
+                {
+                  "example": "vinyl"
+                }
+              ]
+            },
+            "required": true,
+            "name": "targetType",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "targetId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The favorite was removed (idempotent: also 200 if it was not favorited).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
             "content": {
               "application/json": {
                 "schema": {

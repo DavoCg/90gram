@@ -4,7 +4,9 @@ description: >-
   Conventions for apps/scraper: a Python Scrapy project that writes vinyl listings straight into
   the shared Postgres (no API hop). Read this when adding or editing a spider, the PostgresPipeline,
   items, settings/politeness, or the uv/ruff/pyright tooling. Prisma owns the schema; the scraper
-  reflects the live tables (SQLAlchemy autoload) and only upserts rows on (source, externalId).
+  reflects the live tables (SQLAlchemy autoload) and only upserts rows (one transaction per listing across
+  the shop/vinyl/track/genre/shop_vinyl/offer/price tables), matching each record to a canonical vinyl by
+  match_key.
 ---
 
 # Scraper (apps/scraper)
@@ -27,18 +29,32 @@ official API, request its JSON instead of parsing HTML. Review the target's robo
 ## PostgresPipeline (direct DB writes)
 
 - Opens a connection / reflects tables in `open_spider`, closes in `close_spider`.
-- Validates each item (Scrapy `Item`/`ItemLoader` or pydantic) before write.
-- Upserts with `INSERT ... ON CONFLICT (source, external_id) DO UPDATE`. Re-running a crawl updates rows,
-  never duplicates them. Batch writes (flush every N items), not one round-trip per record.
-- **No DDL, ever.** Reflect the live schema with SQLAlchemy Core `autoload_with` instead of hand-copying
+- Validates each item (pydantic `ListingItem`) before write. One `ListingItem` fans out across several
+  tables, so it is written in **one transaction per item** that wires the foreign keys from the upserts'
+  `RETURNING id` (every step upserts idempotently). The write order is shop -> vinyl -> tracks -> genres
+  (+ `vinyl_genres`) -> shop_vinyl -> offer -> price.
+- `Vinyl` is the **canonical, shop-agnostic** release. The pipeline derives a normalized `match_key`
+  (`artist|title|catalog_number`) and upserts the vinyl on it, so the same record from several shops
+  collapses onto one row ("match-or-create" is just this `ON CONFLICT (match_key)` upsert). `ShopVinyl` is
+  the per-shop record linking a shop to that vinyl (with `source_url` + the `raw_*` snapshot); `Offer` holds
+  its price/stock. Tracks and genres hang off the canonical vinyl.
+- Idempotency keys: `shops.slug`, `vinyls.match_key`, `tracks (vinyl_id, position)`, `genres.slug`,
+  `vinyl_genres (vinyl_id, genre_id)`, `shop_vinyls (source, external_id)`, `offers (source, external_id)`.
+  Re-running a crawl updates rows, never duplicates them. `prices` is append-only: a row is inserted only
+  when the offer's price actually changed (compare against the existing `current_price` first).
+- `id` and `updated_at` have no DB default (Prisma sets them app-side), so the pipeline supplies them for
+  every table that has those columns; `vinyl_genres` is exempt (composite PK, no id/updated_at).
+  `created_at` / `observed_at` have DB defaults.
+- **No DDL, ever.** Reflect the live tables with SQLAlchemy Core `autoload_with` instead of hand-copying
   column names, so the scraper cannot drift from Prisma's schema. If Prisma renames a column, the reflection
   picks it up; never hardcode column names that duplicate the Prisma mapping.
 
 ## Schema ownership
 
-Prisma (`packages/db`) is the single source of truth. The scraper targets the snake_case columns Prisma maps
-(`source`, `external_id`, `source_url`, `price`, `currency`, `availability`, `scraped_at`, plus the app fields).
-It must not migrate, create, or alter anything.
+Prisma (`packages/db`) is the single source of truth. The scraper writes the normalized tables it reflects
+(`shops`, `vinyls`, `tracks`, `genres`, `vinyl_genres`, `shop_vinyls`, `offers`, `prices`) by their
+snake_case columns.
+It must not migrate, create, or alter anything. See the db skill for the model and the upsert keys.
 
 ## Running
 

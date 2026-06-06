@@ -21,7 +21,16 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// The color system is split across CSS files imported by global.css; watch them so edits
+// trigger a Uniwind recompile during dev.
+const themeFiles = [
+  path.resolve(projectRoot, 'base-colors.css'),
+  path.resolve(projectRoot, 'semantic-colors.css'),
+  path.resolve(projectRoot, 'alias-colors.css'),
+];
+
 module.exports = withUniwindConfig(config, {
   cssEntryFile: './global.css',
   dtsFile: './uniwind-env.d.ts',
+  watchAdditionalFiles: themeFiles,
 });

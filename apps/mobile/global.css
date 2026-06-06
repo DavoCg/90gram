@@ -2,19 +2,108 @@
 @import 'uniwind';
 
 /*
- * Design tokens + light/dark themes. Uniwind scans the @variant blocks below for each
- * configured theme (light + dark by default), registers the custom properties, and binds
- * them to the system color scheme (via prefers-color-scheme, plus an optional .dark/.light
- * class). The semantic colors therefore switch automatically. No tailwind.config.js.
- *
- * Do NOT use light-dark() for color tokens: inside @theme it is parsed as a single color
- * value that Uniwind's color processor cannot convert, so every token silently falls back
- * to black. Each theme must declare the SAME set of variables.
+ * Radix-based design-system colors, ported from the reference app. Three layers:
+ *   base-colors    raw Radix scales (--color-slate-light-1 ... --color-grass-dark-12, + alpha)
+ *   semantic-colors semantic roles aliased to scales (neutral->slate, accent->grass, ...)
+ *   alias-colors   the per-property utility tokens (--text-color-*, --background-color-*,
+ *                  --border-color-*) resolved per light/dark theme
+ * This is what powers the full color palette in the Text and Button recipes. Accent is grass
+ * (green) by design; our app adopts that. Our own page tokens (bg/surface/text/muted/border)
+ * live in the @layer theme block at the bottom and are NOT defined by these files.
+ */
+@import './base-colors.css';
+@import './semantic-colors.css';
+@import './alias-colors.css';
+
+/* iOS continuous ("squircle") corner curve, used by the Button content slot. */
+@utility curve-continuous {
+  border-curve: continuous;
+}
+
+@utility curve-circular {
+  border-curve: circular;
+}
+
+/*
+ * The `-softest` text colors do not auto-generate from the multi-word token names, so the
+ * semantic ones are declared explicitly (matches the reference). Other palette colors get
+ * their utilities from alias-colors directly.
+ */
+@utility text-neutral-softest {
+  color: var(--text-color-neutral-softest);
+}
+
+@utility text-positive-softest {
+  color: var(--text-color-positive-softest);
+}
+
+@utility text-critical-softest {
+  color: var(--text-color-critical-softest);
+}
+
+@utility text-accent-softest {
+  color: var(--text-color-accent-softest);
+}
+
+@utility text-warning-softest {
+  color: var(--text-color-warning-softest);
+}
+
+@utility text-info-softest {
+  color: var(--text-color-info-softest);
+}
+
+@layer utilities {
+  .border-hairline {
+    border-width: hairlineWidth();
+  }
+
+  .outline-hairline {
+    outline-width: hairlineWidth();
+  }
+}
+
+@theme static {
+  --background-color-white: white;
+  --text-color-white: white;
+}
+
+/*
+ * Design tokens. The Polymath families embed natively via the expo-font config plugin
+ * (app.json); Uniwind turns each --font-* token into a `font-<name>` utility that the Text
+ * recipe selects per family + weight.
  */
 @theme {
   --font-sans: system-ui;
+
+  --font-polymath-regular: 'Polymath-Regular';
+  --font-polymath-medium: 'Polymath-Medium';
+  --font-polymath-semibold: 'Polymath-Semibold';
+  --font-polymath-bold: 'Polymath-Bold';
+
+  --font-polymath-display-regular: 'PolymathDisp-Regular';
+  --font-polymath-display-medium: 'PolymathDisp-Medium';
+  --font-polymath-display-semibold: 'PolymathDisp-Semibold';
+  --font-polymath-display-bold: 'PolymathDisp-Bold';
+
+  --font-polymath-text-regular: 'PolymathText-Regular';
+  --font-polymath-text-medium: 'PolymathText-Medium';
+  --font-polymath-text-semibold: 'PolymathText-Semibold';
+  --font-polymath-text-bold: 'PolymathText-Bold';
+
+  --aspect-bank-card: 86 / 54;
+  --spacing-gutter: 20px;
+  --spacing-tray-gutter: 28px;
+
+  --outline-length-hairline: hairlineWidth();
+  --border-length-hairline: hairlineWidth();
 }
 
+/*
+ * App page tokens (NOT in the reference color files): the surfaces and text our existing
+ * screens style against. Uniwind binds these to the system color scheme. Accent is intentionally
+ * omitted here so it resolves from the reference grass/green palette above.
+ */
 @layer theme {
   :root {
     @variant light {
@@ -24,17 +113,15 @@
       --color-text: #18181b;
       --color-muted: #6b7280;
       --color-border: #e7e2d8;
-      --color-accent: #c026d3;
     }
 
     @variant dark {
-      --color-bg: #0e0e10;
-      --color-surface: #1a1a1d;
-      --color-surface-2: #232327;
-      --color-text: #f5f5f4;
-      --color-muted: #a1a1aa;
-      --color-border: #2a2a2e;
-      --color-accent: #e879f9;
+      --color-bg: #1c1714;
+      --color-surface: #251e19;
+      --color-surface-2: #312922;
+      --color-text: #f1ebe3;
+      --color-muted: #aa9d90;
+      --color-border: #3a312a;
     }
   }
 }

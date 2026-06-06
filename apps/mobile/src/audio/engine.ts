@@ -1,99 +1,182 @@
-// The audio engine: a single imperative module that owns the whole audio graph.
-// Built on react-native-audio-api (Web Audio model). There is no jukebox here; we
-// build playback ourselves. See the audio skill for the rules this follows.
+// The audio engine: the single module that owns playback. Built on react-native-track-player
+// (RNTP), which is a real jukebox: it owns a NATIVE queue, background playback, full-track
+// streaming with seeking, and the OS remote controls. So this module no longer builds a Web
+// Audio graph, decodes buffers, or tracks position by hand (all of which the old
+// react-native-audio-api build had to do).
 //
-// Graph (created once): source -> gain -> analyser -> destination. The analyser sits
-// AFTER gain so the visualizer reacts to the actual output level. Source nodes are
-// single-use, so a fresh AudioBufferSourceNode is created for every play.
+// The UI still reads a Legend State store (`player$`); RNTP is the native source of truth and
+// this engine MIRRORS its state into `player$` through event listeners, so NowPlaying / the
+// Home list keep reading the same observable slices they always have. The engine is the sole
+// writer of `player$`.
 //
-// Playback is buffer-based: fetch -> arrayBuffer -> decodeAudioData -> AudioBuffer, then a
-// fresh source per play. We attempted true streaming (createFileSource / createStreamer)
-// but those native paths crash in the current build, so we stay on the reliable buffer
-// path. Revisit streaming only behind an on-device-verified FFmpeg build.
+// The OS remote-control buttons (lock screen, Control Center, headset, Android Auto) are wired
+// in the headless playback service (./service.ts), which is registered at the JS entry. The
+// listeners here run in the foreground and exist only to reflect native state into `player$`.
 //
-// Note on the installed library version (0.12.2): the AudioContext constructor does not
-// accept `initSuspended`, so we create the context lazily and resume() it on the first
-// user gesture. Lock-screen / now-playing is handled by PlaybackNotificationManager.
-import {
-  AudioContext,
-  AudioManager,
-  PlaybackNotificationManager,
-  type AnalyserNode,
-  type AudioBuffer,
-  type AudioBufferSourceNode,
-  type AudioEventSubscription,
-  type GainNode,
-} from 'react-native-audio-api';
-import type { RecordDto } from '@getvinyls/api-client';
-import { player$ } from './store';
+// Version note (5.0.0-alpha0): pre-release of the New Architecture rewrite. Keep this wrapper
+// as the ONLY place that talks to TrackPlayer so a version bump (or a move to the licensed v5
+// build) stays a one-file change.
+import TrackPlayer, {
+  AppKilledPlaybackBehavior,
+  Capability,
+  Event,
+  IOSCategory,
+  PitchAlgorithm,
+  State,
+  type Track,
+} from 'react-native-track-player';
+import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
+import { player$, type PlayableTrack, type PlayerStatus } from './store';
 
-const FFT_SIZE = 256;
-const SMOOTHING = 0.8;
+// How far the lock-screen / notification jump buttons move, and how often we poll position.
+const JUMP_INTERVAL_SEC = 15;
 const POSITION_TICK_MS = 250;
+// Apple-Music "previous" semantics: past this many seconds, previous restarts the track.
+const PREV_RESTART_THRESHOLD_SEC = 3;
 
-let context: AudioContext | null = null;
-let gainNode: GainNode | null = null;
-let analyserNode: AnalyserNode | null = null;
-let sourceNode: AudioBufferSourceNode | null = null;
+// Build the playable tracklist for a vinyl: its tracks that have a non-null preview URL,
+// each carrying the vinyl's artist/cover for display and `vinylId` so a row can match.
+function toPlayableTracks(vinyl: VinylSummaryDto): PlayableTrack[] {
+  const tracks: PlayableTrack[] = [];
+  for (const track of vinyl.tracks) {
+    if (track.previewUrl === null) continue;
+    tracks.push({
+      id: track.id,
+      url: track.previewUrl,
+      title: track.title,
+      artist: vinyl.artist,
+      artwork: vinyl.coverArtUrl ?? undefined,
+      vinylId: vinyl.id,
+    });
+  }
+  return tracks;
+}
 
-let decodedBuffer: AudioBuffer | null = null;
-let loadedRecordId: string | null = null;
+// Build a single playable track from a favorited track, which carries just enough of its parent
+// vinyl (artist/cover/id) to play and display on its own. Null when the track has no preview.
+function favoriteToPlayableTrack(track: FavoriteTrackDto): PlayableTrack | null {
+  if (track.previewUrl === null) return null;
+  return {
+    id: track.id,
+    url: track.previewUrl,
+    title: track.title,
+    artist: track.vinyl.artist,
+    artwork: track.vinyl.coverArtUrl ?? undefined,
+    vinylId: track.vinyl.id,
+  };
+}
 
-// Offset bookkeeping for pause/resume/seek (the engine tracks position itself).
-let startOffsetSec = 0; // where in the buffer the current source started
-let startedAtCtxTime = 0; // context.currentTime when the current source started
+// Map a PlayableTrack onto an RNTP Track. We stash the track id in `mediaId` (a typed field)
+// so the native layer and any future external controller can identify the item; the UI matches
+// by queue index, which stays aligned because `player$.queue` is this same list.
+function toTrack(track: PlayableTrack): Track {
+  return {
+    url: track.url,
+    title: track.title,
+    artist: track.artist,
+    artwork: track.artwork,
+    duration: undefined,
+    mediaId: track.id,
+    // iOS time-pitch algorithm tuned for music (keeps any future rate change musical).
+    pitchAlgorithm: PitchAlgorithm.Music,
+  };
+}
+
+// Translate RNTP's playback State into the four-value status the UI understands.
+function mapState(state: State): PlayerStatus {
+  switch (state) {
+    case State.Playing:
+      return 'playing';
+    case State.Loading:
+    case State.Buffering:
+      return 'loading';
+    case State.None:
+    case State.Error:
+      return 'idle';
+    default:
+      // Ready, Paused, Stopped, Ended.
+      return 'paused';
+  }
+}
+
+type Subscription = ReturnType<typeof TrackPlayer.addEventListener>;
+
+const subscriptions: Subscription[] = [];
+let listenersRegistered = false;
 let positionTimer: ReturnType<typeof setInterval> | null = null;
 
-// Bumped on every playRecord call so a slow decode from a previous track cannot start
-// playback after the user has already switched to a newer one.
-let playGeneration = 0;
+// When we build a queue and skip into it, RNTP emits a burst of transient
+// PlaybackActiveTrackChanged events before settling: setQueue first resets the active track
+// (an `index: undefined` change, which would null `record` and make the player vanish), passes
+// through index 0 (which would flash the queue's first track), and only then does the skip land
+// on the tapped track. Mirroring any of those would flash the UI. We record the id of the track
+// we actually asked for and ignore every change until that track becomes active.
+let pendingStartId: string | null = null;
 
-const subscriptions: AudioEventSubscription[] = [];
-let sessionConfigured = false;
+// setupPlayer must run exactly once before any other call. Memoize the promise so the mount
+// effect and the first playQueue share one initialization.
+let setupPromise: Promise<void> | null = null;
 
-function ensureGraph(): {
-  ctx: AudioContext;
-  gain: GainNode;
-  analyser: AnalyserNode;
-} {
-  if (!context) {
-    context = new AudioContext();
+async function doSetup(): Promise<void> {
+  try {
+    await TrackPlayer.setupPlayer({
+      // Let RNTP pause/resume around calls and other apps natively (replaces the manual
+      // interruption handling the old engine needed).
+      autoHandleInterruptions: true,
+      iosCategory: IOSCategory.Playback,
+    });
+  } catch {
+    // setupPlayer throws if the native player is already initialized, which happens after a JS
+    // hot reload (native state outlives the JS bundle). Safe to fall through to updateOptions.
   }
-  if (!gainNode) {
-    gainNode = context.createGain();
-    gainNode.gain.value = player$.gain.get();
-  }
-  if (!analyserNode) {
-    analyserNode = context.createAnalyser();
-    analyserNode.fftSize = FFT_SIZE;
-    analyserNode.smoothingTimeConstant = SMOOTHING;
-    gainNode.connect(analyserNode);
-    analyserNode.connect(context.destination);
-  }
-  return { ctx: context, gain: gainNode, analyser: analyserNode };
+
+  await TrackPlayer.updateOptions({
+    capabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.Stop,
+      Capability.SeekTo,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.JumpForward,
+      Capability.JumpBackward,
+    ],
+    // The subset shown in the compact Android notification.
+    notificationCapabilities: [
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SkipToPrevious,
+      Capability.SeekTo,
+    ],
+    forwardJumpInterval: JUMP_INTERVAL_SEC,
+    backwardJumpInterval: JUMP_INTERVAL_SEC,
+    android: {
+      // Keep playing when the app is swiped out of recents.
+      appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
+    },
+  });
 }
 
-async function resumeContext(): Promise<void> {
-  const { ctx } = ensureGraph();
-  if (ctx.state === 'suspended') {
-    await ctx.resume();
+function ensureSetup(): Promise<void> {
+  if (!setupPromise) {
+    setupPromise = doSetup();
   }
+  return setupPromise;
 }
 
-function currentPositionSec(): number {
-  if (!context || player$.status.get() !== 'playing') {
-    return startOffsetSec;
-  }
-  return startOffsetSec + (context.currentTime - startedAtCtxTime);
-}
-
+// Poll the native progress while playing and publish it to the store. RNTP also emits a
+// progress event, but a fixed tick keeps the SeekBar as smooth as the old engine's 250ms timer.
 function startPositionTimer(): void {
   stopPositionTimer();
   positionTimer = setInterval(() => {
-    const durationSec = player$.durationSec.get();
-    const pos = Math.min(currentPositionSec(), durationSec || Number.POSITIVE_INFINITY);
-    player$.positionSec.set(pos);
-    void updateNotification('playing', pos);
+    void TrackPlayer.getProgress().then((progress) => {
+      player$.assign({
+        positionSec: progress.position,
+        durationSec: progress.duration,
+        canSeek: progress.duration > 0,
+      });
+    });
   }, POSITION_TICK_MS);
 }
 
@@ -104,239 +187,225 @@ function stopPositionTimer(): void {
   }
 }
 
-function teardownSource(): void {
-  if (sourceNode) {
-    sourceNode.onEnded = null;
-    try {
-      sourceNode.stop();
-    } catch {
-      // Source may not have been started or already stopped; safe to ignore.
-    }
-    sourceNode.disconnect();
-    sourceNode = null;
+// Reflect a track change (whether driven by us, the queue auto-advancing, or a remote
+// next/previous) into the store. `player$.queue` is the same playable list we set, so the RNTP
+// index maps straight onto it.
+function onActiveTrackChanged(index: number | undefined, track: Track | undefined): void {
+  // While a programmatic queue swap is in flight, ignore the transient changes (undefined index,
+  // index 0, ...) until the track we asked for is active, so the player neither vanishes nor
+  // flashes the wrong track. Match by id, not index, since the burst passes through both.
+  if (pendingStartId !== null) {
+    if (track?.mediaId !== pendingStartId) return;
+    pendingStartId = null;
   }
-}
-
-function playFromOffset(offsetSec: number): void {
-  const { ctx, gain } = ensureGraph();
-  if (!decodedBuffer) return;
-
-  teardownSource();
-
-  const source = ctx.createBufferSource({ pitchCorrection: true });
-  source.buffer = decodedBuffer;
-  source.connect(gain);
-  source.onEnded = () => {
-    handleEnded();
-  };
-
-  startOffsetSec = offsetSec;
-  startedAtCtxTime = ctx.currentTime;
-  source.start(0, offsetSec);
-  sourceNode = source;
-
-  player$.assign({ status: 'playing', canSeek: true });
-  startPositionTimer();
-  void updateNotification('playing', offsetSec);
-}
-
-function handleEnded(): void {
-  // Natural end of the clip. Reset to the start and mark paused.
-  stopPositionTimer();
-  teardownSource();
-  startOffsetSec = 0;
-  player$.assign({ status: 'paused', positionSec: 0 });
-  void updateNotification('paused', 0);
-}
-
-async function decode(record: RecordDto): Promise<boolean> {
-  if (!record.previewUrl) return false;
-  const { ctx } = ensureGraph();
-  const response = await fetch(record.previewUrl);
-  const arrayBuffer = await response.arrayBuffer();
-  decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
-  loadedRecordId = record.id;
-  player$.durationSec.set(decodedBuffer.duration);
-  return true;
-}
-
-async function updateNotification(state: 'playing' | 'paused', elapsedSec: number): Promise<void> {
-  const record = player$.record.get();
-  if (!record) return;
-  try {
-    await PlaybackNotificationManager.show({
-      title: record.title,
-      artist: record.artist,
-      artwork: record.coverArtUrl ? { uri: record.coverArtUrl } : undefined,
-      duration: player$.durationSec.get(),
-      elapsedTime: elapsedSec,
-      speed: 1,
-      state,
-    });
-  } catch {
-    // Notifications are best-effort (e.g. permissions not granted); never crash playback.
+  if (index === undefined) {
+    player$.assign({ track: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
+    return;
   }
+  const queue = player$.queue.get();
+  const current = queue[index] ?? player$.track.get();
+  const duration = track?.duration ?? 0;
+  player$.assign({
+    queueIndex: index,
+    track: current,
+    positionSec: 0,
+    durationSec: duration,
+    canSeek: duration > 0,
+  });
 }
 
 export const audioEngine = {
-  /** Configure the audio session and register lock-screen + interruption handlers once. */
+  /**
+   * Initialize the native player + remote controls and start mirroring native state into the
+   * store. Idempotent; the root layout calls it on mount.
+   */
   setupSession(): void {
-    if (sessionConfigured) return;
-    sessionConfigured = true;
+    void ensureSetup();
+    if (listenersRegistered) return;
+    listenersRegistered = true;
 
-    AudioManager.setAudioSessionOptions({ iosCategory: 'playback', iosMode: 'default' });
-    void AudioManager.setAudioSessionActivity(true);
-    AudioManager.observeAudioInterruptions(true);
-
-    // Pause on interruption (calls, other apps); resume when the system allows.
     subscriptions.push(
-      AudioManager.addSystemEventListener('interruption', (event) => {
-        if (event.type === 'began') {
-          void audioEngine.pause();
-        } else if (event.type === 'ended' && event.shouldResume) {
-          void audioEngine.resume();
+      TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
+        // Mirror raw playback state. The transport button reads `playWhenReady` (intent), not this,
+        // so the transient paused/idle a queue swap passes through never flashes the play icon.
+        player$.status.set(mapState(state));
+        if (state === State.Playing) {
+          startPositionTimer();
+        } else {
+          stopPositionTimer();
         }
       }),
+      // Mirror the user's play/pause INTENT. This is what the transport button reads, and it
+      // does not dip during a track switch the way raw playback state does. Ignore a transient
+      // `false` while a swap is in flight: we asked to play the new track, so keep intent true.
+      TrackPlayer.addEventListener(Event.PlaybackPlayWhenReadyChanged, ({ playWhenReady }) => {
+        if (pendingStartId !== null && !playWhenReady) return;
+        player$.playWhenReady.set(playWhenReady);
+      }),
+      TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, (event) => {
+        onActiveTrackChanged(event.index, event.track);
+      }),
+      TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
+        stopPositionTimer();
+        player$.assign({ status: 'paused', playWhenReady: false, positionSec: 0 });
+      }),
     );
-
-    // Lock-screen / now-playing controls.
-    PlaybackNotificationManager.enableControl('play', true);
-    PlaybackNotificationManager.enableControl('pause', true);
-    PlaybackNotificationManager.enableControl('seekTo', true);
-
-    const playSub = PlaybackNotificationManager.addEventListener('playbackNotificationPlay', () => {
-      void audioEngine.resume();
-    });
-    const pauseSub = PlaybackNotificationManager.addEventListener(
-      'playbackNotificationPause',
-      () => {
-        void audioEngine.pause();
-      },
-    );
-    const seekSub = PlaybackNotificationManager.addEventListener(
-      'playbackNotificationSeekTo',
-      (event) => {
-        audioEngine.seek(event.value);
-      },
-    );
-    for (const sub of [playSub, pauseSub, seekSub]) {
-      if (sub) subscriptions.push(sub);
-    }
   },
 
-  /** Load (if needed) and play a record from the start. Resumes the context on first gesture. */
-  async playRecord(record: RecordDto): Promise<void> {
-    const generation = ++playGeneration;
+  /**
+   * Play a vinyl's tracklist as the queue, starting at `startIndex`. The queue is the album, so
+   * prev()/next() and the lock-screen transport walk its tracks. Tracks without a preview URL are
+   * dropped. A vinyl with no playable track leaves current playback untouched.
+   */
+  async playVinyl(vinyl: VinylSummaryDto, startIndex = 0): Promise<void> {
+    const tracks = toPlayableTracks(vinyl);
+    if (tracks.length === 0) return;
+    const start = Math.min(Math.max(startIndex, 0), tracks.length - 1);
+    await this.playQueue(tracks, start);
+  },
 
-    // Stop the current preview right away so it does not keep sounding while the next
-    // track fetches and decodes. Reset progress; duration is cleared only when switching
-    // to a different record (a replay of the loaded one already has the right duration).
-    const isSameRecord = loadedRecordId === record.id && decodedBuffer !== null;
-    stopPositionTimer();
-    teardownSource();
-    startOffsetSec = 0;
-    player$.assign({
-      record,
-      status: 'loading',
-      positionSec: 0,
-      canSeek: false,
-      ...(isSameRecord ? {} : { durationSec: 0 }),
-    });
-
-    await resumeContext();
-
-    if (!isSameRecord) {
-      const ok = await decode(record);
-      if (!ok) {
-        if (generation === playGeneration) player$.status.set('idle');
-        return;
+  /**
+   * Play a vinyl's tracklist in a random order. Builds the same playable list as playVinyl
+   * (tracks with a preview URL), shuffles it, and plays from the top, so prev()/next() and the
+   * lock-screen transport walk the shuffled order. A vinyl with no playable track is a no-op.
+   */
+  async shuffleVinyl(vinyl: VinylSummaryDto): Promise<void> {
+    const tracks = toPlayableTracks(vinyl);
+    if (tracks.length === 0) return;
+    // Fisher-Yates shuffle in place. The local consts satisfy noUncheckedIndexedAccess.
+    for (let i = tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const a = tracks[i];
+      const b = tracks[j];
+      if (a && b) {
+        tracks[i] = b;
+        tracks[j] = a;
       }
     }
-
-    // A newer playRecord superseded this one while we were loading; let it win.
-    if (generation !== playGeneration) return;
-    playFromOffset(0);
+    await this.playQueue(tracks, 0);
   },
 
-  /** Toggle play/pause for the currently loaded record. */
-  async toggle(): Promise<void> {
-    const status = player$.status.get();
-    if (status === 'playing') {
-      await this.pause();
-    } else {
-      await this.resume();
+  /**
+   * Play a single favorited track on its own (a one-item queue). The Favorites tab plays just the
+   * tapped track rather than its parent album, so prev()/next() have nothing to walk. A track with
+   * no preview URL is a no-op.
+   */
+  async playTrack(track: FavoriteTrackDto): Promise<void> {
+    const playable = favoriteToPlayableTrack(track);
+    if (!playable) return;
+    await this.playQueue([playable], 0);
+  },
+
+  /**
+   * Play a prepared queue of tracks starting at `index`. prev()/next() and the lock-screen
+   * transport walk it; `player$.queue` is set to this same list so indices stay aligned.
+   */
+  async playQueue(tracks: PlayableTrack[], index: number): Promise<void> {
+    const startTrack = tracks[index];
+    if (!startTrack) return;
+
+    // Optimistic UI: show the tapped track as loading, and set intent to play so the transport
+    // button shows pause immediately (and stays there) instead of flashing the play icon.
+    player$.assign({
+      track: startTrack,
+      queue: tracks,
+      queueIndex: index,
+      status: 'loading',
+      playWhenReady: true,
+      positionSec: 0,
+      durationSec: 0,
+      canSeek: false,
+    });
+
+    await ensureSetup();
+    // Mark the track we are switching to so the transient track-changed burst setQueue/skip emit
+    // is ignored until this track is active (see onActiveTrackChanged). setQueue resets the active
+    // track even when index is 0, so this guard is needed regardless of the target index.
+    pendingStartId = startTrack.id;
+    await TrackPlayer.setQueue(tracks.map(toTrack));
+    if (index > 0) {
+      await TrackPlayer.skip(index);
+    }
+    await TrackPlayer.play();
+  },
+
+  /** Skip to the next queued track. No-op at the end of the queue. */
+  next(): void {
+    const queue = player$.queue.get();
+    const index = player$.queueIndex.get();
+    if (index >= 0 && index < queue.length - 1) {
+      void TrackPlayer.skipToNext();
     }
   },
 
-  async pause(): Promise<void> {
-    if (player$.status.get() !== 'playing') return;
-    const pos = currentPositionSec();
-    stopPositionTimer();
-    teardownSource();
-    startOffsetSec = pos;
-    player$.assign({ status: 'paused', positionSec: pos });
-    await updateNotification('paused', pos);
+  /**
+   * Apple-Music semantics: restart the current track when past the first few seconds (or it is
+   * the first track), otherwise jump to the previous queued track.
+   */
+  prev(): void {
+    const index = player$.queueIndex.get();
+    if (index <= 0 || player$.positionSec.get() > PREV_RESTART_THRESHOLD_SEC) {
+      this.seek(0);
+      return;
+    }
+    void TrackPlayer.skipToPrevious();
   },
 
-  async resume(): Promise<void> {
-    if (!decodedBuffer) return;
-    await resumeContext();
-    playFromOffset(startOffsetSec);
+  /** Toggle play/pause for the active track. Keys off intent (what the button shows). */
+  toggle(): void {
+    if (player$.playWhenReady.get()) {
+      this.pause();
+    } else {
+      this.resume();
+    }
   },
 
-  /** Seek to an absolute position (seconds) and keep the current play/paused state. */
+  pause(): void {
+    // Reflect intent immediately so the button flips without waiting on the native event.
+    player$.playWhenReady.set(false);
+    void TrackPlayer.pause();
+  },
+
+  resume(): void {
+    player$.playWhenReady.set(true);
+    void TrackPlayer.play();
+  },
+
+  /** Seek to an absolute position in seconds within the active track. */
   seek(toSec: number): void {
-    if (!decodedBuffer) return;
-    const clamped = Math.max(0, Math.min(toSec, decodedBuffer.duration));
-    const wasPlaying = player$.status.get() === 'playing';
-    if (wasPlaying) {
-      // Reflect the new position immediately so the UI does not flash the old
-      // timestamp before the next position-timer tick lands on the seek target.
-      player$.positionSec.set(clamped);
-      playFromOffset(clamped);
-    } else {
-      startOffsetSec = clamped;
-      player$.positionSec.set(clamped);
-      void updateNotification('paused', clamped);
-    }
+    const clamped = Math.max(0, toSec);
+    // Reflect the new position immediately so the bar does not flash the old timestamp.
+    player$.positionSec.set(clamped);
+    void TrackPlayer.seekTo(clamped);
   },
 
+  /** Set output volume / gain (0..1). */
   setGain(value: number): void {
     const clamped = Math.max(0, Math.min(value, 1));
-    const { gain } = ensureGraph();
-    gain.gain.value = clamped;
     player$.gain.set(clamped);
+    void TrackPlayer.setVolume(clamped);
   },
 
-  /** The analyser node for the visualizer (null until the graph exists). */
-  getAnalyser(): AnalyserNode | null {
-    return analyserNode;
-  },
-
-  /** Remove every subscription and release the graph. Call on app unmount. */
+  /** Remove our listeners and clear the player. Called on root unmount. */
   async teardown(): Promise<void> {
     stopPositionTimer();
-    teardownSource();
     for (const sub of subscriptions) {
       sub.remove();
     }
     subscriptions.length = 0;
-    await PlaybackNotificationManager.hide();
-    if (context) {
-      await context.close();
-    }
-    context = null;
-    gainNode = null;
-    analyserNode = null;
-    decodedBuffer = null;
-    loadedRecordId = null;
-    sessionConfigured = false;
+    listenersRegistered = false;
+    setupPromise = null;
+    pendingStartId = null;
+    await TrackPlayer.reset();
     player$.assign({
+      track: null,
       status: 'idle',
-      record: null,
+      playWhenReady: false,
       positionSec: 0,
       durationSec: 0,
       canSeek: false,
+      queue: [],
+      queueIndex: -1,
     });
   },
 };

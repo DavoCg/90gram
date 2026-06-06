@@ -18,7 +18,17 @@ export function createApiClient({ baseUrl, fetch: customFetch }: CreateApiClient
 }
 
 // Convenience type aliases derived from the generated schema (zero hand-written shapes).
-export type RecordDto = components['schemas']['Record'];
-export type RecordListDto = components['schemas']['RecordList'];
+export type VinylDto = components['schemas']['Vinyl'];
+export type VinylSummaryDto = components['schemas']['VinylSummary'];
+export type VinylListDto = components['schemas']['VinylList'];
+export type TrackDto = components['schemas']['Track'];
+export type ShopDto = components['schemas']['Shop'];
+export type OfferDto = components['schemas']['Offer'];
+export type GenreDto = components['schemas']['Genre'];
+export type FavoritesDto = components['schemas']['Favorites'];
+export type FavoriteTrackDto = components['schemas']['FavoriteTrack'];
+export type FavoriteTargetType = components['schemas']['FavoriteTargetType'];
+export type CreateFavoriteDto = components['schemas']['CreateFavorite'];
+export type FavoriteRefDto = components['schemas']['FavoriteRef'];
 
 export type { paths, components } from './schema';

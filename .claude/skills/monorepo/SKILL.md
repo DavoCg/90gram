@@ -39,7 +39,7 @@ Declare `globalEnv` for any env var a task reads so caching stays correct.
 3. `gen:api-types` runs `openapi-typescript` against the spec and writes `packages/api-client/src/schema.d.ts`.
 4. `packages/api-client` exports an `openapi-fetch` client typed against that schema and nothing else
    (no React, no react-query).
-5. `apps/mobile` imports the client and defines its react-query hooks (`useRecords`, `useRecord`) against it.
+5. `apps/mobile` imports the client and defines its react-query hooks (`useVinyls`, `useVinyl`) against it.
 
 Changing a Zod schema on the server must surface as a type error in mobile after `pnpm gen:api-types`.
 Regen flow is documented in the root `README.md`. When the API exposes a new shape, regenerate before

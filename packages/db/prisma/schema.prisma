@@ -16,31 +16,308 @@ datasource db {
   provider = "postgresql"
 }
 
-/// A vinyl record listing. Carries app fields plus the marketplace fields the
-/// scraper populates. Unique on (source, externalId) for idempotent upserts.
-model Record {
+/// An online shop / marketplace that lists vinyls for sale. The Europe focus lives in
+/// `country`. Discogs-as-a-whole is modeled as a single shop for now.
+model Shop {
+  id      String  @id @default(cuid())
+  slug    String  @unique // stable handle, e.g. "discogs", "juno"
+  name    String
+  baseUrl String? @map("base_url")
+  country String? // ISO-3166 alpha-2, e.g. "DE", "FR"
+
+  shopVinyls ShopVinyl[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("shops")
+}
+
+/// A canonical vinyl release, the unit of discovery. Shop-agnostic: it carries NO source or
+/// shop identity, only the release itself (title, artist, tracks, genres). Many `ShopVinyl`s
+/// (one per shop that lists this record) point at one `Vinyl`, which is what makes cross-shop
+/// price comparison possible. Identity is `matchKey`, a normalized `artist|title|catalogNumber`
+/// the scraper upserts on, so the same release scraped from several shops collapses into one row.
+model Vinyl {
   id String @id @default(cuid())
 
-  // App / display fields
-  title       String
-  artist      String
-  year        Int?
-  coverArtUrl String? @map("cover_art_url")
-  previewUrl  String? @map("preview_url")
+  // Canonical identity: a normalized match key. NOT a shop/source id. Match-or-create upserts here.
+  matchKey String @unique @map("match_key")
 
-  // Marketplace fields (populated by the scraper)
-  source       String // e.g. "discogs"
-  externalId   String   @map("external_id") // id on that source
-  sourceUrl    String?  @map("source_url")
-  price        Decimal? @db.Decimal(10, 2)
-  currency     String?
-  availability String?
-  scrapedAt    DateTime? @map("scraped_at")
+  title         String
+  artist        String
+  year          Int?
+  coverArtUrl   String? @map("cover_art_url")
+  label         String?
+  catalogNumber String? @map("catalog_number")
+  format        String? // "LP", "EP", "7\"", "12\""
+
+  tracks     Track[]
+  shopVinyls ShopVinyl[]
+  genres     VinylGenre[]
+  favorites  Favorite[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([artist])
+  @@map("vinyls")
+}
+
+/// The genre taxonomy (Disco, Jazz, Rock, ...). Deduped via unique name/slug so genres can
+/// be filtered on rather than stored as free text on the vinyl.
+model Genre {
+  id   String @id @default(cuid())
+  name String @unique
+  slug String @unique
+
+  vinyls VinylGenre[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("genres")
+}
+
+/// Explicit many-to-many join between Vinyl and Genre. Explicit (not Prisma's implicit
+/// `_GenreToVinyl`) so the reflective scraper can upsert named snake_case columns.
+model VinylGenre {
+  vinylId String @map("vinyl_id")
+  genreId String @map("genre_id")
+
+  vinyl Vinyl @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([vinylId, genreId])
+  @@index([genreId])
+  @@map("vinyl_genres")
+}
+
+/// A track on a vinyl. Carries the preview URL the audio player streams.
+model Track {
+  id      String @id @default(cuid())
+  vinylId String @map("vinyl_id")
+  vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+
+  position        String // "A1", "B2"
+  title           String
+  durationSeconds Int?    @map("duration_seconds")
+  previewUrl      String? @map("preview_url") // audio source for the player
+
+  favorites Favorite[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([vinylId, position], name: "vinylId_position")
+  @@index([vinylId])
+  @@map("tracks")
+}
+
+/// One record as catalogued by one shop: the per-shop scraped record. Links a shop to the
+/// canonical `Vinyl` it was matched to (`vinylId`, set by the scraper's match-or-create upsert).
+/// Holds the shop's catalog identity (`source`, `externalId`, `sourceUrl`) and the raw values it
+/// reported, kept for transparency and re-matching. Unique on (source, externalId), source == the
+/// shop's slug. Its commercial terms live in `Offer` (a marketplace listing can have several).
+model ShopVinyl {
+  id      String @id @default(cuid())
+  vinylId String @map("vinyl_id")
+  vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  shopId  String @map("shop_id")
+  shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  // Per-shop catalog identity (source == shop slug, kept stable for idempotent upserts).
+  source     String
+  externalId String  @map("external_id") // product/listing id on that shop
+  sourceUrl  String? @map("source_url")
+
+  // What the shop reported, retained for transparency and re-matching against `Vinyl.matchKey`.
+  rawTitle         String? @map("raw_title")
+  rawArtist        String? @map("raw_artist")
+  rawCatalogNumber String? @map("raw_catalog_number")
+
+  offers Offer[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@unique([source, externalId], name: "source_externalId")
-  @@index([source])
-  @@map("records")
+  @@index([vinylId])
+  @@index([shopId])
+  @@map("shop_vinyls")
+}
+
+/// A purchasable offer for a `ShopVinyl`: the commercial terms. One for a single retailer, many
+/// for a marketplace listing (e.g. per-seller copies). Unique on (source, externalId) for
+/// idempotent upserts. Holds the current price/stock; `Price` keeps the history.
+model Offer {
+  id          String    @id @default(cuid())
+  shopVinylId String    @map("shop_vinyl_id")
+  shopVinyl   ShopVinyl @relation(fields: [shopVinylId], references: [id], onDelete: Cascade)
+
+  // Scraper natural key (source == shop slug). For a single retailer externalId == the product id;
+  // for a marketplace it is the per-seller offer id, so one ShopVinyl can carry several offers.
+  source     String
+  externalId String @map("external_id")
+
+  stockStatus     StockStatus @default(unknown) @map("stock_status")
+  condition       String? // media/sleeve grade, e.g. "VG+", "NM"
+  currentPrice    Decimal?    @map("current_price") @db.Decimal(10, 2)
+  currentCurrency String?     @map("current_currency")
+  scrapedAt       DateTime?   @map("scraped_at")
+
+  prices Price[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([source, externalId], name: "source_externalId")
+  @@index([shopVinylId])
+  @@map("offers")
+}
+
+/// Append-only price history for an offer. The latest row by observedAt is the current
+/// price (also denormalized onto Offer for cheap reads).
+model Price {
+  id      String @id @default(cuid())
+  offerId String @map("offer_id")
+  offer   Offer  @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  amount   Decimal @db.Decimal(10, 2)
+  currency String
+
+  observedAt DateTime @default(now()) @map("observed_at")
+
+  @@index([offerId, observedAt])
+  @@map("prices")
+}
+
+enum StockStatus {
+  in_stock
+  out_of_stock
+  preorder
+  unknown
+
+  @@map("stock_status")
+}
+
+// ----------------------------------------------------------------------------
+// Authentication (better-auth)
+//
+// These four models mirror better-auth's core schema (see apps/api/src/auth.ts).
+// better-auth talks to them through the Prisma adapter using the camelCase FIELD
+// names below, so those names must stay in lockstep with better-auth's expected
+// shape; the snake_case @map/@@map only affects physical columns and is invisible
+// to better-auth. better-auth supplies its own ids, so these have no @default.
+// The scraper never touches these tables. See the db skill.
+// ----------------------------------------------------------------------------
+
+/// An authenticated user. Identity is `email` (unique). Populated by better-auth on
+/// the first passwordless (email OTP) sign-in.
+model User {
+  id            String  @id
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false) @map("email_verified")
+  image         String?
+
+  sessions  Session[]
+  accounts  Account[]
+  favorites Favorite[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+/// A signed-in session. The `token` is the bearer the client stores (SecureStore on
+/// mobile); better-auth validates it on every authenticated request.
+model Session {
+  id        String   @id
+  expiresAt DateTime @map("expires_at")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// A credential or linked provider account for a user. Unused fields (tokens, password)
+/// stay null for passwordless email-OTP users; the table exists for forward compatibility
+/// with password and social providers.
+model Account {
+  id         String @id
+  accountId  String @map("account_id")
+  providerId String @map("provider_id")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// Short-lived verification records: this is where the email one-time passcodes (OTPs)
+/// live until they are consumed or expire.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier])
+  @@map("verifications")
+}
+
+// ----------------------------------------------------------------------------
+// Favorites (per-user)
+//
+// A favorite targets EITHER a canonical Vinyl OR a single Track, never both and
+// never neither. Modeled as one table with two nullable FKs; the "exactly one
+// target" rule is a CHECK constraint added in the migration SQL (not expressible
+// in the Prisma schema). Both FKs cascade-delete so favorites vanish with their
+// target. The two partial uniques dedupe a target per user: Postgres treats NULLs
+// as distinct, so a user can hold many vinyl favorites (track_id null) and many
+// track favorites (vinyl_id null) without collision. See the db skill.
+// ----------------------------------------------------------------------------
+
+/// A user's saved vinyl or track. Exactly one of vinylId / trackId is set.
+model Favorite {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  vinylId String? @map("vinyl_id")
+  vinyl   Vinyl?  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  trackId String? @map("track_id")
+  track   Track?  @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, vinylId], name: "userId_vinylId")
+  @@unique([userId, trackId], name: "userId_trackId")
+  @@index([userId])
+  @@map("favorites")
 }

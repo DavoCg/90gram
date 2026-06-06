@@ -1,0 +1,43 @@
+[
+  {
+    "id": 15950620623226,
+    "title": "jazzbois - Live in Montreal",
+    "handle": "jazzbois-jazzbois-live-in-montreal",
+    "vendor": "Up Music Budapest",
+    "product_type": "Jazz",
+    "tags": ["Discogs", "jazz"],
+    "images": [
+      {
+        "src": "https://cdn.shopify.com/s/files/1/0922/5304/files/jazzbois-live-in-montreal-7181089.jpg?v=1775218510"
+      }
+    ],
+    "variants": [
+      {
+        "sku": "UP002",
+        "price": "24.99",
+        "available": true
+      }
+    ],
+    "tracklist_html": "<span class=\"archive-playlist\"><span data-src=\"https://cdn.shopify.com/s/files/1/0922/5304/files/jazzbois-live-in-montreal-raindance.mp3\" data-producturl=\"/products/jazzbois-jazzbois-live-in-montreal\" data-track=\"1. Raindance\"></span><span data-src=\"https://cdn.shopify.com/s/files/1/0922/5304/files/jazzbois-live-in-montreal-butterfly.mp3\" data-producturl=\"/products/jazzbois-jazzbois-live-in-montreal\" data-track=\"2. Butterfly\"></span><span data-src=\"https://cdn.shopify.com/s/files/1/0922/5304/files/jazzbois-live-in-montreal-raindance.mp3\" data-producturl=\"/products/jazzbois-jazzbois-live-in-montreal\" data-track=\"1. Raindance\"></span></span>"
+  },
+  {
+    "id": 8123456789012,
+    "title": "Eko* - Funky Disco Music",
+    "handle": "eko-funky-disco-music-1",
+    "vendor": "Africa Seven",
+    "product_type": "",
+    "tags": ["2nd-hand", "Afrobeat", "Disco", "Jazz-Funk", "process", "vatmarginscheme"],
+    "images": [
+      {
+        "src": "https://cdn.shopify.com/s/files/1/0922/5304/files/eko-funky-disco-music.jpg?v=1700000000"
+      }
+    ],
+    "variants": [
+      {
+        "sku": "ASVN052 // C22",
+        "price": "8.99",
+        "available": true
+      }
+    ]
+  }
+]

@@ -40,9 +40,35 @@ This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the wor
 
 - Import `createApiClient` from `@getvinyls/api-client` and instantiate ONE client (base URL from
   `EXPO_PUBLIC_API_BASE_URL`). The react-query hooks live HERE, not in the client package.
-- Hooks: `useRecords()` (list), `useRecord(id)` (detail). Query keys are stable and centralized
-  (`queryKeys.records.all`, `queryKeys.records.detail(id)`). Wrap the app in `QueryClientProvider`.
+- Hooks: `useVinyls()` (list), `useVinyl(id)` (detail). Query keys are stable and centralized
+  (`queryKeys.vinyls.all`, `queryKeys.vinyls.detail(id)`). Wrap the app in `QueryClientProvider`.
 - No hand-written fetch. Every call goes through the typed client; responses are fully typed, zero `any`.
+
+## Authentication (better-auth)
+
+The app is fully gated behind sign-in. `src/auth/client.ts` holds the ONE better-auth client (the
+`expoClient` plugin stores the session token in `expo-secure-store`, plus `emailOTPClient` for the
+passwordless code flow); it points at the API's `/api/auth/*` handler via `EXPO_PUBLIC_API_BASE_URL`.
+The root `app/_layout.tsx` reads `authClient.useSession()` and redirects: signed-out users go to the
+`(auth)` group (`app/(auth)/sign-in.tsx`, a two-step email then 6-digit code screen), and the tab
+navigator plus the global mini-player only mount once signed in. Read the session with
+`authClient.useSession()`, sign out with `authClient.signOut()` (the gate handles navigation). Auth does
+NOT go through the generated api-client; that client only forwards the better-auth cookie so future
+per-user endpoints are authenticated.
+
+## Forms
+
+- **Every form uses TanStack Form** (`@tanstack/react-form`). Use `useForm({ defaultValues, onSubmit })`
+  directly (no `createFormHook` factory); never hand-roll `useState` per field. Render fields with
+  `<form.Field name validators={{ onChange }}>` and gate the submit button with
+  `<form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting]}>`. Field-level validation lives on the
+  form; surface server errors (e.g. better-auth) in separate local state. `apps/(auth)/sign-in.tsx` is the
+  reference (an email form and a code form, one per step).
+- Text fields use the `Input` component (`src/components/input`); one-time codes use the `OTPInput`
+  component (`src/components/otp-input`, built on `input-otp-native`): six per-digit slots, a blinking
+  caret, and a shake-on-error (`useShake` + `expo-haptics`) driven by its `state` prop
+  (`idle`/`error`/`loading`/`success`). Wire it to a field with `value`/`onChange` and submit on
+  `onComplete`.
 
 ## State management
 
@@ -56,10 +82,10 @@ This is a **pnpm monorepo**, so `metro.config.js` sets `watchFolders` to the wor
 
 - Use `FlashList` (not `FlatList`) for the record list. Memoize row components (`React.memo`), pass stable
   keys, and avoid inline closures that defeat memoization in hot lists.
-- Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (see the audio
-  skill for the visualizer rules).
+- Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (the SeekBar /
+  VolumeSlider drive everything that moves during a drag with Reanimated shared values on the UI thread).
 
 ## Structure
 
 `app/` holds routes (Expo Router). `src/` holds non-route code: `api/` (client + hooks + query keys),
-`audio/` (player module, store, visualizer; see the audio skill), `components/`, `theme/`.
+`audio/` (engine + playback service + store; see the audio skill), `components/`, `theme/`.

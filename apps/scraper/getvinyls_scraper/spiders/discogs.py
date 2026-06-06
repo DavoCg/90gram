@@ -22,7 +22,7 @@ from urllib.parse import urlencode
 import scrapy
 from scrapy.http import Request, Response, TextResponse
 
-from ..items import RecordItem
+from ..items import ListingItem
 
 DISCOGS_SEARCH_URL = "https://api.discogs.com/database/search"
 
@@ -71,14 +71,14 @@ class DiscogsSpider(scrapy.Spider):
             headers={"Accept": "application/json"},
         )
 
-    def parse_fixture(self, response: Response, **kwargs: Any) -> Iterator[RecordItem]:
+    def parse_fixture(self, response: Response, **kwargs: Any) -> Iterator[ListingItem]:
         entries: Any = json.loads(response.body.decode("utf-8"))
         if not isinstance(entries, list):
             return
         for entry in cast(list[Any], entries):
-            yield RecordItem.model_validate(entry)
+            yield ListingItem.model_validate(entry)
 
-    def parse(self, response: Response, **kwargs: Any) -> Iterator[RecordItem]:
+    def parse(self, response: Response, **kwargs: Any) -> Iterator[ListingItem]:
         if not isinstance(response, TextResponse):
             return
         payload: Any = response.json()
@@ -93,7 +93,7 @@ class DiscogsSpider(scrapy.Spider):
                 if item is not None:
                     yield item
 
-    def _to_item(self, result: dict[str, Any]) -> RecordItem | None:
+    def _to_item(self, result: dict[str, Any]) -> ListingItem | None:
         external_id = result.get("id")
         raw_title = result.get("title")
         if external_id is None or not raw_title:
@@ -102,17 +102,44 @@ class DiscogsSpider(scrapy.Spider):
         # Discogs search "title" is usually "Artist - Album".
         artist, _, album = str(raw_title).partition(" - ")
         source_url = result.get("uri") or result.get("resource_url")
+        release_id = str(external_id)
 
-        return RecordItem(
-            source="discogs",
-            external_id=str(external_id),
+        # Discogs splits genre and style; merge both into our flat genre taxonomy.
+        genres: list[str] = []
+        for key in ("genre", "style"):
+            raw = result.get(key)
+            if isinstance(raw, list):
+                genres.extend(str(g) for g in cast(list[Any], raw))
+
+        catno = result.get("catno")
+        label_raw = result.get("label")
+        label = None
+        if isinstance(label_raw, list) and label_raw:
+            label = str(cast(list[Any], label_raw)[0])
+        elif isinstance(label_raw, str):
+            label = label_raw
+
+        return ListingItem(
+            # Discogs is modeled as a single shop for now.
+            shop_slug="discogs",
+            shop_name="Discogs",
+            shop_country=str(result.get("country")) if result.get("country") else None,
             title=(album or str(raw_title)).strip(),
             artist=(artist or "Unknown").strip(),
             year=_safe_int(result.get("year")),
             cover_art_url=result.get("cover_image") or result.get("thumb"),
-            preview_url=None,  # Discogs search has no audio preview
+            label=label,
+            catalog_number=str(catno) if catno else None,
+            format=None,
+            genres=genres,
+            # The search API returns neither a tracklist nor a price; only the fixture
+            # (offline/dev) carries the full nested data. Live offers come price-less here.
+            tracks=[],
+            source="discogs",
+            external_id=release_id,
             source_url=str(source_url) if source_url else None,
+            stock_status="unknown",
+            condition=None,
             price=None,
             currency=None,
-            availability=None,
         )
