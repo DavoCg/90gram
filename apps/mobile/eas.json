@@ -19,12 +19,18 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
-      "node": "22.20.0"
+      "node": "22.20.0",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://getvinyls-api.fly.dev"
+      }
     },
     "production": {
       "autoIncrement": true,
       "channel": "production",
-      "node": "22.20.0"
+      "node": "22.20.0",
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://getvinyls-api.fly.dev"
+      }
     }
   },
   "submit": {
