@@ -11,6 +11,7 @@ import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
 import { NowPlaying } from '../src/components/NowPlaying';
+import { AppToaster } from '../src/components/toast';
 import { ActivityIndicator, View } from '../src/theme/uniwind';
 import { initializeTheme } from '../src/theme/theme';
 
@@ -24,6 +25,9 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
           <RootNavigator />
+          {/* Global toast host: mounted above the navigator so toasts float over every screen.
+              Lives inside the gesture-handler + safe-area providers, which sonner-native needs. */}
+          <AppToaster />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
