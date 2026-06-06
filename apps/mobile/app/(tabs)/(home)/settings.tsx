@@ -3,6 +3,7 @@ import { Switch } from 'react-native';
 import { Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { AppHeader } from '../../../src/components/AppHeader';
+import { CheckForUpdatesRow } from '../../../src/components/check-for-updates-row';
 import { useThemeColors } from '../../../src/theme/colors';
 import { useDarkMode } from '../../../src/theme/theme';
 import { authClient } from '../../../src/auth/client';
@@ -21,6 +22,9 @@ export default function SettingsScreen() {
         </SettingsSection>
         <SettingsSection title="Appearance">
           <DarkModeRow />
+        </SettingsSection>
+        <SettingsSection title="About">
+          <CheckForUpdatesRow />
         </SettingsSection>
       </View>
     </View>

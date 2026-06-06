@@ -7,6 +7,12 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/00885d7a-243d-425b-aa01-6fb9912702b7"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.getvinyls.app",
