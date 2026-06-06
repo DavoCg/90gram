@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && tsx watch src/index.ts",
-    "start": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && node dist/index.js",
+    "start": "pnpm --filter @getvinyls/db generate && pnpm --filter @getvinyls/db migrate:deploy && tsx src/index.ts",
     "build": "tsc",
     "gen:openapi": "tsx scripts/dump-openapi.ts",
     "typecheck": "tsc --noEmit",

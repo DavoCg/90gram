@@ -3,11 +3,11 @@
 # getvinyls API for Fly.io.
 #
 # Built from the monorepo ROOT (fly.toml sets the build context to "."), because the API
-# imports @getvinyls/db by source: at runtime `node dist/index.js` loads the db package's
-# TypeScript (and the generated Prisma client) directly, relying on Node's native type
-# stripping (Node >= 22.18). pnpm's hoisted symlink resolves @getvinyls/db to its real path
-# under packages/db (outside node_modules), so stripping applies. Keep the base image on a
-# Node release that ships type stripping by default.
+# imports @getvinyls/db by source: at runtime tsx loads the db package's TypeScript (and the
+# generated Prisma client) directly, exactly like dev. db's package `main` is a .ts file that
+# imports the generated Prisma client with a `.js` specifier, which only a TS-aware loader
+# like tsx resolves, so there is no tsc build here and we do NOT run `node dist/index.js`.
+# pnpm's hoisted symlink resolves @getvinyls/db to its real path under packages/db.
 FROM node:22.20.0-slim AS build
 
 # pnpm via corepack, pinned to the repo's packageManager field.
