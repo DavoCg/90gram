@@ -64,7 +64,8 @@ function RootNavigator() {
   }, [session, isPending, segments, router]);
 
   // The mini-player floats above the whole navigator, so route changes inside it (tabs, settings)
-  // do not hide it on their own. Settings is a full-cover screen, so suppress the player there.
+  // do not layer it on their own. Settings is a full-cover screen, so we lift the navigator above
+  // the player while it is open (see the z-index below) rather than hiding it.
   const onSettings = segments[0] === 'settings';
 
   // Shared motion values for the Now Playing surface, created here so the root can recede the
@@ -105,7 +106,10 @@ function RootNavigator() {
 
   return (
     <>
-      <Animated.View style={[{ flex: 1, overflow: 'hidden' }, cardStyle]}>
+      {/* Settings is a full-cover screen, so lift the navigator above the floating mini-player
+          while it is open. Raising the navigator's z-index (rather than unmounting the player)
+          keeps the player mounted and its state intact; it just paints behind the settings page. */}
+      <Animated.View style={[{ flex: 1, overflow: 'hidden', zIndex: onSettings ? 1 : 0 }, cardStyle]}>
         <Stack
           screenOptions={{
             headerShown: false,
@@ -121,9 +125,9 @@ function RootNavigator() {
         </Stack>
       </Animated.View>
       {/* The Now Playing surface mounts above the tab navigator, but only once signed in: it can
-          float as a mini-bar and expand to a full-screen player over the receding page. Hidden on
-          the settings screen, which is meant to cover everything. */}
-      {session && !onSettings ? <NowPlaying expand={expand} drag={drag} /> : null}
+          float as a mini-bar and expand to a full-screen player over the receding page. It stays
+          mounted on the settings screen but paints behind it (see the navigator z-index above). */}
+      {session ? <NowPlaying expand={expand} drag={drag} /> : null}
     </>
   );
 }
