@@ -15,7 +15,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 | db          | `.claude/skills/db`            | Prisma schema ownership, snake_case mapping, migrations, seed |
 | api         | `.claude/skills/api`           | Hono + zod-openapi, generated OpenAPI, read-only routes       |
 | api-client  | `.claude/skills/api-client`    | openapi-typescript + openapi-fetch, no React deps             |
-| mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, FlashList            |
+| mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, LegendList          |
 | audio       | `.claude/skills/audio`         | react-native-audio-api graph, player store, lock screen       |
 | scraper     | `.claude/skills/scraper`       | Scrapy, politeness, PostgresPipeline, reflected schema        |
 | typescript  | `.claude/skills/typescript`    | strict TS rules everywhere                                    |

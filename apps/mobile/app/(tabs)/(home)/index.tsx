@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
+import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
 import { User } from 'lucide-react-native';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { useVinyls } from '../../../src/api/hooks';
-import { VinylRow } from '../../../src/components/VinylRow';
+import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
+import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useThemeColors } from '../../../src/theme/colors';
 import { player$ } from '../../../src/audio/store';
@@ -32,7 +33,8 @@ const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useVinyls();
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useVinyls();
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
@@ -47,7 +49,7 @@ export default function HomeScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: VinylSummaryDto }) => (
+    ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
       <VinylRow
         vinyl={item}
         isCurrent={item.id === currentVinylId}
@@ -57,6 +59,12 @@ export default function HomeScreen() {
     ),
     [currentVinylId, playWhenReady, onPressVinyl],
   );
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
     return (
@@ -95,11 +103,16 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader title="Home" showBack={false} right={<HeaderUserButton />} />
-      <FlashList
+      <LegendList
         data={data ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        recycleItems
+        estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
     </View>

@@ -16,13 +16,17 @@
               "$ref": "#/components/schemas/VinylSummary"
             }
           },
-          "total": {
-            "type": "integer"
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
           }
         },
         "required": [
           "vinyls",
-          "total"
+          "nextCursor"
         ]
       },
       "VinylSummary": {
@@ -356,15 +360,13 @@
           {
             "type": "object",
             "properties": {
-              "vinyls": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VinylSummary"
-                }
+              "vinylCount": {
+                "type": "integer",
+                "example": 42
               }
             },
             "required": [
-              "vinyls"
+              "vinylCount"
             ]
           }
         ]
@@ -387,29 +389,39 @@
           "total"
         ]
       },
-      "Favorites": {
+      "FavoriteIds": {
         "type": "object",
         "properties": {
-          "vinyls": {
+          "vinylIds": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/VinylSummary"
+              "type": "string"
             }
           },
+          "trackIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "vinylIds",
+          "trackIds"
+        ]
+      },
+      "FavoriteTracks": {
+        "type": "object",
+        "properties": {
           "tracks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FavoriteTrack"
             }
-          },
-          "total": {
-            "type": "integer"
           }
         },
         "required": [
-          "vinyls",
-          "tracks",
-          "total"
+          "tracks"
         ]
       },
       "FavoriteTrack": {
@@ -530,9 +542,33 @@
           "vinyls"
         ],
         "summary": "List vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "A list of vinyls with their tracks, genres, and a cheapest-price summary.",
+            "description": "A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary.",
             "content": {
               "application/json": {
                 "schema": {
@@ -626,7 +662,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The shop, with its name, address, and the vinyls available there.",
+            "description": "The shop's identity and how many distinct vinyls it lists.",
             "content": {
               "application/json": {
                 "schema": {
@@ -641,6 +677,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops/{id}/vinyls": {
+      "get": {
+        "tags": [
+          "shops"
+        ],
+        "summary": "List a shop's vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of the vinyls this shop lists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinylList"
                 }
               }
             }
@@ -673,14 +763,14 @@
         "tags": [
           "favorites"
         ],
-        "summary": "List the signed-in user favorites",
+        "summary": "List the ids of the signed-in user favorites",
         "responses": {
           "200": {
-            "description": "The user's favorited vinyls and tracks, each enriched for direct rendering.",
+            "description": "The ids of the vinyls and tracks the user has favorited (drives the heart state).",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Favorites"
+                  "$ref": "#/components/schemas/FavoriteIds"
                 }
               }
             }
@@ -734,6 +824,90 @@
           },
           "404": {
             "description": "The target vinyl or track does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites/vinyls": {
+      "get": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "List the signed-in user's favorited vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of the user's favorited vinyls.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinylList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/favorites/tracks": {
+      "get": {
+        "tags": [
+          "favorites"
+        ],
+        "summary": "List the signed-in user's favorited tracks",
+        "responses": {
+          "200": {
+            "description": "The user's favorited tracks, each enriched for direct rendering.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteTracks"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
             "content": {
               "application/json": {
                 "schema": {

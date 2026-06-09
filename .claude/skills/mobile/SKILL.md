@@ -3,7 +3,7 @@ name: mobile
 description: >-
   Conventions for apps/mobile: Expo (SDK 56, dev build via prebuild, NOT Expo Go), Expo Router
   with typed routes, Uniwind (Tailwind v4 for RN) styling, TanStack Query v5 hooks wrapping the
-  generated api-client, and FlashList. Read this when adding screens/routes, styling with
+  generated api-client, and LegendList. Read this when adding screens/routes, styling with
   className, writing data hooks/query keys, or touching Metro/Uniwind/theme config.
 ---
 
@@ -80,8 +80,10 @@ per-user endpoints are authenticated.
 
 ## Performance
 
-- Use `FlashList` (not `FlatList`) for the record list. Memoize row components (`React.memo`), pass stable
-  keys, and avoid inline closures that defeat memoization in hot lists.
+- Use `LegendList` (from `@legendapp/list/react-native`), not `FlatList`/`FlashList`, for the record lists.
+  Memoize row components (`React.memo`), pass stable keys, and avoid inline closures that defeat memoization
+  in hot lists. Turn on `recycleItems` (rows are stateless and memoized, so view reuse is safe); pass
+  `estimatedItemSize` (a first-render hint only, it is optional and the measured sizes take over after layout).
 - Keep re-renders tight: read narrow `use$` slices; never `setState` per animation frame (the SeekBar /
   VolumeSlider drive everything that moves during a drag with Reanimated shared values on the UI thread).
 

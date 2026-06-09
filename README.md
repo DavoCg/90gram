@@ -9,7 +9,7 @@ spider feeding the database.
 
 - **Monorepo:** pnpm workspaces + Turborepo. Node 22, pnpm 10.
 - **Mobile:** Expo SDK 56 (dev build via `expo prebuild`, not Expo Go), Expo Router (typed routes),
-  Uniwind (Tailwind v4 for RN), TanStack Query v5, FlashList.
+  Uniwind (Tailwind v4 for RN), TanStack Query v5, LegendList.
 - **Audio:** `react-native-audio-api` (Software Mansion, Web Audio model) with a hand-built player layer.
 - **API:** Hono + `@hono/zod-openapi` (Zod is the source of truth; OpenAPI 3.1 is generated).
 - **API client:** `openapi-typescript` types + an `openapi-fetch` client (no React).

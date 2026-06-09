@@ -1,15 +1,16 @@
 import { useCallback } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
+import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
 import { MapPin } from 'lucide-react-native';
 import type { ShopDetailDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, View } from '../theme/uniwind';
 import { Text } from '../components/text';
 import { PressableScale } from '../components/pressable-scale';
-import { VinylRow } from '../components/VinylRow';
+import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../components/VinylRow';
+import { ListFooterLoader } from '../components/list-footer-loader';
 import { AppHeader } from '../components/AppHeader';
-import { useShop } from '../api/hooks';
+import { useShop, useShopVinyls } from '../api/hooks';
 import { useThemeColors } from '../theme/colors';
 import { player$ } from '../audio/store';
 
@@ -20,7 +21,7 @@ const LIST_BOTTOM_PADDING = 140;
 function ShopHeader({ shop }: { shop: ShopDetailDto }) {
   const colors = useThemeColors();
   const location = [shop.address, shop.country].filter((part): part is string => Boolean(part)).join(' · ');
-  const count = shop.vinyls.length;
+  const count = shop.vinylCount;
   return (
     <View className="px-6 pb-4 pt-1">
       <Text size="2xl" weight="bold">
@@ -46,6 +47,12 @@ function ShopHeader({ shop }: { shop: ShopDetailDto }) {
 export default function ShopDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: shop, isLoading, isError, refetch } = useShop(id ?? '');
+  const {
+    data: vinyls,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useShopVinyls(id ?? '');
   const router = useRouter();
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
@@ -60,7 +67,7 @@ export default function ShopDetailScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: VinylSummaryDto }) => (
+    ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
       <VinylRow
         vinyl={item}
         isCurrent={item.id === currentVinylId}
@@ -70,6 +77,12 @@ export default function ShopDetailScreen() {
     ),
     [currentVinylId, playWhenReady, onPressVinyl],
   );
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading || !shop) {
     if (isError) {
@@ -101,12 +114,17 @@ export default function ShopDetailScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader />
-      <FlashList
-        data={shop.vinyls}
+      <LegendList
+        data={vinyls ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        recycleItems
+        estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         ListHeaderComponent={<ShopHeader shop={shop} />}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
     </View>
