@@ -37,6 +37,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 - **Zod schemas are the source of truth** for the API; the OpenAPI document is generated, never authored by hand.
 - **Prisma is the sole owner** of the database schema and migrations. The scraper only writes rows, never DDL.
 - **No em dashes** in generated docs, comments, or copy. Use commas, parentheses, or separate sentences.
+- **Pull requests target `develop`**, never `main`. Always open PRs with `develop` as the base branch.
 - **Env via a typed loader**: validate with Zod at boot, fail fast on missing vars. Document every var in `.env.example`.
 
 ## The type-safe contract pipeline (the spine)
