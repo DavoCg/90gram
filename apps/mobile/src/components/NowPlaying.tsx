@@ -45,6 +45,10 @@ const MINI_HEIGHT = 60;
 const MINI_MARGIN = 8;
 const MINI_ART = 44;
 const PAD = 20;
+// How far below its resting slot the mini-bar starts when it first appears, enough to sit fully
+// behind the tab bar so it reads as rising up from under it (its top begins at the tab bar's top
+// edge). The fade hides the brief overlap with the opaque tab bar on the way up.
+const ENTER_OFFSET = MINI_HEIGHT + MINI_MARGIN;
 // iOS form-sheet corner radius. Constant: it does not change with the drag.
 const SHEET_RADIUS = 38;
 
@@ -101,6 +105,17 @@ export function NowPlaying({
       reduceMotion: ReduceMotion.Never,
     });
   }, [isPlaying, playScale]);
+
+  // Entrance morph for the collapsed mini-bar: 0 = hidden below the tab bar, 1 = resting in its
+  // slot. Springs up when a track first starts (track goes null -> present) and resets instantly
+  // while hidden so the next track that starts playback animates in again. Once open (expand 1)
+  // this has long settled to 1, so it never fights the open/close morph.
+  const hasTrack = !!track;
+  const enter = useSharedValue(0);
+  useEffect(() => {
+    if (hasTrack) enter.value = withSpring(1, SPRING);
+    else enter.value = 0;
+  }, [hasTrack, enter]);
 
   // --- Geometry: large (expanded) artwork rect and the mini (collapsed) thumbnail rect. ---
   const tabBarHeight = TAB_BAR_BASE + insets.bottom;
@@ -170,7 +185,11 @@ export function NowPlaying({
       [collapsedScale, playScale.value],
       Extrapolation.CLAMP,
     );
+    // Rises with the mini-bar on first appearance; zero once entered (enter -> 1) and irrelevant
+    // when expanded, so it only shifts the collapsed thumbnail as it slides up from the tab bar.
+    const enterTY = interpolate(enter.value, [0, 1], [ENTER_OFFSET, 0], Extrapolation.CLAMP);
     return {
+      opacity: interpolate(enter.value, [0, 0.5], [0, 1], Extrapolation.CLAMP),
       borderRadius: interpolate(
         expand.value,
         [0, 1],
@@ -181,7 +200,9 @@ export function NowPlaying({
         { translateX: interpolate(expand.value, [0, 1], [collapsedTX, 0], Extrapolation.CLAMP) },
         {
           translateY:
-            interpolate(expand.value, [0, 1], [collapsedTY, 0], Extrapolation.CLAMP) + drag.value,
+            interpolate(expand.value, [0, 1], [collapsedTY, 0], Extrapolation.CLAMP) +
+            drag.value +
+            enterTY,
         },
         { scale },
       ],
@@ -189,7 +210,13 @@ export function NowPlaying({
   });
 
   const miniStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(expand.value, [0, 0.25], [1, 0], Extrapolation.CLAMP),
+    // Fade out as it expands; fade in (and slide up) as it first appears from under the tab bar.
+    opacity:
+      interpolate(expand.value, [0, 0.25], [1, 0], Extrapolation.CLAMP) *
+      interpolate(enter.value, [0, 0.5], [0, 1], Extrapolation.CLAMP),
+    transform: [
+      { translateY: interpolate(enter.value, [0, 1], [ENTER_OFFSET, 0], Extrapolation.CLAMP) },
+    ],
   }));
 
   // All hooks above are unconditional; only now do we bail out when nothing is playing.
