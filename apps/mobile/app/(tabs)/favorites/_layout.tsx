@@ -4,12 +4,13 @@ import { Stack } from 'expo-router';
 // favorites list while the bottom tab bar and the global mini-player stay visible, instead of
 // jumping over to the Home stack to show a record.
 export default function FavoritesStackLayout() {
-  // 200ms slide-from-right push/pop, matching the Home stack.
+  // 200ms slide push/pop, matching the Home stack. `simple_push` is used (not `slide_from_right`)
+  // so animationDuration is honored on iOS as well as Android.
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        animation: 'slide_from_right',
+        animation: 'simple_push',
         animationDuration: 200,
       }}
     />
