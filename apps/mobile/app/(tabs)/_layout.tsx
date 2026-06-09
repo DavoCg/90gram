@@ -42,9 +42,11 @@ export default function TabsLayout() {
 				{ scale: interpolate(open, [0, 1], [1, 0.92]) },
 				{ translateY: interpolate(open, [0, 1], [0, 12]) },
 			],
-			// Constant ~38pt corners while presented (tracks open/close only, not the drag),
-			// matching the player sheet's top corners.
-			borderRadius: interpolate(expand.value, [0, 1], [0, 38]),
+			// Round the corners in lockstep with how far the card has receded (`open`), so a
+			// drag-to-dismiss unwinds the radius back to square as the card grows to full screen,
+			// instead of leaving 38pt corners that expose the black backing at full size. At rest
+			// open it matches the player sheet's 38pt top corners.
+			borderRadius: interpolate(open, [0, 1], [0, 38]),
 			borderCurve: "continuous",
 			opacity: interpolate(open, [0, 1], [1, 0.6]),
 		};
