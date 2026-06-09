@@ -222,7 +222,9 @@ export function SeekBar({
             fontVariant: ['tabular-nums'],
           }}
         />
-        {/* While streaming there is no known duration; show a live label instead of a fake 0:00. */}
+        {/* Only show the animated remaining-time countdown once a duration is known; until then
+            fall through to the static label below (which shows 0:00 while loading, "live" only
+            when a non-seekable stream is actually playing). */}
         {showRemaining && durationSec > 0 ? (
           <AnimatedTextInput
             editable={false}
@@ -242,7 +244,10 @@ export function SeekBar({
           />
         ) : (
           <Text size="xs" color="neutral-soft" align="right" tabularNums className="w-12">
-            {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
+            {/* Duration unknown: only label it "live" when audio is genuinely playing a
+                non-seekable stream. While the track is still loading (isPlaying false) show 0:00,
+                so a track that has not started yet does not masquerade as a live stream. */}
+            {durationSec > 0 ? formatTime(durationSec) : isPlaying ? 'live' : '0:00'}
           </Text>
         )}
       </View>
