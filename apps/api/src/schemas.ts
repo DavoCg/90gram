@@ -75,10 +75,12 @@ export const VinylSchema = VinylSummarySchema.extend({
 export type VinylSummary = z.infer<typeof VinylSummarySchema>;
 export type Vinyl = z.infer<typeof VinylSchema>;
 
+// Cursor-paginated vinyl page. `nextCursor` is the opaque cursor to pass back for the next page,
+// or null when this is the last page. Used by the home feed, a shop's vinyls, and favorited vinyls.
 export const VinylListSchema = z
   .object({
     vinyls: z.array(VinylSummarySchema),
-    total: z.number().int(),
+    nextCursor: z.string().nullable().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
   })
   .openapi('VinylList');
 
@@ -89,9 +91,10 @@ export const ShopListSchema = z
   })
   .openapi('ShopList');
 
-// The shop page: the shop's identity (name, address, ...) plus the vinyls available there.
+// The shop page: the shop's identity (name, address, ...) plus how many distinct vinyls it lists.
+// The vinyls themselves are paginated separately via GET /shops/{id}/vinyls.
 export const ShopDetailSchema = ShopSchema.extend({
-  vinyls: z.array(VinylSummarySchema),
+  vinylCount: z.number().int().openapi({ example: 42 }),
 }).openapi('ShopDetail');
 
 export type ShopDetail = z.infer<typeof ShopDetailSchema>;
@@ -127,14 +130,23 @@ export const FavoriteTrackSchema = TrackSchema.extend({
   }),
 }).openapi('FavoriteTrack');
 
-// The signed-in user's favorites, split by target type and each enriched for direct rendering.
-export const FavoritesSchema = z
+// A cheap snapshot of WHICH targets the signed-in user has favorited (ids only). Drives the heart
+// state everywhere without paging in the full favorited records, so a favorite tapped in any list
+// reflects instantly. The favorited records/tracks themselves are fetched via the endpoints below.
+export const FavoriteIdsSchema = z
   .object({
-    vinyls: z.array(VinylSummarySchema),
-    tracks: z.array(FavoriteTrackSchema),
-    total: z.number().int(),
+    vinylIds: z.array(z.string()),
+    trackIds: z.array(z.string()),
   })
-  .openapi('Favorites');
+  .openapi('FavoriteIds');
+
+// The signed-in user's favorited tracks, each enriched for direct rendering. Tracks are not a vinyls
+// list, so they are returned in one shot (favorited vinyls are paginated via GET /favorites/vinyls).
+export const FavoriteTracksSchema = z
+  .object({
+    tracks: z.array(FavoriteTrackSchema),
+  })
+  .openapi('FavoriteTracks');
 
 export const CreateFavoriteSchema = z
   .object({
@@ -176,6 +188,54 @@ export const IdParamSchema = z.object({
     .min(1)
     .openapi({ param: { name: 'id', in: 'path' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
 });
+
+// --- Cursor pagination (shared by every paginated list) ---
+
+// Query for a cursor-paginated list: a page size and an opaque cursor (the id of the last row of
+// the previous page). Omit `cursor` for the first page. `limit` is coerced from the query string.
+export const PaginationQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20).openapi({
+    param: { name: 'limit', in: 'query' },
+    example: 20,
+  }),
+  cursor: z
+    .string()
+    .min(1)
+    .optional()
+    .openapi({ param: { name: 'cursor', in: 'query' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+});
+
+export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
+
+// Prisma findMany args for keyset (cursor) pagination. Over-fetch by one row so the handler can tell
+// whether a further page exists. Pair every use with a deterministic orderBy ending in `id`.
+export function cursorArgs(limit: number, cursor: string | undefined) {
+  return cursor
+    ? ({ take: limit + 1, cursor: { id: cursor }, skip: 1 } as const)
+    : ({ take: limit + 1 } as const);
+}
+
+// Slice the over-fetched rows into a single page plus the cursor for the following page (the id of
+// the page's last row, or null when there are no further rows). The cursor is the ordered row's id.
+export function toPage<T extends { id: string }>(
+  rows: T[],
+  limit: number,
+): { items: T[]; nextCursor: string | null } {
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const last = items.at(-1);
+  return { items, nextCursor: hasMore && last ? last.id : null };
+}
+
+// The `include` shape `toVinylSummaryDto` expects: tracks, genres, and the per-shop offers needed to
+// compute the cheapest price and shop count. Shared by every route that returns vinyl summaries.
+export const vinylSummaryInclude = {
+  tracks: { orderBy: { position: 'asc' } },
+  genres: { include: { genre: true } },
+  shopVinyls: {
+    select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } },
+  },
+} as const;
 
 // --- Prisma row -> wire DTO mappers (Decimal -> number, Date -> ISO string) ---
 
@@ -289,37 +349,10 @@ export function toVinylDto(row: VinylDetailRow): Vinyl {
   };
 }
 
-// A shop with the vinyls it lists. Each vinyl carries the same shape `toVinylSummaryDto` needs,
-// so the cheapest-price/shop-count summary stays computed across ALL shops, not just this one.
-type ShopDetailRow = Prisma.ShopGetPayload<{
-  include: {
-    shopVinyls: {
-      include: {
-        vinyl: {
-          include: {
-            tracks: true;
-            genres: { include: { genre: true } };
-            shopVinyls: {
-              select: { shopId: true; offers: { select: { currentPrice: true; currentCurrency: true } } };
-            };
-          };
-        };
-      };
-    };
-  };
-}>;
-
-export function toShopDetailDto(row: ShopDetailRow): ShopDetail {
-  // One shop can carry several ShopVinyl rows for the same canonical vinyl (different listings),
-  // so dedupe by vinyl id, keeping the first occurrence.
-  const seen = new Set<string>();
-  const vinyls: VinylSummary[] = [];
-  for (const shopVinyl of row.shopVinyls) {
-    if (seen.has(shopVinyl.vinyl.id)) continue;
-    seen.add(shopVinyl.vinyl.id);
-    vinyls.push(toVinylSummaryDto(shopVinyl.vinyl));
-  }
-  return { ...toShopDto(row), vinyls };
+// A shop's identity plus how many distinct vinyls it lists. The vinyls themselves are paginated via
+// GET /shops/{id}/vinyls, so the detail only carries the count for the header.
+export function toShopDetailDto(row: ShopRow, vinylCount: number): ShopDetail {
+  return { ...toShopDto(row), vinylCount };
 }
 
 // A favorited track row carries its parent vinyl (for display + navigation in the Favorites tab).

@@ -1,17 +1,19 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
 import { use$ } from '@legendapp/state/react';
 import { Heart } from 'lucide-react-native';
 import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
-import { ActivityIndicator, Pressable, ScrollView, View } from '../../../src/theme/uniwind';
+import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { CoverArt } from '../../../src/components/cover-art';
 import { VinylRow } from '../../../src/components/VinylRow';
+import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { FavoriteButton } from '../../../src/components/favorite-button';
 import { EqualizerBars } from '../../../src/components/equalizer-bars';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { Placeholder } from '../../../src/components/Placeholder';
-import { useFavorites } from '../../../src/api/hooks';
+import { useFavoriteTracks, useFavoriteVinyls } from '../../../src/api/hooks';
 import { audioEngine } from '../../../src/audio/engine';
 import { player$ } from '../../../src/audio/store';
 import { useThemeColors } from '../../../src/theme/colors';
@@ -75,7 +77,21 @@ function FavoriteTrackRow({
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useFavorites();
+  const {
+    data: vinyls,
+    isLoading: vinylsLoading,
+    isError: vinylsError,
+    refetch: refetchVinyls,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useFavoriteVinyls();
+  const {
+    data: tracks,
+    isLoading: tracksLoading,
+    isError: tracksError,
+    refetch: refetchTracks,
+  } = useFavoriteTracks();
   const currentTrack = use$(player$.track);
   const currentVinylId = currentTrack?.vinylId;
   const currentTrackId = currentTrack?.id;
@@ -95,7 +111,25 @@ export default function FavoritesScreen() {
     void audioEngine.playTrack(track);
   }, []);
 
-  if (isLoading) {
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const renderItem = useCallback(
+    ({ item }: { item: VinylSummaryDto }) => (
+      <VinylRow
+        vinyl={item}
+        isCurrent={item.id === currentVinylId}
+        isPlaying={playWhenReady}
+        onPress={onPressVinyl}
+      />
+    ),
+    [currentVinylId, playWhenReady, onPressVinyl],
+  );
+
+  if (vinylsLoading || tracksLoading) {
     return (
       <View className="flex-1 bg-bg">
         <AppHeader title="Favorites" showBack={false} />
@@ -106,14 +140,17 @@ export default function FavoritesScreen() {
     );
   }
 
-  if (isError || !data) {
+  if (vinylsError || tracksError) {
     return (
       <View className="flex-1 bg-bg">
         <AppHeader title="Favorites" showBack={false} />
         <View className="flex-1 items-center justify-center gap-3 px-6">
           <Text align="center">Could not load your favorites.</Text>
           <Pressable
-            onPress={() => void refetch()}
+            onPress={() => {
+              void refetchVinyls();
+              void refetchTracks();
+            }}
             className="rounded-full curve-continuous bg-accent px-5 py-2"
           >
             <Text color="white">Retry</Text>
@@ -123,47 +160,50 @@ export default function FavoritesScreen() {
     );
   }
 
-  if (data.vinyls.length === 0 && data.tracks.length === 0) {
+  const favoriteVinyls = vinyls ?? [];
+  const favoriteTracks = tracks ?? [];
+
+  if (favoriteVinyls.length === 0 && favoriteTracks.length === 0) {
     return (
       <Placeholder icon={Heart} title="Favorites" subtitle="Records you save will show up here." />
     );
   }
 
+  // The favorited vinyls (Records) drive the infinite list; the favorited tracks render in the
+  // footer so the existing Records-then-Tracks order is preserved on one scroll surface.
   return (
     <View className="flex-1 bg-bg">
       <AppHeader title="Favorites" showBack={false} />
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}>
-        {data.vinyls.length > 0 ? (
+      <FlashList
+        data={favoriteVinyls}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        ListHeaderComponent={favoriteVinyls.length > 0 ? <SectionTitle>Records</SectionTitle> : null}
+        ListFooterComponent={
           <>
-            <SectionTitle>Records</SectionTitle>
-            {data.vinyls.map((vinyl) => (
-              <VinylRow
-                key={vinyl.id}
-                vinyl={vinyl}
-                isCurrent={vinyl.id === currentVinylId}
-                isPlaying={playWhenReady}
-                onPress={onPressVinyl}
-              />
-            ))}
+            <ListFooterLoader loading={isFetchingNextPage} />
+            {favoriteTracks.length > 0 ? (
+              <>
+                <SectionTitle>Tracks</SectionTitle>
+                {favoriteTracks.map((track) => (
+                  <FavoriteTrackRow
+                    key={track.id}
+                    track={track}
+                    isCurrent={track.id === currentTrackId}
+                    isPlaying={playWhenReady}
+                    onPlay={onPlayTrack}
+                    onOpenVinyl={onOpenVinyl}
+                  />
+                ))}
+              </>
+            ) : null}
           </>
-        ) : null}
-
-        {data.tracks.length > 0 ? (
-          <>
-            <SectionTitle>Tracks</SectionTitle>
-            {data.tracks.map((track) => (
-              <FavoriteTrackRow
-                key={track.id}
-                track={track}
-                isCurrent={track.id === currentTrackId}
-                isPlaying={playWhenReady}
-                onPlay={onPlayTrack}
-                onOpenVinyl={onOpenVinyl}
-              />
-            ))}
-          </>
-        ) : null}
-      </ScrollView>
+        }
+        contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
+      />
     </View>
   );
 }

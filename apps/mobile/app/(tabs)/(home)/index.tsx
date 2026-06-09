@@ -8,6 +8,7 @@ import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { useVinyls } from '../../../src/api/hooks';
 import { VinylRow } from '../../../src/components/VinylRow';
+import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useThemeColors } from '../../../src/theme/colors';
 import { player$ } from '../../../src/audio/store';
@@ -32,7 +33,8 @@ const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { data, isLoading, isError, refetch } = useVinyls();
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useVinyls();
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
@@ -57,6 +59,12 @@ export default function HomeScreen() {
     ),
     [currentVinylId, playWhenReady, onPressVinyl],
   );
+
+  const onEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   if (isLoading) {
     return (
@@ -100,6 +108,9 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
       />
     </View>
