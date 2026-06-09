@@ -10,6 +10,7 @@ export const ShopSchema = z
     slug: z.string().openapi({ example: 'discogs' }),
     name: z.string().openapi({ example: 'Discogs' }),
     baseUrl: z.url().nullable().openapi({ example: 'https://www.discogs.com' }),
+    address: z.string().nullable().openapi({ example: '12 Rue des Disques, 75011 Paris' }),
     country: z.string().nullable().openapi({ example: 'DE' }),
   })
   .openapi('Shop');
@@ -87,6 +88,13 @@ export const ShopListSchema = z
     total: z.number().int(),
   })
   .openapi('ShopList');
+
+// The shop page: the shop's identity (name, address, ...) plus the vinyls available there.
+export const ShopDetailSchema = ShopSchema.extend({
+  vinyls: z.array(VinylSummarySchema),
+}).openapi('ShopDetail');
+
+export type ShopDetail = z.infer<typeof ShopDetailSchema>;
 
 export const GenreListSchema = z
   .object({
@@ -193,7 +201,14 @@ type ShopVinylWithOffersRow = VinylDetailRow['shopVinyls'][number];
 type OfferRow = ShopVinylWithOffersRow['offers'][number];
 
 export function toShopDto(row: ShopRow): z.infer<typeof ShopSchema> {
-  return { id: row.id, slug: row.slug, name: row.name, baseUrl: row.baseUrl, country: row.country };
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    baseUrl: row.baseUrl,
+    address: row.address,
+    country: row.country,
+  };
 }
 
 export function toGenreDto(row: GenreRow): z.infer<typeof GenreSchema> {
@@ -272,6 +287,39 @@ export function toVinylDto(row: VinylDetailRow): Vinyl {
     ...toVinylSummaryDto(row),
     offers: row.shopVinyls.flatMap((sv) => sv.offers.map((offer) => toOfferDto(offer, sv))),
   };
+}
+
+// A shop with the vinyls it lists. Each vinyl carries the same shape `toVinylSummaryDto` needs,
+// so the cheapest-price/shop-count summary stays computed across ALL shops, not just this one.
+type ShopDetailRow = Prisma.ShopGetPayload<{
+  include: {
+    shopVinyls: {
+      include: {
+        vinyl: {
+          include: {
+            tracks: true;
+            genres: { include: { genre: true } };
+            shopVinyls: {
+              select: { shopId: true; offers: { select: { currentPrice: true; currentCurrency: true } } };
+            };
+          };
+        };
+      };
+    };
+  };
+}>;
+
+export function toShopDetailDto(row: ShopDetailRow): ShopDetail {
+  // One shop can carry several ShopVinyl rows for the same canonical vinyl (different listings),
+  // so dedupe by vinyl id, keeping the first occurrence.
+  const seen = new Set<string>();
+  const vinyls: VinylSummary[] = [];
+  for (const shopVinyl of row.shopVinyls) {
+    if (seen.has(shopVinyl.vinyl.id)) continue;
+    seen.add(shopVinyl.vinyl.id);
+    vinyls.push(toVinylSummaryDto(shopVinyl.vinyl));
+  }
+  return { ...toShopDto(row), vinyls };
 }
 
 // A favorited track row carries its parent vinyl (for display + navigation in the Favorites tab).

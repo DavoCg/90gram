@@ -23,6 +23,7 @@ export type VinylSummaryDto = components['schemas']['VinylSummary'];
 export type VinylListDto = components['schemas']['VinylList'];
 export type TrackDto = components['schemas']['Track'];
 export type ShopDto = components['schemas']['Shop'];
+export type ShopDetailDto = components['schemas']['ShopDetail'];
 export type OfferDto = components['schemas']['Offer'];
 export type GenreDto = components['schemas']['Genre'];
 export type FavoritesDto = components['schemas']['Favorites'];

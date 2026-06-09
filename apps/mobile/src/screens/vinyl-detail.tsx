@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
-import { Play, Shuffle } from 'lucide-react-native';
-import type { FavoriteTrackDto, TrackDto, VinylDto } from '@getvinyls/api-client';
+import { ChevronRight, Play, Shuffle } from 'lucide-react-native';
+import type { FavoriteTrackDto, OfferDto, TrackDto, VinylDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
 import { Text } from '../components/text';
 import { PressableScale } from '../components/pressable-scale';
@@ -24,6 +24,12 @@ const LIST_BOTTOM_PADDING = 160;
 function formatFromPrice(price: number | null, currency: string | null): string | null {
   if (price === null) return null;
   return `from ${currency ?? ''}${currency ? ' ' : ''}${price.toFixed(2)}`.trim();
+}
+
+// "EUR 24.99" for a single offer, null when the offer carries no price.
+function formatOfferPrice(price: number | null, currency: string | null): string | null {
+  if (price === null) return null;
+  return `${currency ?? ''}${currency ? ' ' : ''}${price.toFixed(2)}`.trim();
 }
 
 // A track plus the parent-vinyl context the favorites list needs to render and navigate.
@@ -52,6 +58,7 @@ function formatMeta(vinyl: VinylDto): string {
 export default function VinylDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: vinyl, isLoading, isError, refetch } = useVinyl(id ?? '');
+  const router = useRouter();
   const colors = useThemeColors();
   const { width: screenWidth } = useWindowDimensions();
 
@@ -89,6 +96,14 @@ export default function VinylDetailScreen() {
   const onPressShuffle = useCallback(() => {
     if (vinyl) void audioEngine.shuffleVinyl(vinyl);
   }, [vinyl]);
+
+  // Open the shop page (name, address, the rest of its catalogue) for an offer's shop.
+  const onPressOffer = useCallback(
+    (offer: OfferDto) => {
+      router.push(`/shop/${offer.shop.id}`);
+    },
+    [router],
+  );
 
   if (isLoading || !vinyl) {
     if (isError) {
@@ -227,6 +242,38 @@ export default function VinylDetailScreen() {
             );
           })}
         </View>
+
+        {/* Available at: the shops listing this record. Tap a shop to open its page. */}
+        {vinyl.offers.length > 0 ? (
+          <View className="mt-6 px-2">
+            <Text size="sm" color="neutral-soft" weight="semibold" className="px-4 pb-1">
+              Available at
+            </Text>
+            {vinyl.offers.map((offer) => {
+              const offerPrice = formatOfferPrice(offer.price, offer.currency);
+              return (
+                <Pressable
+                  key={offer.id}
+                  onPress={() => onPressOffer(offer)}
+                  className="flex-row items-center gap-3 border-b border-border px-4 py-3"
+                >
+                  <View className="flex-1">
+                    <Text numberOfLines={1} weight="semibold">
+                      {offer.shop.name}
+                    </Text>
+                    {offer.condition ? (
+                      <Text size="xs" color="neutral-soft" className="mt-0.5">
+                        {offer.condition}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {offerPrice ? <Text size="sm">{offerPrice}</Text> : null}
+                  <ChevronRight color={colors.muted} size={18} />
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
       </ScrollView>
     </View>
   );
