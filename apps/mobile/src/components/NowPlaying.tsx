@@ -71,6 +71,7 @@ export function NowPlaying({
 }) {
   const track = use$(player$.track);
   const playWhenReady = use$(player$.playWhenReady);
+  const status = use$(player$.status);
   const positionSec = use$(player$.positionSec);
   const durationSec = use$(player$.durationSec);
   const canSeek = use$(player$.canSeek);
@@ -89,11 +90,16 @@ export function NowPlaying({
   // state. Intent stays true across a track switch while the new track buffers, so the button
   // does not flash to the play triangle; it only shows play when genuinely paused.
   const isPlaying = playWhenReady;
+  // Whether audio is actually advancing (not just intended to). Intent stays true while a track
+  // loads/buffers, so the position bar must key off the real playing state instead, otherwise it
+  // glides forward (and shows a "live" label) while no sound is coming out.
+  const isAdvancing = status === 'playing';
   const hasNext = queueIndex >= 0 && queueIndex < queue.length - 1;
 
   // Frame-rate extrapolated progress for the mini-bar fill, so it glides between the engine's
-  // 250ms position polls instead of stepping. Driven entirely on the UI thread.
-  const { fraction: progressFraction } = useSmoothPosition(positionSec, durationSec, isPlaying);
+  // 250ms position polls instead of stepping. Driven entirely on the UI thread. Keyed off actual
+  // playback (isAdvancing) so the fill holds at 0 until the track really starts.
+  const { fraction: progressFraction } = useSmoothPosition(positionSec, durationSec, isAdvancing);
   const miniProgressStyle = useAnimatedStyle(() => ({
     transform: [{ scaleX: progressFraction.value }],
   }));
@@ -373,7 +379,7 @@ export function NowPlaying({
               positionSec={positionSec}
               durationSec={durationSec}
               canSeek={canSeek}
-              isPlaying={isPlaying}
+              isPlaying={isAdvancing}
               showRemaining
               onSeek={(seconds) => audioEngine.seek(seconds)}
             />
