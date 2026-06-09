@@ -63,6 +63,10 @@ function RootNavigator() {
     }
   }, [session, isPending, segments, router]);
 
+  // The mini-player floats above the whole navigator, so route changes inside it (tabs, settings)
+  // do not hide it on their own. Settings is a full-cover screen, so suppress the player there.
+  const onSettings = segments[0] === 'settings';
+
   // Shared motion values for the Now Playing surface, created here so the root can recede the
   // navigator (iOS card effect) while NowPlaying drives the same values from its gestures.
   // `expand` is the open/close morph (0 = mini, 1 = full); `drag` is the rigid pixel offset
@@ -117,8 +121,9 @@ function RootNavigator() {
         </Stack>
       </Animated.View>
       {/* The Now Playing surface mounts above the tab navigator, but only once signed in: it can
-          float as a mini-bar and expand to a full-screen player over the receding page. */}
-      {session ? <NowPlaying expand={expand} drag={drag} /> : null}
+          float as a mini-bar and expand to a full-screen player over the receding page. Hidden on
+          the settings screen, which is meant to cover everything. */}
+      {session && !onSettings ? <NowPlaying expand={expand} drag={drag} /> : null}
     </>
   );
 }
