@@ -23,6 +23,7 @@ model Shop {
   slug    String  @unique // stable handle, e.g. "discogs", "juno"
   name    String
   baseUrl String? @map("base_url")
+  address String? // street address / location of the shop, shown on the shop page
   country String? // ISO-3166 alpha-2, e.g. "DE", "FR"
 
   shopVinyls ShopVinyl[]

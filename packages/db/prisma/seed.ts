@@ -34,6 +34,7 @@ const SEED_SHOP = {
   slug: 'seed-shop',
   name: 'Seed Records',
   baseUrl: 'https://example.com',
+  address: '12 Rue des Disques, 75011 Paris',
   country: 'FR',
 };
 

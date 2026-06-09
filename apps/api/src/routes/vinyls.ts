@@ -4,12 +4,14 @@ import {
   VinylListSchema,
   VinylSchema,
   ShopListSchema,
+  ShopDetailSchema,
   GenreListSchema,
   ErrorSchema,
   IdParamSchema,
   toVinylSummaryDto,
   toVinylDto,
   toShopDto,
+  toShopDetailDto,
   toGenreDto,
 } from '../schemas.js';
 
@@ -90,6 +92,51 @@ const listShopsRoute = createRoute({
 vinylsRouter.openapi(listShopsRoute, async (c) => {
   const rows = await prisma.shop.findMany({ orderBy: { name: 'asc' } });
   return c.json({ shops: rows.map(toShopDto), total: rows.length }, 200);
+});
+
+const getShopRoute = createRoute({
+  method: 'get',
+  path: '/shops/{id}',
+  tags: ['shops'],
+  summary: 'Get a shop by id',
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: 'The shop, with its name, address, and the vinyls available there.',
+      content: { 'application/json': { schema: ShopDetailSchema } },
+    },
+    404: {
+      description: 'Shop not found.',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+vinylsRouter.openapi(getShopRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const row = await prisma.shop.findUnique({
+    where: { id },
+    include: {
+      shopVinyls: {
+        orderBy: { createdAt: 'desc' },
+        include: {
+          vinyl: {
+            include: {
+              tracks: { orderBy: { position: 'asc' } },
+              genres: { include: { genre: true } },
+              shopVinyls: {
+                select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!row) {
+    return c.json({ error: 'not_found', message: `No shop with id ${id}` }, 404);
+  }
+  return c.json(toShopDetailDto(row), 200);
 });
 
 const listGenresRoute = createRoute({

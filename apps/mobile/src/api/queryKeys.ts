@@ -4,6 +4,10 @@ export const queryKeys = {
     all: ['vinyls'] as const,
     detail: (id: string) => ['vinyls', id] as const,
   },
+  shops: {
+    all: ['shops'] as const,
+    detail: (id: string) => ['shops', id] as const,
+  },
   favorites: {
     all: ['favorites'] as const,
   },

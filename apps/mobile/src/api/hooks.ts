@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, type UseQueryResult } from '@tan
 import type {
   FavoritesDto,
   FavoriteTrackDto,
+  ShopDetailDto,
   VinylDto,
   VinylSummaryDto,
 } from '@getvinyls/api-client';
@@ -43,6 +44,23 @@ export function useVinyl(id: string): UseQueryResult<VinylDto> {
       });
       if (error || !data) {
         throw new Error(`Vinyl ${id} not found`);
+      }
+      return data;
+    },
+  });
+}
+
+// The shop page: the shop's identity (name, address) plus the vinyls available there.
+export function useShop(id: string): UseQueryResult<ShopDetailDto> {
+  return useQuery({
+    queryKey: queryKeys.shops.detail(id),
+    enabled: id.length > 0,
+    queryFn: async (): Promise<ShopDetailDto> => {
+      const { data, error } = await apiClient.GET('/shops/{id}', {
+        params: { path: { id } },
+      });
+      if (error || !data) {
+        throw new Error(`Shop ${id} not found`);
       }
       return data;
     },
