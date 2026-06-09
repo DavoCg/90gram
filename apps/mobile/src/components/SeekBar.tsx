@@ -219,6 +219,7 @@ export function SeekBar({
             padding: 0,
             color: mutedColor,
             includeFontPadding: false,
+            fontVariant: ['tabular-nums'],
           }}
         />
         {/* While streaming there is no known duration; show a live label instead of a fake 0:00. */}
@@ -236,10 +237,11 @@ export function SeekBar({
               textAlign: 'right',
               color: mutedColor,
               includeFontPadding: false,
+              fontVariant: ['tabular-nums'],
             }}
           />
         ) : (
-          <Text size="xs" color="neutral-soft" align="right" className="w-12">
+          <Text size="xs" color="neutral-soft" align="right" tabularNums className="w-12">
             {durationSec > 0 ? formatTime(durationSec) : canSeek ? '0:00' : 'live'}
           </Text>
         )}
