@@ -12,6 +12,7 @@ import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
 import { NowPlaying } from '../src/components/NowPlaying';
 import { AppToaster } from '../src/components/toast';
+import { STACK_ANIMATION_DURATION } from '../src/theme/motion';
 import { ActivityIndicator, View } from '../src/theme/uniwind';
 import { initializeTheme } from '../src/theme/theme';
 
@@ -105,7 +106,7 @@ function RootNavigator() {
           screenOptions={{
             headerShown: false,
             animation: 'simple_push',
-            animationDuration: 200,
+            animationDuration: STACK_ANIMATION_DURATION,
           }}
         >
           <Stack.Screen name="(tabs)" />
