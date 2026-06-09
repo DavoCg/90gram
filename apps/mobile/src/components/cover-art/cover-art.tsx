@@ -19,6 +19,10 @@ type CoverArtProps = {
  * a surface placeholder fill behind it (shown while loading or when there is no artwork). Sizing
  * and radius are explicit so every cover, big or small, rounds and scales consistently. Big covers
  * (the full player and the vinyl detail page) share `BIG_COVER_RADIUS` via the default.
+ *
+ * `recyclingKey` is the uri so expo-image resets to the placeholder when LegendList reuses a row
+ * view for a different vinyl, instead of flashing the previous cover until the new one downloads.
+ * The transition then cross-dissolves the new artwork in once it loads.
  */
 export function CoverArt({
 	uri,
@@ -30,7 +34,9 @@ export function CoverArt({
 	return (
 		<Image
 			source={uri ? { uri } : undefined}
+			recyclingKey={uri ?? undefined}
 			contentFit="cover"
+			transition={{ duration: 220, effect: "cross-dissolve" }}
 			className={`curve-continuous bg-surface-2${className ? ` ${className}` : ""}`}
 			style={[{ width: size, height: size, borderRadius: radius }, style]}
 		/>
