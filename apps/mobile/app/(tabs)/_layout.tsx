@@ -1,4 +1,4 @@
-import { useWindowDimensions } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
 	useAnimatedStyle,
@@ -51,7 +51,11 @@ export default function TabsLayout() {
 	});
 
 	return (
-		<>
+		// Black backdrop revealed behind the tab "card" as it recedes when the full player opens
+		// (Apple Music style). Previously this came from the root GestureHandlerRootView; now that
+		// the card animation lives here, the tab shell provides its own black backing so the gap
+		// is not the native-stack screen's light background.
+		<View style={{ flex: 1, backgroundColor: "#000" }}>
 			<Animated.View style={[{ flex: 1, overflow: "hidden" }, cardStyle]}>
 				<Tabs
 					screenOptions={{
@@ -118,6 +122,6 @@ export default function TabsLayout() {
 			{/* The mini-player floats above the tab content (and below any pushed root screen, like
 			    settings, since that screen sits above this whole layout in the navigator). */}
 			<NowPlaying expand={expand} drag={drag} />
-		</>
+		</View>
 	);
 }
