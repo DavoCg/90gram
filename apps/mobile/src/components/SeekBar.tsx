@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import type { LayoutChangeEvent } from 'react-native';
+import { useSmoothPosition } from '../hooks/use-smooth-position';
 import { View } from '../theme/uniwind';
 import { Text } from './text';
 
@@ -40,6 +41,7 @@ export function SeekBar({
   positionSec,
   durationSec,
   canSeek = true,
+  isPlaying = false,
   showRemaining = false,
   onSeek,
 }: {
@@ -47,6 +49,9 @@ export function SeekBar({
   durationSec: number;
   // False while streaming a non-seekable source: the bar becomes a read-only indicator.
   canSeek?: boolean;
+  // Whether playback is advancing. Drives the frame-rate position extrapolation so the fill
+  // glides between the engine's 250ms position polls instead of stepping.
+  isPlaying?: boolean;
   // When true the right-hand label counts down the time remaining (e.g. "-2:27") and
   // tracks the scrub position, matching the full-screen player. Default shows total length.
   showRemaining?: boolean;
@@ -72,13 +77,17 @@ export function SeekBar({
   const holding = useSharedValue(false);
   const holdFraction = useSharedValue(0);
 
-  // Mirror the props the label needs into shared values so the elapsed text can be computed
-  // on the UI thread. These change at most every position tick (~250ms), not per frame.
-  const positionShared = useSharedValue(positionSec);
+  // The displayed position, extrapolated on the UI thread between the engine's 250ms polls so the
+  // fill and labels glide at frame rate. `liveFraction` is position/duration clamped to 0..1.
+  const { livePosition, fraction: liveFraction } = useSmoothPosition(
+    positionSec,
+    durationSec,
+    isPlaying,
+  );
+
+  // Mirror duration into a shared value so the labels can scale a scrub fraction back to seconds
+  // on the UI thread. Changes at most every position tick (~250ms), not per frame.
   const durationShared = useSharedValue(durationSec);
-  useEffect(() => {
-    positionShared.value = positionSec;
-  }, [positionSec, positionShared]);
   useEffect(() => {
     durationShared.value = durationSec;
   }, [durationSec, durationShared]);
@@ -86,8 +95,6 @@ export function SeekBar({
   // The committed seek target, held until the engine position reaches it. This is the only
   // React state here, and it updates once per release, never during the drag.
   const [pendingSec, setPendingSec] = useState<number | null>(null);
-
-  const progress = durationSec > 0 ? Math.min(Math.max(positionSec / durationSec, 0), 1) : 0;
 
   // Drop the visual hold once the live position lands on (or passes) the seek target.
   useEffect(() => {
@@ -147,9 +154,10 @@ export function SeekBar({
   // exclusive, so racing them never double-seeks.
   const gesture = Gesture.Race(pan, tap);
 
-  // Single source of truth for the displayed fraction, evaluated on the UI thread.
+  // Single source of truth for the displayed fraction, evaluated on the UI thread. A live drag
+  // wins, then the post-release hold, then the frame-rate extrapolated playback position.
   const fraction = useDerivedValue(() =>
-    scrubbing.value ? scrubFraction.value : holding.value ? holdFraction.value : progress,
+    scrubbing.value ? scrubFraction.value : holding.value ? holdFraction.value : liveFraction.value,
   );
 
   // scaleX from the left edge (transformOrigin set statically below) instead of animating width.
@@ -159,7 +167,7 @@ export function SeekBar({
 
   const elapsedProps = useAnimatedProps(() => {
     const seconds =
-      scrubbing.value || holding.value ? fraction.value * durationShared.value : positionShared.value;
+      scrubbing.value || holding.value ? fraction.value * durationShared.value : livePosition.value;
     // `text` is a valid TextInput native prop even though it is not in the public RN types.
     return { text: formatTime(seconds) } as object;
   });
@@ -167,7 +175,7 @@ export function SeekBar({
   // Remaining time, computed on the UI thread so it tracks the scrub like the elapsed label.
   const remainingProps = useAnimatedProps(() => {
     const elapsed =
-      scrubbing.value || holding.value ? fraction.value * durationShared.value : positionShared.value;
+      scrubbing.value || holding.value ? fraction.value * durationShared.value : livePosition.value;
     return { text: formatRemaining(Math.max(0, durationShared.value - elapsed)) } as object;
   });
 
