@@ -37,8 +37,9 @@ model Shop {
 /// A canonical vinyl release, the unit of discovery. Shop-agnostic: it carries NO source or
 /// shop identity, only the release itself (title, artist, tracks, genres). Many `ShopVinyl`s
 /// (one per shop that lists this record) point at one `Vinyl`, which is what makes cross-shop
-/// price comparison possible. Identity is `matchKey`, a normalized `artist|title|catalogNumber`
-/// the scraper upserts on, so the same release scraped from several shops collapses into one row.
+/// price comparison possible. Identity is `matchKey`, the normalized catalog number and nothing else,
+/// which the scraper upserts on, so the same catalog scraped from several shops collapses into one row.
+/// (Listings with no catalog number cannot be matched and are dropped by the scraper.)
 model Vinyl {
   id String @id @default(cuid())
 
@@ -53,6 +54,8 @@ model Vinyl {
   catalogNumber String? @map("catalog_number")
   format        String? // "LP", "EP", "7\"", "12\""
 
+  // The reference tracklist: the best-quality track per position, chosen across all shops (these are
+  // the Track rows whose `vinylId` is set). Per-shop tracklists hang off `ShopVinyl.tracks` instead.
   tracks     Track[]
   shopVinyls ShopVinyl[]
   genres     VinylGenre[]
@@ -95,10 +98,18 @@ model VinylGenre {
 }
 
 /// A track on a vinyl. Carries the preview URL the audio player streams.
+/// One track as reported by ONE shop's listing. Each `ShopVinyl` carries its own full tracklist with
+/// its own `previewUrl`s, so shops never clobber each other's audio. `vinylId` is the reference
+/// marker: it is set on exactly the best-quality track per position (chosen across all of a vinyl's
+/// shops), so `Vinyl.tracks` reads back one clean, best-quality tracklist; it is null on the rest.
 model Track {
-  id      String @id @default(cuid())
-  vinylId String @map("vinyl_id")
-  vinyl   Vinyl  @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  shopVinylId String    @map("shop_vinyl_id")
+  shopVinyl   ShopVinyl @relation(fields: [shopVinylId], references: [id], onDelete: Cascade)
+  // Set only when this track is the chosen reference for its position; null otherwise. Detaching
+  // (SetNull) rather than deleting, so demoting a track from reference keeps the per-shop row.
+  vinylId     String?   @map("vinyl_id")
+  vinyl       Vinyl?    @relation(fields: [vinylId], references: [id], onDelete: SetNull)
 
   position        String // "A1", "B2"
   title           String
@@ -110,7 +121,10 @@ model Track {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  // Each shop keeps one row per position; at most one reference per position (NULL vinylIds don't collide).
+  @@unique([shopVinylId, position], name: "shopVinylId_position")
   @@unique([vinylId, position], name: "vinylId_position")
+  @@index([shopVinylId])
   @@index([vinylId])
   @@map("tracks")
 }
@@ -128,15 +142,17 @@ model ShopVinyl {
   shop    Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   // Per-shop catalog identity (source == shop slug, kept stable for idempotent upserts).
-  source     String
-  externalId String  @map("external_id") // product/listing id on that shop
-  sourceUrl  String? @map("source_url")
+  source      String
+  externalId  String  @map("external_id") // product/listing id on that shop
+  sourceUrl   String? @map("source_url")
+  coverArtUrl String? @map("cover_art_url") // this shop's own cover image for the record
 
   // What the shop reported, retained for transparency and re-matching against `Vinyl.matchKey`.
   rawTitle         String? @map("raw_title")
   rawArtist        String? @map("raw_artist")
   rawCatalogNumber String? @map("raw_catalog_number")
 
+  tracks Track[]
   offers Offer[]
 
   createdAt DateTime @default(now()) @map("created_at")

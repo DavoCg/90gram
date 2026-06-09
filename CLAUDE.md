@@ -12,7 +12,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 | Area        | Skill                          | Covers                                                        |
 | ----------- | ------------------------------ | ------------------------------------------------------------- |
 | monorepo    | `.claude/skills/monorepo`      | pnpm workspaces, Turborepo tasks, the type-safe spec pipeline |
-| db          | `.claude/skills/db`            | Prisma schema ownership, snake_case mapping, migrations, seed |
+| db          | `.claude/skills/db`            | Prisma schema ownership, snake_case mapping, migrations       |
 | api         | `.claude/skills/api`           | Hono + zod-openapi, generated OpenAPI, read-only routes       |
 | api-client  | `.claude/skills/api-client`    | openapi-typescript + openapi-fetch, no React deps             |
 | mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, LegendList          |

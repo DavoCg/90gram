@@ -122,7 +122,8 @@ favoritesRouter.openapi(listFavoriteTracksRoute, async (c) => {
   const rows = await prisma.favorite.findMany({
     where: { userId, trackId: { not: null } },
     orderBy: { createdAt: 'desc' },
-    include: { track: { include: { vinyl: true } } },
+    // A track belongs to a shop_vinyl; its canonical album is that shop_vinyl's vinyl.
+    include: { track: { include: { shopVinyl: { include: { vinyl: true } } } } },
   });
   const tracks = rows.flatMap((row) => (row.track ? [toFavoriteTrackDto(row.track)] : []));
   return c.json({ tracks }, 200);

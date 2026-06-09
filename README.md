@@ -26,7 +26,7 @@ apps/
   mobile/     Expo app (Expo Router, Uniwind, react-query, react-native-audio-api)
   scraper/    Scrapy spiders -> Postgres (Python, uv; thin package.json for Turbo)
 packages/
-  db/         Prisma schema, generated client, migrations, seed
+  db/         Prisma schema, generated client, migrations
   api-client/ generated openapi types + openapi-fetch client
   tsconfig/   shared base tsconfig
 ```
@@ -46,7 +46,6 @@ cp .env.example .env          # then edit DATABASE_URL etc.
 pnpm install                  # installs all JS workspaces
 pnpm --filter @getvinyls/db generate   # generate the Prisma client
 pnpm --filter @getvinyls/db migrate    # create/apply migrations
-pnpm --filter @getvinyls/db seed       # seed sample records (with real preview URLs)
 pnpm --filter @getvinyls/scraper setup # uv sync: create the scraper venv
 ```
 
@@ -179,7 +178,7 @@ Scraped rows appear in `GET /records` and the mobile list. Run it twice to confi
 This foundation was built and checked against a local Postgres:
 
 - `pnpm install && pnpm typecheck` and `pnpm lint` pass across every package (incl. scraper ruff/pyright).
-- Prisma migrate + seed; the API serves seeded records; `/openapi.json` is valid OpenAPI 3.1.
+- Prisma migrate applies cleanly; the API serves scraped records; `/openapi.json` is valid OpenAPI 3.1.
 - `gen:api-types` regenerates the client; mobile compiles against it with no `any`.
 - `uv run scrapy crawl discogs` writes a batch to Postgres idempotently; rows show up in `GET /records`.
 

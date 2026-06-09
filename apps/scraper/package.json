@@ -8,8 +8,9 @@
     "lint": "uv run ruff check . && uv run ruff format --check .",
     "format": "uv run ruff format .",
     "typecheck": "uv run pyright",
-    "scrape": "uv run scrapy crawl discogs && uv run scrapy crawl coldcutshotwax",
+    "scrape": "uv run scrapy crawl discogs && uv run scrapy crawl coldcutshotwax && uv run scrapy crawl deejay",
     "scrape:discogs": "uv run scrapy crawl discogs",
-    "scrape:coldcutshotwax": "uv run scrapy crawl coldcutshotwax"
+    "scrape:coldcutshotwax": "uv run scrapy crawl coldcutshotwax",
+    "scrape:deejay": "uv run scrapy crawl deejay"
   }
 }
