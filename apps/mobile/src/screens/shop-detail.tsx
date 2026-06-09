@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
+import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
 import { MapPin } from 'lucide-react-native';
 import type { ShopDetailDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, View } from '../theme/uniwind';
 import { Text } from '../components/text';
 import { PressableScale } from '../components/pressable-scale';
-import { VinylRow } from '../components/VinylRow';
+import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../components/VinylRow';
 import { ListFooterLoader } from '../components/list-footer-loader';
 import { AppHeader } from '../components/AppHeader';
 import { useShop, useShopVinyls } from '../api/hooks';
@@ -67,7 +67,7 @@ export default function ShopDetailScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: VinylSummaryDto }) => (
+    ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
       <VinylRow
         vinyl={item}
         isCurrent={item.id === currentVinylId}
@@ -114,10 +114,12 @@ export default function ShopDetailScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader />
-      <FlashList
+      <LegendList
         data={vinyls ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        recycleItems
+        estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         ListHeaderComponent={<ShopHeader shop={shop} />}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         onEndReached={onEndReached}

@@ -1,13 +1,13 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { FlashList } from '@shopify/flash-list';
+import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
 import { Heart } from 'lucide-react-native';
 import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { CoverArt } from '../../../src/components/cover-art';
-import { VinylRow } from '../../../src/components/VinylRow';
+import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { FavoriteButton } from '../../../src/components/favorite-button';
 import { EqualizerBars } from '../../../src/components/equalizer-bars';
@@ -118,7 +118,7 @@ export default function FavoritesScreen() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const renderItem = useCallback(
-    ({ item }: { item: VinylSummaryDto }) => (
+    ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
       <VinylRow
         vinyl={item}
         isCurrent={item.id === currentVinylId}
@@ -174,10 +174,12 @@ export default function FavoritesScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader title="Favorites" showBack={false} />
-      <FlashList
+      <LegendList
         data={favoriteVinyls}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        recycleItems
+        estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
