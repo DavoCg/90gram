@@ -534,8 +534,10 @@ class ColdcutshotwaxSpider(scrapy.Spider):
             sku = variant.get("sku")
             if not sku:
                 continue
-            # SKUs look like "ASVN052 // C22": the label catalog number, then a shelf location.
+            # SKUs look like "ASVN052 // C22" or "BEWITH068LP (B50)": the label catalog number,
+            # then a shelf location (after " // " or in trailing parentheses). Keep only the number.
             number = str(sku).split("//", 1)[0].strip()
+            number = re.sub(r"\s*\([^)]*\)\s*$", "", number).strip()
             if number:
                 return number
         return None

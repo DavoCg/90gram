@@ -275,16 +275,20 @@ export function toVinylDto(row: VinylDetailRow): Vinyl {
 }
 
 // A favorited track row carries its parent vinyl (for display + navigation in the Favorites tab).
-type FavoriteTrackRow = Prisma.TrackGetPayload<{ include: { vinyl: true } }>;
+// The track belongs to a shop_vinyl, so its canonical album comes through that shop_vinyl.
+type FavoriteTrackRow = Prisma.TrackGetPayload<{
+  include: { shopVinyl: { include: { vinyl: true } } };
+}>;
 
 export function toFavoriteTrackDto(row: FavoriteTrackRow): z.infer<typeof FavoriteTrackSchema> {
+  const vinyl = row.shopVinyl.vinyl;
   return {
     ...toTrackDto(row),
     vinyl: {
-      id: row.vinyl.id,
-      title: row.vinyl.title,
-      artist: row.vinyl.artist,
-      coverArtUrl: row.vinyl.coverArtUrl,
+      id: vinyl.id,
+      title: vinyl.title,
+      artist: vinyl.artist,
+      coverArtUrl: vinyl.coverArtUrl,
     },
   };
 }

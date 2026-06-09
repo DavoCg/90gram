@@ -61,7 +61,8 @@ favoritesRouter.openapi(listFavoritesRoute, async (c) => {
     orderBy: { createdAt: 'desc' },
     include: {
       vinyl: { include: vinylSummaryInclude },
-      track: { include: { vinyl: true } },
+      // A track belongs to a shop_vinyl; its canonical album is that shop_vinyl's vinyl.
+      track: { include: { shopVinyl: { include: { vinyl: true } } } },
     },
   });
 

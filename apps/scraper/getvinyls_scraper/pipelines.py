@@ -3,13 +3,15 @@
 Design (see the scraper skill):
 - Reflect the live tables with SQLAlchemy Core (autoload_with). We never hand-maintain column
   names and never run DDL. Prisma owns the schema.
-- One ``ListingItem`` fans out across several tables (shop, vinyl, tracks, genres, shop_vinyl,
+- One ``ListingItem`` fans out across several tables (shop, vinyl, genres, shop_vinyl, tracks,
   offer, prices), written in a single transaction that wires the foreign keys from RETURNING ids.
-  Every step upserts idempotently, so re-running a crawl updates rows instead of duplicating them.
-- ``Vinyl`` is the canonical, shop-agnostic release: we upsert it on a normalized ``match_key``
-  (``artist|title|catalog_number``), so the same record from several shops collapses onto one row
-  ("match-or-create" is just this upsert). ``ShopVinyl`` is the per-shop record that links a shop
-  to that ``Vinyl``; ``Offer`` is its price/stock. Tracks and genres hang off the canonical Vinyl.
+  Tracks belong to the shop_vinyl (so it is written first); every step upserts idempotently, so
+  re-running a crawl updates rows instead of duplicating them.
+- ``Vinyl`` is the canonical, shop-agnostic release: we upsert it on a normalized ``match_key`` that
+  is the catalog number and nothing else (see ``_match_key``), so the same catalog from many shops
+  collapses onto one row ("match-or-create" is just this upsert). A listing with no catalog number
+  cannot be matched and is dropped in ``process_item``. ``ShopVinyl`` is the per-shop record that
+  links a shop to that ``Vinyl``; ``Offer`` is its price/stock. Tracks/genres hang off the Vinyl.
 - Idempotency keys: ``shops.slug``, ``vinyls.match_key``, ``tracks (vinyl_id, position)``,
   ``genres.slug``, ``vinyl_genres (vinyl_id, genre_id)``, ``shop_vinyls (source, external_id)``,
   ``offers (source, external_id)``. ``prices`` is append-only: a row is inserted only when the
@@ -30,13 +32,14 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
-from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, select
+from scrapy.exceptions import DropItem
+from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .items import ListingItem, TrackItem
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
-_NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+_NON_ALNUM_RE = re.compile(r"[^A-Z0-9]+")
 
 
 def _slugify(name: str) -> str:
@@ -44,23 +47,21 @@ def _slugify(name: str) -> str:
 
 
 def _normalize_key_part(value: str) -> str:
-    """Lower-case, strip accents, collapse non-alphanumerics to single spaces."""
+    """Upper-case, strip accents, and drop every non-alphanumeric character (spaces, dots, dashes).
+
+    The catalog number is the match key, and shops format it inconsistently ("fro 041", "FRO-041",
+    "FRO041"), so upper-casing and dropping separators collapses those to one key (`FRO041`)."""
     decomposed = unicodedata.normalize("NFKD", value)
     stripped = "".join(c for c in decomposed if not unicodedata.combining(c))
-    return _NON_ALNUM_RE.sub(" ", stripped.lower()).strip()
+    return _NON_ALNUM_RE.sub("", stripped.upper())
 
 
-def _match_key(artist: str, title: str, catalog_number: str | None) -> str:
-    """Canonical, shop-agnostic identity for a release. Kept in lockstep with the seed's
-    makeMatchKey (packages/db): ``artist|title|catalog_number`` of normalized parts. The same
-    release scraped from several shops yields one Vinyl row."""
-    return "|".join(
-        (
-            _normalize_key_part(artist),
-            _normalize_key_part(title),
-            _normalize_key_part(catalog_number or ""),
-        )
-    )
+def _match_key(catalog_number: str | None) -> str | None:
+    """Canonical, shop-agnostic identity for a release: the normalized catalog number, and nothing
+    else. It is the only cross-shop match signal, so the same catalog from several shops collapses
+    onto one Vinyl regardless of artist/title formatting. Returns None when there is no usable
+    catalog number: such a listing cannot be matched and is dropped (see ``process_item``)."""
+    return _normalize_key_part(catalog_number or "") or None
 
 
 def _to_sqlalchemy_url(database_url: str) -> str:
@@ -112,23 +113,30 @@ class PostgresPipeline:
 
     def process_item(self, item: Any) -> Any:
         listing = item if isinstance(item, ListingItem) else ListingItem.model_validate(item)
+        # Catalog-only matching: a listing with no catalog number cannot be identified, so drop it.
+        match_key = _match_key(listing.catalog_number)
+        if match_key is None:
+            raise DropItem(f"no catalog number: {listing.source}/{listing.external_id}")
         if self._engine is None:
             return item
         with self._engine.begin() as conn:
-            self._write_listing(conn, listing)
+            self._write_listing(conn, listing, match_key)
         return item
 
     # --- one transaction per listing ---------------------------------------------------------
 
-    def _write_listing(self, conn: Connection, listing: ListingItem) -> None:
+    def _write_listing(self, conn: Connection, listing: ListingItem, match_key: str) -> None:
         now = datetime.now(UTC)
         shop_id = self._upsert_shop(conn, listing, now)
-        # Match-or-create the canonical Vinyl, then attach its tracks and genres.
-        vinyl_id = self._upsert_vinyl(conn, listing, now)
-        self._upsert_tracks(conn, vinyl_id, listing.tracks, now)
+        # Match-or-create the canonical Vinyl, then attach its genres.
+        vinyl_id = self._upsert_vinyl(conn, listing, match_key, now)
         self._upsert_genres(conn, vinyl_id, listing.genres, now)
-        # The per-shop record linking this shop to that Vinyl, then its offer + price history.
+        # The per-shop record linking this shop to that Vinyl. Tracks belong to it (each shop keeps
+        # its own tracklist), then we re-pick the best-quality track per position as the reference.
         shop_vinyl_id = self._upsert_shop_vinyl(conn, vinyl_id, shop_id, listing, now)
+        self._upsert_tracks(conn, shop_vinyl_id, listing.tracks, now)
+        self._promote_reference_tracks(conn, vinyl_id, now)
+        # The offer + price history.
         prior_price = self._select_offer_price(conn, listing)
         offer_id = self._upsert_offer(conn, shop_vinyl_id, listing, now)
         self._maybe_insert_price(conn, offer_id, listing, prior_price, now)
@@ -156,7 +164,9 @@ class PostgresPipeline:
         )
         return str(conn.execute(statement).scalar_one())
 
-    def _upsert_vinyl(self, conn: Connection, listing: ListingItem, now: datetime) -> str:
+    def _upsert_vinyl(
+        self, conn: Connection, listing: ListingItem, match_key: str, now: datetime
+    ) -> str:
         table = self._tables["vinyls"]
         mutable = {
             "title": listing.title,
@@ -172,7 +182,7 @@ class PostgresPipeline:
             pg_insert(table)
             .values(
                 id=uuid4().hex,
-                match_key=_match_key(listing.artist, listing.title, listing.catalog_number),
+                match_key=match_key,
                 **mutable,
             )
             .on_conflict_do_update(index_elements=["match_key"], set_=mutable)
@@ -181,15 +191,17 @@ class PostgresPipeline:
         return str(conn.execute(statement).scalar_one())
 
     def _upsert_tracks(
-        self, conn: Connection, vinyl_id: str, tracks: list[TrackItem], now: datetime
+        self, conn: Connection, shop_vinyl_id: str, tracks: list[TrackItem], now: datetime
     ) -> None:
+        # Tracks belong to the shop listing (this shop's own tracklist + preview URLs). `vinyl_id`
+        # (the reference marker) is left untouched here; _promote_reference_tracks sets it.
         if not tracks:
             return
         table = self._tables["tracks"]
         rows = [
             {
                 "id": uuid4().hex,
-                "vinyl_id": vinyl_id,
+                "shop_vinyl_id": shop_vinyl_id,
                 "position": track.position,
                 "title": track.title,
                 "duration_seconds": track.duration_seconds,
@@ -200,7 +212,7 @@ class PostgresPipeline:
         ]
         statement = pg_insert(table).values(rows)
         statement = statement.on_conflict_do_update(
-            index_elements=["vinyl_id", "position"],
+            index_elements=["shop_vinyl_id", "position"],
             set_={
                 "title": statement.excluded.title,
                 "duration_seconds": statement.excluded.duration_seconds,
@@ -209,6 +221,40 @@ class PostgresPipeline:
             },
         )
         conn.execute(statement)
+
+    def _promote_reference_tracks(self, conn: Connection, vinyl_id: str, now: datetime) -> None:
+        """Re-pick the reference tracklist for a vinyl: the best-quality track per position across
+        all of its shops. "Best" is having a preview at all, then the longest duration, then a
+        stable tiebreak (shop slug, id). The winner's ``vinyl_id`` is set; everyone else's cleared,
+        so ``Vinyl.tracks`` reads back one clean, best-quality tracklist."""
+        tracks = self._tables["tracks"]
+        shop_vinyls = self._tables["shop_vinyls"]
+        # Demote the vinyl's current references; we recompute them from scratch below.
+        conn.execute(
+            update(tracks)
+            .where(tracks.c.vinyl_id == vinyl_id)
+            .values(vinyl_id=None, updated_at=now)
+        )
+        winners = (
+            select(tracks.c.id)
+            .select_from(tracks.join(shop_vinyls, shop_vinyls.c.id == tracks.c.shop_vinyl_id))
+            .where(shop_vinyls.c.vinyl_id == vinyl_id)
+            .order_by(
+                tracks.c.position,
+                tracks.c.preview_url.isnot(None).desc(),
+                tracks.c.duration_seconds.desc().nulls_last(),
+                shop_vinyls.c.source.asc(),
+                tracks.c.id.asc(),
+            )
+            .distinct(tracks.c.position)  # DISTINCT ON (position): one winner per position
+        )
+        winner_ids = [row[0] for row in conn.execute(winners)]
+        if winner_ids:
+            conn.execute(
+                update(tracks)
+                .where(tracks.c.id.in_(winner_ids))
+                .values(vinyl_id=vinyl_id, updated_at=now)
+            )
 
     def _upsert_genres(
         self, conn: Connection, vinyl_id: str, genres: list[str], now: datetime
@@ -243,6 +289,7 @@ class PostgresPipeline:
             "vinyl_id": vinyl_id,
             "shop_id": shop_id,
             "source_url": listing.source_url,
+            "cover_art_url": listing.cover_art_url,
             # Keep what the shop reported, for transparency and re-matching against match_key.
             "raw_title": listing.title,
             "raw_artist": listing.artist,

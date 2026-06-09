@@ -33,13 +33,16 @@ A vinyl is sold by many shops, so the data is normalized into a canonical releas
 
 - `Vinyl` (`vinyls`) is the **canonical, shop-agnostic release**, the unit of discovery. It carries NO
   source/shop identity, only the release (title, artist, year, coverArtUrl, label, catalogNumber, format).
-  Identity is **`matchKey` (`@unique`)**, a normalized `artist|title|catalogNumber`. The scraper upserts on
-  it, so the same record from several shops collapses onto one row ("match-or-create" == this upsert).
+  Identity is **`matchKey` (`@unique`)**, the **normalized catalog number and nothing else**: the same
+  catalog from several shops collapses onto one row regardless of artist/title formatting. The scraper
+  upserts on it ("match-or-create" == this upsert). A listing with no catalog number cannot be matched and
+  is dropped by the scraper, so every `Vinyl` is catalog-keyed.
 - `Track` (`tracks`) belongs to the canonical `Vinyl`, unique on `(vinylId, position)`. Holds `previewUrl`,
   the audio the player streams (per-track, not per-vinyl).
 - `Shop` (`shops`) is an online reseller/marketplace, unique `slug`, with `country` (the Europe focus).
 - `ShopVinyl` (`shop_vinyls`) is **one record as catalogued by one shop**: links a `Shop` to the `Vinyl` it
-  matched (`vinylId`), holds the shop's catalog identity (`source`, `externalId`, `sourceUrl`) and the raw
+  matched (`vinylId`), holds the shop's catalog identity (`source`, `externalId`, `sourceUrl`,
+  `coverArtUrl` — its own cover image) and the raw
   values it reported (`rawTitle`/`rawArtist`/`rawCatalogNumber`, for transparency + re-matching).
   **Unique on `(source, externalId)`** (source == the shop's slug). Do not drop it.
 - `Offer` (`offers`) is a **purchasable offer for a `ShopVinyl`**: the commercial terms (`stockStatus` enum,
@@ -69,8 +72,6 @@ sole owner; never let the better-auth CLI run DDL against this database).
 
 - Edit `prisma/schema.prisma`, then `pnpm --filter @getvinyls/db migrate` (creates a migration + applies it).
 - `pnpm --filter @getvinyls/db generate` regenerates the client (also wired as the Turbo `db:generate` task).
-- `pnpm --filter @getvinyls/db seed` loads sample canonical vinyls (with tracks + genres) plus a seed shop
-  and a ShopVinyl -> Offer -> Price per release, so the app works without the scraper. Each Vinyl is upserted
-  on a `matchKey` (kept in lockstep with the scraper's). Track seeds must include real, reachable
-  `previewUrl`s so the audio slice has something to play.
+- There is no seed: the database is populated solely by the scraper (`apps/scraper`). Catalog data comes
+  from running the spiders; the app reads through whatever they have written.
 - When you change a model, update this skill and the scraper skill in the same change if the mapping moves.

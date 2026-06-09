@@ -31,14 +31,22 @@ official API, request its JSON instead of parsing HTML. Review the target's robo
 - Opens a connection / reflects tables in `open_spider`, closes in `close_spider`.
 - Validates each item (pydantic `ListingItem`) before write. One `ListingItem` fans out across several
   tables, so it is written in **one transaction per item** that wires the foreign keys from the upserts'
-  `RETURNING id` (every step upserts idempotently). The write order is shop -> vinyl -> tracks -> genres
-  (+ `vinyl_genres`) -> shop_vinyl -> offer -> price.
-- `Vinyl` is the **canonical, shop-agnostic** release. The pipeline derives a normalized `match_key`
-  (`artist|title|catalog_number`) and upserts the vinyl on it, so the same record from several shops
-  collapses onto one row ("match-or-create" is just this `ON CONFLICT (match_key)` upsert). `ShopVinyl` is
-  the per-shop record linking a shop to that vinyl (with `source_url` + the `raw_*` snapshot); `Offer` holds
-  its price/stock. Tracks and genres hang off the canonical vinyl.
-- Idempotency keys: `shops.slug`, `vinyls.match_key`, `tracks (vinyl_id, position)`, `genres.slug`,
+  `RETURNING id` (every step upserts idempotently). The write order is shop -> vinyl -> genres
+  (+ `vinyl_genres`) -> shop_vinyl -> tracks -> promote-reference -> offer -> price (tracks belong to the
+  shop_vinyl, so it is written first).
+- `Vinyl` is the **canonical, shop-agnostic** release. The pipeline derives a normalized `match_key` and
+  upserts the vinyl on it, so the same record from several shops collapses onto one row ("match-or-create"
+  is just this `ON CONFLICT (match_key)` upsert). The `match_key` is the **normalized catalog number and
+  nothing else** (upper-cased, accents stripped, all spaces/punctuation removed, so "fro 041" and "FRO041"
+  match as `FRO041`); a listing with no catalog number cannot be matched and is dropped in `process_item`.
+  `ShopVinyl` is
+  the per-shop record linking a shop to that vinyl (with `source_url`, its own `cover_art_url`, + the
+  `raw_*` snapshot); `Offer` holds
+  its price/stock. Genres hang off the canonical vinyl; **tracks belong to the `shop_vinyl`** (each shop
+  keeps its own tracklist + previews). After writing a shop's tracks the pipeline re-picks the best-quality
+  track per position (`_promote_reference_tracks`) and sets its `vinyl_id`, so `Vinyl.tracks` is the
+  reference tracklist.
+- Idempotency keys: `shops.slug`, `vinyls.match_key`, `tracks (shop_vinyl_id, position)`, `genres.slug`,
   `vinyl_genres (vinyl_id, genre_id)`, `shop_vinyls (source, external_id)`, `offers (source, external_id)`.
   Re-running a crawl updates rows, never duplicates them. `prices` is append-only: a row is inserted only
   when the offer's price actually changed (compare against the existing `current_price` first).
