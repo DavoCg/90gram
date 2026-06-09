@@ -1,18 +1,19 @@
 import { useState } from 'react';
 import { Switch } from 'react-native';
-import { Pressable, View } from '../../../src/theme/uniwind';
-import { Text } from '../../../src/components/text';
-import { Button } from '../../../src/components/button';
-import { AppHeader } from '../../../src/components/AppHeader';
-import { CheckForUpdatesRow } from '../../../src/components/check-for-updates-row';
-import { toast } from '../../../src/components/toast';
-import { useThemeColors } from '../../../src/theme/colors';
-import { useDarkMode } from '../../../src/theme/theme';
-import { authClient } from '../../../src/auth/client';
+import { Pressable, View } from '../src/theme/uniwind';
+import { Text } from '../src/components/text';
+import { Button } from '../src/components/button';
+import { AppHeader } from '../src/components/AppHeader';
+import { CheckForUpdatesRow } from '../src/components/check-for-updates-row';
+import { toast } from '../src/components/toast';
+import { useThemeColors } from '../src/theme/colors';
+import { useDarkMode } from '../src/theme/theme';
+import { authClient } from '../src/auth/client';
 
-// User/settings page, pushed on top of the Home stack from the header user button so the tab bar
-// and the global mini-player stay visible (same pattern as the vinyl detail screen). Scaffolded
-// as labelled sections of rows; add new settings by dropping rows into a section.
+// User/settings page. Lives at the root (not inside the (tabs) tree) so pushing it from the header
+// user button slides it in from the right ON TOP OF the tab bar, covering the bottom tabs. The
+// global mini-player still floats above it. Scaffolded as labelled sections of rows; add new
+// settings by dropping rows into a section.
 export default function SettingsScreen() {
   return (
     <View className="flex-1 bg-bg">

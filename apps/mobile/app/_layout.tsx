@@ -111,6 +111,9 @@ function RootNavigator() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="(auth)" />
+          {/* Settings is a root screen (not inside (tabs)) so it slides in from the right ON TOP
+              of the tab bar via the Stack's simple_push animation, covering the bottom tabs. */}
+          <Stack.Screen name="settings" />
         </Stack>
       </Animated.View>
       {/* The Now Playing surface mounts above the tab navigator, but only once signed in: it can
