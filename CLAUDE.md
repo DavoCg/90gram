@@ -15,7 +15,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 | db          | `.claude/skills/db`            | Prisma schema ownership, snake_case mapping, migrations       |
 | api         | `.claude/skills/api`           | Hono + zod-openapi, generated OpenAPI, read-only routes       |
 | api-client  | `.claude/skills/api-client`    | openapi-typescript + openapi-fetch, no React deps             |
-| mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, FlashList            |
+| mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, LegendList          |
 | audio       | `.claude/skills/audio`         | react-native-audio-api graph, player store, lock screen       |
 | scraper     | `.claude/skills/scraper`       | Scrapy, politeness, PostgresPipeline, reflected schema        |
 | typescript  | `.claude/skills/typescript`    | strict TS rules everywhere                                    |
@@ -37,6 +37,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 - **Zod schemas are the source of truth** for the API; the OpenAPI document is generated, never authored by hand.
 - **Prisma is the sole owner** of the database schema and migrations. The scraper only writes rows, never DDL.
 - **No em dashes** in generated docs, comments, or copy. Use commas, parentheses, or separate sentences.
+- **Pull requests target `develop`**, never `main`. Always open PRs with `develop` as the base branch.
 - **Env via a typed loader**: validate with Zod at boot, fail fast on missing vars. Document every var in `.env.example`.
 
 ## The type-safe contract pipeline (the spine)

@@ -58,5 +58,10 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
   );
 }
 
-// Memoized row for the FlashList. Pair with a stable onPress (useCallback) in the screen.
+// Memoized row for the LegendList. Pair with a stable onPress (useCallback) in the screen.
 export const VinylRow = memo(VinylRowBase);
+
+// Approximate rendered height of a row (56px cover + vertical padding, plus the genre chip line).
+// Fed to LegendList as `estimatedItemSize` so the first frame renders the right number of rows;
+// the real measured sizes take over after layout.
+export const VINYL_ROW_ESTIMATED_HEIGHT = 88;

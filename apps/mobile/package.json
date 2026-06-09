@@ -16,9 +16,9 @@
 	"dependencies": {
 		"@better-auth/expo": "^1.6.14",
 		"@getvinyls/api-client": "workspace:*",
+		"@legendapp/list": "3.0.3",
 		"@legendapp/state": "3.0.0-beta.47",
 		"@react-native-masked-view/masked-view": "0.3.2",
-		"@shopify/flash-list": "2.0.2",
 		"@tanstack/react-form": "^1.33.0",
 		"@tanstack/react-query": "^5.101.0",
 		"better-auth": "^1.6.14",

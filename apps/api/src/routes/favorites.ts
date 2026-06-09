@@ -3,12 +3,18 @@ import type { Context } from 'hono';
 import { prisma } from '@getvinyls/db';
 import { auth } from '../auth.js';
 import {
-  FavoritesSchema,
+  FavoriteIdsSchema,
+  FavoriteTracksSchema,
+  VinylListSchema,
   CreateFavoriteSchema,
   FavoriteRefSchema,
   MutationResultSchema,
   TargetTypeParamSchema,
   ErrorSchema,
+  PaginationQuerySchema,
+  cursorArgs,
+  toPage,
+  vinylSummaryInclude,
   toVinylSummaryDto,
   toFavoriteTrackDto,
 } from '../schemas.js';
@@ -18,15 +24,6 @@ import {
 // mobile client forwards the session cookie, so these authenticate without a CORS change.
 export const favoritesRouter = new OpenAPIHono();
 
-// The same `include` shape toVinylSummaryDto expects, reused for a favorited vinyl.
-const vinylSummaryInclude = {
-  tracks: { orderBy: { position: 'asc' } },
-  genres: { include: { genre: true } },
-  shopVinyls: {
-    select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } },
-  },
-} as const;
-
 // Resolve the signed-in user id, or null when the request carries no valid session.
 async function getUserId(c: Context): Promise<string | null> {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
@@ -35,15 +32,15 @@ async function getUserId(c: Context): Promise<string | null> {
 
 const unauthorized = { error: 'unauthorized', message: 'Sign in required' } as const;
 
-const listFavoritesRoute = createRoute({
+const listFavoriteIdsRoute = createRoute({
   method: 'get',
   path: '/favorites',
   tags: ['favorites'],
-  summary: 'List the signed-in user favorites',
+  summary: 'List the ids of the signed-in user favorites',
   responses: {
     200: {
-      description: "The user's favorited vinyls and tracks, each enriched for direct rendering.",
-      content: { 'application/json': { schema: FavoritesSchema } },
+      description: 'The ids of the vinyls and tracks the user has favorited (drives the heart state).',
+      content: { 'application/json': { schema: FavoriteIdsSchema } },
     },
     401: {
       description: 'Not signed in.',
@@ -52,23 +49,84 @@ const listFavoritesRoute = createRoute({
   },
 });
 
-favoritesRouter.openapi(listFavoritesRoute, async (c) => {
+favoritesRouter.openapi(listFavoriteIdsRoute, async (c) => {
   const userId = await getUserId(c);
   if (!userId) return c.json(unauthorized, 401);
 
   const rows = await prisma.favorite.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      vinyl: { include: vinylSummaryInclude },
-      // A track belongs to a shop_vinyl; its canonical album is that shop_vinyl's vinyl.
-      track: { include: { shopVinyl: { include: { vinyl: true } } } },
-    },
+    select: { vinylId: true, trackId: true },
   });
+  const vinylIds = rows.flatMap((row) => (row.vinylId ? [row.vinylId] : []));
+  const trackIds = rows.flatMap((row) => (row.trackId ? [row.trackId] : []));
+  return c.json({ vinylIds, trackIds }, 200);
+});
 
-  const vinyls = rows.flatMap((row) => (row.vinyl ? [toVinylSummaryDto(row.vinyl)] : []));
+const listFavoriteVinylsRoute = createRoute({
+  method: 'get',
+  path: '/favorites/vinyls',
+  tags: ['favorites'],
+  summary: "List the signed-in user's favorited vinyls",
+  request: { query: PaginationQuerySchema },
+  responses: {
+    200: {
+      description: "A cursor-paginated page of the user's favorited vinyls.",
+      content: { 'application/json': { schema: VinylListSchema } },
+    },
+    401: {
+      description: 'Not signed in.',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+favoritesRouter.openapi(listFavoriteVinylsRoute, async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json(unauthorized, 401);
+
+  const { limit, cursor } = c.req.valid('query');
+  // Paginate Favorite rows by keyset (cursor is a Favorite id) so the page order matches the order
+  // they were favorited (newest first), independent of the vinyls' own creation order.
+  const rows = await prisma.favorite.findMany({
+    where: { userId, vinylId: { not: null } },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    ...cursorArgs(limit, cursor),
+    include: { vinyl: { include: vinylSummaryInclude } },
+  });
+  const { items, nextCursor } = toPage(rows, limit);
+  const vinyls = items.flatMap((row) => (row.vinyl ? [toVinylSummaryDto(row.vinyl)] : []));
+  return c.json({ vinyls, nextCursor }, 200);
+});
+
+const listFavoriteTracksRoute = createRoute({
+  method: 'get',
+  path: '/favorites/tracks',
+  tags: ['favorites'],
+  summary: "List the signed-in user's favorited tracks",
+  responses: {
+    200: {
+      description: "The user's favorited tracks, each enriched for direct rendering.",
+      content: { 'application/json': { schema: FavoriteTracksSchema } },
+    },
+    401: {
+      description: 'Not signed in.',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+favoritesRouter.openapi(listFavoriteTracksRoute, async (c) => {
+  const userId = await getUserId(c);
+  if (!userId) return c.json(unauthorized, 401);
+
+  const rows = await prisma.favorite.findMany({
+    where: { userId, trackId: { not: null } },
+    orderBy: { createdAt: 'desc' },
+    // A track belongs to a shop_vinyl; its canonical album is that shop_vinyl's vinyl.
+    include: { track: { include: { shopVinyl: { include: { vinyl: true } } } } },
+  });
   const tracks = rows.flatMap((row) => (row.track ? [toFavoriteTrackDto(row.track)] : []));
-  return c.json({ vinyls, tracks, total: rows.length }, 200);
+  return c.json({ tracks }, 200);
 });
 
 const addFavoriteRoute = createRoute({

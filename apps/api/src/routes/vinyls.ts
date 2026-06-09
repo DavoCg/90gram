@@ -4,12 +4,18 @@ import {
   VinylListSchema,
   VinylSchema,
   ShopListSchema,
+  ShopDetailSchema,
   GenreListSchema,
   ErrorSchema,
   IdParamSchema,
+  PaginationQuerySchema,
+  cursorArgs,
+  toPage,
+  vinylSummaryInclude,
   toVinylSummaryDto,
   toVinylDto,
   toShopDto,
+  toShopDetailDto,
   toGenreDto,
 } from '../schemas.js';
 
@@ -20,24 +26,26 @@ const listVinylsRoute = createRoute({
   path: '/vinyls',
   tags: ['vinyls'],
   summary: 'List vinyls',
+  request: { query: PaginationQuerySchema },
   responses: {
     200: {
-      description: 'A list of vinyls with their tracks, genres, and a cheapest-price summary.',
+      description:
+        'A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary.',
       content: { 'application/json': { schema: VinylListSchema } },
     },
   },
 });
 
 vinylsRouter.openapi(listVinylsRoute, async (c) => {
+  const { limit, cursor } = c.req.valid('query');
   const rows = await prisma.vinyl.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      tracks: { orderBy: { position: 'asc' } },
-      genres: { include: { genre: true } },
-      shopVinyls: { select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } } },
-    },
+    // Deterministic order (newest first, id as tiebreaker) so the keyset cursor is stable.
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    ...cursorArgs(limit, cursor),
+    include: vinylSummaryInclude,
   });
-  return c.json({ vinyls: rows.map(toVinylSummaryDto), total: rows.length }, 200);
+  const { items, nextCursor } = toPage(rows, limit);
+  return c.json({ vinyls: items.map(toVinylSummaryDto), nextCursor }, 200);
 });
 
 const getVinylRoute = createRoute({
@@ -90,6 +98,69 @@ const listShopsRoute = createRoute({
 vinylsRouter.openapi(listShopsRoute, async (c) => {
   const rows = await prisma.shop.findMany({ orderBy: { name: 'asc' } });
   return c.json({ shops: rows.map(toShopDto), total: rows.length }, 200);
+});
+
+const getShopRoute = createRoute({
+  method: 'get',
+  path: '/shops/{id}',
+  tags: ['shops'],
+  summary: 'Get a shop by id',
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "The shop's identity and how many distinct vinyls it lists.",
+      content: { 'application/json': { schema: ShopDetailSchema } },
+    },
+    404: {
+      description: 'Shop not found.',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+vinylsRouter.openapi(getShopRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const row = await prisma.shop.findUnique({ where: { id } });
+  if (!row) {
+    return c.json({ error: 'not_found', message: `No shop with id ${id}` }, 404);
+  }
+  // One shop can carry several ShopVinyl rows for the same canonical vinyl (different listings), so
+  // count distinct vinyls for the header rather than raw listings.
+  const distinct = await prisma.shopVinyl.findMany({
+    where: { shopId: id },
+    distinct: ['vinylId'],
+    select: { vinylId: true },
+  });
+  return c.json(toShopDetailDto(row, distinct.length), 200);
+});
+
+const listShopVinylsRoute = createRoute({
+  method: 'get',
+  path: '/shops/{id}/vinyls',
+  tags: ['shops'],
+  summary: "List a shop's vinyls",
+  request: { params: IdParamSchema, query: PaginationQuerySchema },
+  responses: {
+    200: {
+      description: 'A cursor-paginated page of the vinyls this shop lists.',
+      content: { 'application/json': { schema: VinylListSchema } },
+    },
+  },
+});
+
+vinylsRouter.openapi(listShopVinylsRoute, async (c) => {
+  const { id } = c.req.valid('param');
+  const { limit, cursor } = c.req.valid('query');
+  // Paginate the shop's listings (ShopVinyl) by keyset; the cursor is a ShopVinyl id. A shop may list
+  // the same canonical vinyl more than once, so the client dedupes by vinyl id across pages.
+  const rows = await prisma.shopVinyl.findMany({
+    where: { shopId: id },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    ...cursorArgs(limit, cursor),
+    include: { vinyl: { include: vinylSummaryInclude } },
+  });
+  const { items, nextCursor } = toPage(rows, limit);
+  return c.json({ vinyls: items.map((sv) => toVinylSummaryDto(sv.vinyl)), nextCursor }, 200);
 });
 
 const listGenresRoute = createRoute({
