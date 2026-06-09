@@ -27,6 +27,7 @@ import Animated, {
 import { use$ } from '@legendapp/state/react';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
+import { useSmoothPosition } from '../hooks/use-smooth-position';
 import { Pressable, View } from '../theme/uniwind';
 import { Button } from './button/button';
 import { MarqueeText } from './marquee-text';
@@ -89,7 +90,13 @@ export function NowPlaying({
   // does not flash to the play triangle; it only shows play when genuinely paused.
   const isPlaying = playWhenReady;
   const hasNext = queueIndex >= 0 && queueIndex < queue.length - 1;
-  const progress = durationSec > 0 ? Math.min(Math.max(positionSec / durationSec, 0), 1) : 0;
+
+  // Frame-rate extrapolated progress for the mini-bar fill, so it glides between the engine's
+  // 250ms position polls instead of stepping. Driven entirely on the UI thread.
+  const { fraction: progressFraction } = useSmoothPosition(positionSec, durationSec, isPlaying);
+  const miniProgressStyle = useAnimatedStyle(() => ({
+    transform: [{ scaleX: progressFraction.value }],
+  }));
 
   // The expanded cover shrinks when paused and grows back when playing (Apple Music). Drive the
   // target through a shared value so the change springs smoothly instead of snapping. ReduceMotion
@@ -258,16 +265,21 @@ export function NowPlaying({
           style={{ opacity: hasNext ? 1 : 0.35 }}
           startSlot={<SkipForward color={colors.text} size={22} fill={colors.text} />}
         />
-        {/* Thin static progress line at the bottom edge of the bar. */}
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            bottom: 0,
-            height: 2,
-            width: `${progress * 100}%`,
-            backgroundColor: colors.accent,
-          }}
+        {/* Thin progress line at the bottom edge of the bar. scaleX from the left edge (transform
+            only, never layout) so it glides on the UI thread with no per-frame React render. */}
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              left: 0,
+              bottom: 0,
+              height: 2,
+              width: '100%',
+              backgroundColor: colors.accent,
+              transformOrigin: 'left',
+            },
+            miniProgressStyle,
+          ]}
         />
       </Animated.View>
 
@@ -361,6 +373,7 @@ export function NowPlaying({
               positionSec={positionSec}
               durationSec={durationSec}
               canSeek={canSeek}
+              isPlaying={isPlaying}
               showRemaining
               onSeek={(seconds) => audioEngine.seek(seconds)}
             />
