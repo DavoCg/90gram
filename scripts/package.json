@@ -1,0 +1,23 @@
+{
+  "name": "@getvinyls/scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "One-off operational scripts (run against the database, not part of any deploy).",
+  "scripts": {
+    "discover-shops": "tsx src/discover-shops.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@getvinyls/db": "workspace:*",
+    "dotenv": "^17.4.2",
+    "playwright": "^1.50.0"
+  },
+  "devDependencies": {
+    "@getvinyls/tsconfig": "workspace:*",
+    "@types/node": "^22.19.0",
+    "tsx": "^4.22.4",
+    "typescript": "~5.9.0"
+  }
+}
