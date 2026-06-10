@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { prisma } from '@getvinyls/db';
 import {
   VinylListSchema,
@@ -21,6 +21,30 @@ import {
 
 export const vinylsRouter = new OpenAPIHono();
 
+// The keyset cursor for GET /vinyls. Unlike the other lists (whose cursor is just the last row's id),
+// this list is ordered "vinyls in 2+ distinct shops first", so the cursor has to carry every sort-key
+// component to resume across the multi-shop / single-shop boundary: the tier (`m`), the formatted
+// createdAt key (`ck`, a fixed-width string so lexical order matches chronological), and the id (`i`).
+const VinylCursorSchema = z.object({ m: z.boolean(), ck: z.string(), i: z.string() });
+type VinylCursor = z.infer<typeof VinylCursorSchema>;
+
+function encodeVinylCursor(cursor: VinylCursor): string {
+  return Buffer.from(JSON.stringify(cursor)).toString('base64url');
+}
+
+// Decode an opaque cursor back into its sort-key parts. A malformed cursor is treated as "no cursor"
+// (first page) rather than an error, so a stale client never gets wedged on a bad token.
+function decodeVinylCursor(raw: string): VinylCursor | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(raw, 'base64url').toString('utf8'));
+  } catch {
+    return null;
+  }
+  const result = VinylCursorSchema.safeParse(parsed);
+  return result.success ? result.data : null;
+}
+
 const listVinylsRoute = createRoute({
   method: 'get',
   path: '/vinyls',
@@ -30,22 +54,69 @@ const listVinylsRoute = createRoute({
   responses: {
     200: {
       description:
-        'A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary.',
+        'A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary. ' +
+        'Vinyls available in 2 or more distinct shops are listed first, then the rest, each ordered ' +
+        'newest first.',
       content: { 'application/json': { schema: VinylListSchema } },
     },
   },
 });
 
+// One row of the ranking query: a vinyl id plus the sort-key parts the cursor needs to resume.
+type RankedVinyl = { id: string; created_key: string; is_multi_shop: boolean };
+
 vinylsRouter.openapi(listVinylsRoute, async (c) => {
   const { limit, cursor } = c.req.valid('query');
+  const cur = cursor ? decodeVinylCursor(cursor) : null;
+  const isFirst = cur === null;
+  // Placeholder values for the first page: the WHERE short-circuits on isFirst, so they are unused.
+  const curM = cur?.m ?? false;
+  const curKey = cur?.ck ?? '';
+  const curId = cur?.i ?? '';
+  const take = limit + 1; // over-fetch by one to detect a further page
+
+  // "Available in multiple shops" means 2+ DISTINCT shops, so we count distinct shop_ids rather than
+  // raw shop_vinyls rows. Prisma's where/orderBy cannot express a distinct-relation count, so the
+  // ranking and keyset live in SQL; the page is then hydrated through the normal Prisma include below.
+  // created_key is a fixed-width timestamp string so a plain lexical tuple comparison resumes the
+  // keyset correctly (newest first) across the multi-shop / single-shop boundary.
+  const ranked = await prisma.$queryRaw<RankedVinyl[]>`
+    WITH ranked AS (
+      SELECT v.id AS id,
+             to_char(v.created_at, 'YYYY-MM-DD HH24:MI:SS.MS') AS created_key,
+             v.created_at AS created_at,
+             COUNT(DISTINCT sv.shop_id) >= 2 AS is_multi_shop
+      FROM vinyls v
+      LEFT JOIN shop_vinyls sv ON sv.vinyl_id = v.id
+      GROUP BY v.id, v.created_at
+    )
+    SELECT id, created_key, is_multi_shop
+    FROM ranked
+    WHERE ${isFirst}::boolean
+       OR (is_multi_shop, created_key, id) < (${curM}::boolean, ${curKey}::text, ${curId}::text)
+    ORDER BY is_multi_shop DESC, created_at DESC, id DESC
+    LIMIT ${take}::int
+  `;
+
+  const hasMore = ranked.length > limit;
+  const pageRanked = hasMore ? ranked.slice(0, limit) : ranked;
+  const ids = pageRanked.map((r) => r.id);
+
+  // Hydrate the ordered ids through the shared include/DTO so the wire shape matches every other list.
   const rows = await prisma.vinyl.findMany({
-    // Deterministic order (newest first, id as tiebreaker) so the keyset cursor is stable.
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    ...cursorArgs(limit, cursor),
+    where: { id: { in: ids } },
     include: vinylSummaryInclude,
   });
-  const { items, nextCursor } = toPage(rows, limit);
-  return c.json({ vinyls: items.map(toVinylSummaryDto), nextCursor }, 200);
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const vinyls = pageRanked
+    .map((r) => byId.get(r.id))
+    .filter((row): row is NonNullable<typeof row> => row !== undefined)
+    .map(toVinylSummaryDto);
+
+  const last = pageRanked.at(-1);
+  const nextCursor =
+    hasMore && last ? encodeVinylCursor({ m: last.is_multi_shop, ck: last.created_key, i: last.id }) : null;
+  return c.json({ vinyls, nextCursor }, 200);
 });
 
 const getVinylRoute = createRoute({
