@@ -1,0 +1,44 @@
+# Fly.io config for the getvinyls jobs service (apps/jobs). Deploy from the repo ROOT so the
+# Dockerfile can see the whole pnpm workspace:
+#   fly deploy -c apps/jobs/fly.toml
+#
+# This is an ALWAYS-ON worker: one machine stays up running the scheduler daemon, which fires jobs
+# on their in-process crons (schedules live in env, e.g. TRACK_DURATIONS_CRON). It exposes a private
+# /health endpoint for the liveness check; it is NOT published to the internet (no [[services.ports]]).
+#
+# Set the database secret once (and tune schedules/timezone as needed):
+#   fly secrets set -c apps/jobs/fly.toml DATABASE_URL=postgres://...
+#   fly secrets set -c apps/jobs/fly.toml JOB_TIMEZONE=Europe/Paris TRACK_DURATIONS_CRON="0 3 * * *"
+#
+# Run a job once on demand (does not disturb the daemon):
+#   fly machine run . -c apps/jobs/fly.toml --rm pnpm --filter @getvinyls/jobs start run track-durations
+
+app = "getvinyls-jobs"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "apps/jobs/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  JOBS_PORT = "8080"
+
+# Always-on: keep exactly one machine up, never auto-stop it. The service is internal only (no
+# published ports), so the health check runs against the machine's private interface.
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
