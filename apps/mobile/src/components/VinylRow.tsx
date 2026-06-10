@@ -11,15 +11,10 @@ export interface VinylRowProps {
   onPress: (vinyl: VinylSummaryDto) => void;
 }
 
-// "from €24.99" using the cheapest offer across shops (converted to the display currency), null
-// when no priced offer.
-function formatFromPrice(price: number | null, currency: string | null): string | null {
-  const formatted = formatPrice(price, currency);
-  return formatted === null ? null : `from ${formatted}`;
-}
-
 function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
-  const fromPrice = formatFromPrice(vinyl.lowestPrice, vinyl.currency);
+  // Cheapest offer across shops, converted to the display currency; null when no priced offer.
+  const price = formatPrice(vinyl.lowestPrice, vinyl.currency);
+  const genre = vinyl.genres[0]?.name ?? null;
   const shops = vinyl.shopCount === 1 ? '1 shop' : `${vinyl.shopCount} shops`;
   return (
     <Pressable
@@ -35,9 +30,16 @@ function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
           {vinyl.artist}
           {vinyl.year ? ` · ${vinyl.year}` : ''}
         </Text>
+        {genre ? (
+          <View className="mt-1 self-start rounded-full curve-continuous bg-surface-2 px-2 py-0.5">
+            <Text size="xs" color="neutral-soft">
+              {genre}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <View className="items-end gap-0.5">
-        {fromPrice ? <Text size="md">{fromPrice}</Text> : null}
+        {price ? <Text size="md">{price}</Text> : null}
         {vinyl.shopCount > 0 ? (
           <Text size="sm" color="neutral-soft">
             {shops}
@@ -51,7 +53,7 @@ function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
 // Memoized row for the LegendList. Pair with a stable onPress (useCallback) in the screen.
 export const VinylRow = memo(VinylRowBase);
 
-// Approximate rendered height of a row (two text lines with spacing dominate the 56px cover, plus
-// vertical padding). Fed to LegendList as `estimatedItemSize` so the first frame renders the right
-// number of rows; the real measured sizes take over after layout.
-export const VINYL_ROW_ESTIMATED_HEIGHT = 72;
+// Approximate rendered height of a row (two text lines plus the genre chip line dominate the 56px
+// cover, plus vertical padding). Fed to LegendList as `estimatedItemSize` so the first frame renders
+// the right number of rows; the real measured sizes take over after layout.
+export const VINYL_ROW_ESTIMATED_HEIGHT = 88;
