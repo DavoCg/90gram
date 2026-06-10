@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useWindowDimensions } from 'react-native';
+import { RefreshControl, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
 import { ChevronRight, Play, Shuffle } from 'lucide-react-native';
@@ -15,6 +15,7 @@ import { EqualizerBars } from '../components/equalizer-bars';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
 import { useThemeColors } from '../theme/colors';
+import { useScreenRefresh } from '../hooks/use-screen-refresh';
 import { BIG_COVER_MAX } from '../theme/sizes';
 
 // Leaves room at the bottom of the scroll for the floating mini-player.
@@ -61,6 +62,7 @@ export default function VinylDetailScreen() {
   const router = useRouter();
   const colors = useThemeColors();
   const { width: screenWidth } = useWindowDimensions();
+  const { refreshing, handleRefresh } = useScreenRefresh(refetch);
 
   // Match the full player's cover sizing so a "big cover" is the same size everywhere: capped at
   // BIG_COVER_MAX, shrinking only on narrow screens to fit within the page padding (px-6 = 24).
@@ -141,6 +143,14 @@ export default function VinylDetailScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
       >
         {/* Cover art + identity. */}
         <View className="items-center px-6 pb-4 pt-1">

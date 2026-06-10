@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -17,6 +18,7 @@ import { useFavoriteTracks, useFavoriteVinyls } from '../../../src/api/hooks';
 import { audioEngine } from '../../../src/audio/engine';
 import { player$ } from '../../../src/audio/store';
 import { useThemeColors } from '../../../src/theme/colors';
+import { useScreenRefresh } from '../../../src/hooks/use-screen-refresh';
 
 // Leaves room at the bottom for the floating mini-player + the tab bar.
 const LIST_BOTTOM_PADDING = 140;
@@ -96,6 +98,11 @@ export default function FavoritesScreen() {
   const currentVinylId = currentTrack?.vinylId;
   const currentTrackId = currentTrack?.id;
   const playWhenReady = use$(player$.playWhenReady);
+  const colors = useThemeColors();
+  // Favorites is two queries on one scroll surface, so a pull refreshes both records and tracks.
+  const { refreshing, handleRefresh } = useScreenRefresh(() =>
+    Promise.all([refetchVinyls(), refetchTracks()]),
+  );
 
   // Push the record onto the Favorites stack (not /vinyl/, which lives in the Home stack) so the
   // detail slides in over Favorites and the tab stays put.
@@ -183,6 +190,14 @@ export default function FavoritesScreen() {
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
         ListHeaderComponent={favoriteVinyls.length > 0 ? <SectionTitle>Records</SectionTitle> : null}
         ListFooterComponent={
           <>

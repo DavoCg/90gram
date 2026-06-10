@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -12,6 +13,7 @@ import { ListFooterLoader } from '../components/list-footer-loader';
 import { AppHeader } from '../components/AppHeader';
 import { useShop, useShopVinyls } from '../api/hooks';
 import { useThemeColors } from '../theme/colors';
+import { useScreenRefresh } from '../hooks/use-screen-refresh';
 import { player$ } from '../audio/store';
 
 // Leaves room at the bottom of the list for the floating mini-player + the tab bar.
@@ -49,11 +51,17 @@ export default function ShopDetailScreen() {
   const { data: shop, isLoading, isError, refetch } = useShop(id ?? '');
   const {
     data: vinyls,
+    refetch: refetchVinyls,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
   } = useShopVinyls(id ?? '');
   const router = useRouter();
+  const colors = useThemeColors();
+  // A pull refreshes both the shop header and its vinyl listing.
+  const { refreshing, handleRefresh } = useScreenRefresh(() =>
+    Promise.all([refetch(), refetchVinyls()]),
+  );
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
@@ -121,6 +129,14 @@ export default function ShopDetailScreen() {
         recycleItems
         estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         ListHeaderComponent={<ShopHeader shop={shop} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
