@@ -34,6 +34,8 @@ type MarqueeTextProps = Omit<TextProps, "children" | "numberOfLines"> & {
 	fadeWidth?: number;
 	/** Pause held at the start position before each scroll pass, in ms. */
 	pause?: number;
+	/** When true, snap the title back to its rest position and stop scrolling until cleared. */
+	paused?: boolean;
 	/** Style applied to the outer container (e.g. `{ flexShrink: 1 }` inside a row). */
 	containerStyle?: StyleProp<ViewStyle>;
 };
@@ -67,6 +69,7 @@ export function MarqueeText({
 	spacing = 48,
 	fadeWidth = 16,
 	pause = 4000,
+	paused = false,
 	containerStyle,
 	style,
 	...textProps
@@ -81,8 +84,25 @@ export function MarqueeText({
 
 	useEffect(() => {
 		cancelAnimation(offset);
+		if (!overflowing) {
+			offset.value = 0;
+			return;
+		}
+
+		// Paused (e.g. the sound is paused): glide the title back to its rest position and hold it
+		// there. It must NOT keep scrolling while playback is stopped; the loop resumes from the
+		// start once `paused` clears. ReduceMotion.Never keeps the short return animation even with
+		// the OS setting on, so it does not jump.
+		if (paused) {
+			offset.value = withTiming(0, {
+				duration: 350,
+				easing: Easing.out(Easing.cubic),
+				reduceMotion: ReduceMotion.Never,
+			});
+			return;
+		}
+
 		offset.value = 0;
-		if (!overflowing) return;
 
 		// One copy + the gap scrolls past; the second copy sits exactly where the first
 		// started, so the reset back to 0 is seamless and the loop never visibly jumps.
@@ -103,7 +123,7 @@ export function MarqueeText({
 		);
 
 		return () => cancelAnimation(offset);
-	}, [overflowing, textWidth, spacing, speed, pause, offset]);
+	}, [overflowing, paused, textWidth, spacing, speed, pause, offset]);
 
 	const rowStyle = useAnimatedStyle(() => ({
 		transform: [{ translateX: offset.value }],

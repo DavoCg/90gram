@@ -243,7 +243,9 @@ export function NowPlaying({
         <Pressable onPress={openPlayer} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: MINI_ART + 16 }} />
           <View style={{ flex: 1 }}>
-            <MarqueeText weight="semibold">{track.title}</MarqueeText>
+            <MarqueeText weight="semibold" paused={!isPlaying}>
+              {track.title}
+            </MarqueeText>
             <Text numberOfLines={1} size="xs" color="neutral-soft">
               {track.artist}
             </Text>
@@ -332,7 +334,12 @@ export function NowPlaying({
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MarqueeText size="2xl" weight="bold" containerStyle={{ flexShrink: 1 }}>
+                  <MarqueeText
+                    size="2xl"
+                    weight="bold"
+                    paused={!isPlaying}
+                    containerStyle={{ flexShrink: 1 }}
+                  >
                     {track.title}
                   </MarqueeText>
                   <View
