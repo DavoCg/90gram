@@ -1,73 +1,71 @@
 {
-  "expo": {
-    "name": "getvinyls",
-    "slug": "getvinyls",
-    "version": "0.1.0",
-    "scheme": "getvinyls",
-    "orientation": "portrait",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "runtimeVersion": {
-      "policy": "fingerprint"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/00885d7a-243d-425b-aa01-6fb9912702b7"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.getvinyls.app",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": [
-          "audio"
-        ]
-      }
-    },
-    "android": {
-      "package": "com.getvinyls.app",
-      "edgeToEdgeEnabled": true,
-      "permissions": [
-        "MODIFY_AUDIO_SETTINGS",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-      ]
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "single"
-    },
-    "plugins": [
-      "expo-router",
-      "expo-system-ui",
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/polymath/Polymath-Regular.ttf",
-            "./assets/fonts/polymath/Polymath-Medium.ttf",
-            "./assets/fonts/polymath/Polymath-Semibold.ttf",
-            "./assets/fonts/polymath/Polymath-Bold.ttf",
-            "./assets/fonts/polymath/PolymathDisp-Regular.ttf",
-            "./assets/fonts/polymath/PolymathDisp-Medium.ttf",
-            "./assets/fonts/polymath/PolymathDisp-Semibold.ttf",
-            "./assets/fonts/polymath/PolymathDisp-Bold.ttf",
-            "./assets/fonts/polymath/PolymathText-Regular.ttf",
-            "./assets/fonts/polymath/PolymathText-Medium.ttf",
-            "./assets/fonts/polymath/PolymathText-Semibold.ttf",
-            "./assets/fonts/polymath/PolymathText-Bold.ttf"
-          ]
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "00885d7a-243d-425b-aa01-6fb9912702b7"
-      }
-    },
-    "owner": "davidrebind"
-  }
+	"expo": {
+		"name": "getvinyls",
+		"slug": "getvinyls",
+		"version": "0.2.0",
+		"scheme": "getvinyls",
+		"orientation": "portrait",
+		"userInterfaceStyle": "automatic",
+		"newArchEnabled": true,
+		"runtimeVersion": {
+			"policy": "fingerprint"
+		},
+		"updates": {
+			"url": "https://u.expo.dev/00885d7a-243d-425b-aa01-6fb9912702b7"
+		},
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "com.getvinyls.app",
+			"infoPlist": {
+				"ITSAppUsesNonExemptEncryption": false,
+				"UIBackgroundModes": ["audio"]
+			}
+		},
+		"android": {
+			"package": "com.getvinyls.app",
+			"edgeToEdgeEnabled": true,
+			"permissions": [
+				"MODIFY_AUDIO_SETTINGS",
+				"FOREGROUND_SERVICE",
+				"FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+			]
+		},
+		"web": {
+			"bundler": "metro",
+			"output": "single"
+		},
+		"plugins": [
+			"expo-router",
+			"expo-system-ui",
+			[
+				"expo-font",
+				{
+					"fonts": [
+						"./assets/fonts/polymath/Polymath-Regular.ttf",
+						"./assets/fonts/polymath/Polymath-Medium.ttf",
+						"./assets/fonts/polymath/Polymath-Semibold.ttf",
+						"./assets/fonts/polymath/Polymath-Bold.ttf",
+						"./assets/fonts/polymath/PolymathDisp-Regular.ttf",
+						"./assets/fonts/polymath/PolymathDisp-Medium.ttf",
+						"./assets/fonts/polymath/PolymathDisp-Semibold.ttf",
+						"./assets/fonts/polymath/PolymathDisp-Bold.ttf",
+						"./assets/fonts/polymath/PolymathText-Regular.ttf",
+						"./assets/fonts/polymath/PolymathText-Medium.ttf",
+						"./assets/fonts/polymath/PolymathText-Semibold.ttf",
+						"./assets/fonts/polymath/PolymathText-Bold.ttf"
+					]
+				}
+			]
+		],
+		"experiments": {
+			"typedRoutes": true
+		},
+		"extra": {
+			"router": {},
+			"eas": {
+				"projectId": "00885d7a-243d-425b-aa01-6fb9912702b7"
+			}
+		},
+		"owner": "davidrebind"
+	}
 }
