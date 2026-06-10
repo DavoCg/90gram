@@ -33,7 +33,7 @@ from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 from scrapy.exceptions import DropItem
-from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, select, update
+from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from .items import ListingItem, TrackItem
@@ -132,7 +132,7 @@ class PostgresPipeline:
         vinyl_id = self._upsert_vinyl(conn, listing, match_key, now)
         self._upsert_genres(conn, vinyl_id, listing.genres, now)
         # The per-shop record linking this shop to that Vinyl. Tracks belong to it (each shop keeps
-        # its own tracklist), then we re-pick the best-quality track per position as the reference.
+        # its own tracklist), then we adopt the single best shop's tracklist as the reference.
         shop_vinyl_id = self._upsert_shop_vinyl(conn, vinyl_id, shop_id, listing, now)
         self._upsert_tracks(conn, shop_vinyl_id, listing.tracks, now)
         self._promote_reference_tracks(conn, vinyl_id, now)
@@ -223,36 +223,41 @@ class PostgresPipeline:
         conn.execute(statement)
 
     def _promote_reference_tracks(self, conn: Connection, vinyl_id: str, now: datetime) -> None:
-        """Re-pick the reference tracklist for a vinyl: the best-quality track per position across
-        all of its shops. "Best" is having a preview at all, then the longest duration, then a
-        stable tiebreak (shop slug, id). The winner's ``vinyl_id`` is set; everyone else's cleared,
-        so ``Vinyl.tracks`` reads back one clean, best-quality tracklist."""
+        """Re-pick the reference tracklist for a vinyl: the whole tracklist of its single best shop.
+
+        Shops number the same physical tracks differently (one lists a 7" as 01/02, another as
+        A1/B1), so merging across shops per position duplicates tracks under variant labels. Instead
+        we adopt one shop's tracklist wholesale, which is internally consistent and keeps positions
+        unique. "Best" is the shop_vinyl with the most previews, then the most tracks, then a stable
+        tiebreak (shop slug, id). Its tracks get ``vinyl_id`` set; every other track's is cleared,
+        so ``Vinyl.tracks`` reads back one clean tracklist."""
         tracks = self._tables["tracks"]
         shop_vinyls = self._tables["shop_vinyls"]
-        # Demote the vinyl's current references; we recompute them from scratch below.
+        # Demote the vinyl's current references; we recompute them from scratch below. Clearing
+        # first keeps (vinyl_id, position) unique while we re-promote the winner's rows.
         conn.execute(
             update(tracks)
             .where(tracks.c.vinyl_id == vinyl_id)
             .values(vinyl_id=None, updated_at=now)
         )
-        winners = (
-            select(tracks.c.id)
+        winner = (
+            select(tracks.c.shop_vinyl_id)
             .select_from(tracks.join(shop_vinyls, shop_vinyls.c.id == tracks.c.shop_vinyl_id))
             .where(shop_vinyls.c.vinyl_id == vinyl_id)
+            .group_by(tracks.c.shop_vinyl_id, shop_vinyls.c.source)
             .order_by(
-                tracks.c.position,
-                tracks.c.preview_url.isnot(None).desc(),
-                tracks.c.duration_seconds.desc().nulls_last(),
-                shop_vinyls.c.source.asc(),
-                tracks.c.id.asc(),
+                func.count(tracks.c.preview_url).desc(),  # COUNT ignores NULLs: most previews
+                func.count(tracks.c.id).desc(),  # then the most complete tracklist
+                shop_vinyls.c.source.asc(),  # stable tiebreak
+                tracks.c.shop_vinyl_id.asc(),
             )
-            .distinct(tracks.c.position)  # DISTINCT ON (position): one winner per position
+            .limit(1)
         )
-        winner_ids = [row[0] for row in conn.execute(winners)]
-        if winner_ids:
+        winner_shop_vinyl_id = conn.execute(winner).scalar_one_or_none()
+        if winner_shop_vinyl_id is not None:
             conn.execute(
                 update(tracks)
-                .where(tracks.c.id.in_(winner_ids))
+                .where(tracks.c.shop_vinyl_id == winner_shop_vinyl_id)
                 .values(vinyl_id=vinyl_id, updated_at=now)
             )
 
