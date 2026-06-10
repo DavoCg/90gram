@@ -1,0 +1,37 @@
+# Deploy the getvinyls jobs service to Fly.io.
+#
+# Runs on pushes to develop that touch the jobs service, the db package, or its deploy config, and
+# can also be triggered by hand (Actions tab -> Run workflow). The image is built remotely by Fly's
+# builder (--remote-only), so no Docker is needed on the runner. This is an always-on worker (a cron
+# scheduler daemon); it runs NO migrations (the API owns prisma migrate deploy).
+name: Deploy Jobs to Fly
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "apps/jobs/**"
+      - "packages/db/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/fly-deploy-jobs.yml"
+  workflow_dispatch:
+
+# Never run two jobs deploys at once; cancel an in-progress deploy when a newer commit lands. A
+# separate group from the API deploy so the two apps deploy independently.
+concurrency:
+  group: fly-deploy-jobs
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only -c apps/jobs/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
