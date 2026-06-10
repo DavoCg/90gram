@@ -1,29 +1,39 @@
 import { useState } from 'react';
-import { Check, ChevronDown } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
+import type { SupportedCurrency } from '@getvinyls/api-client';
 import { Pressable, View } from '../theme/uniwind';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
+import { CurrencyFlag } from './currency-flag';
+import { PickerSheet, type PickerOption } from './picker-sheet';
 import {
   CURRENCY_META,
   useDisplayCurrency,
   useSupportedCurrencies,
 } from '../currency';
 
-// Settings row for the display currency. Tapping it expands an inline list of the supported
-// currencies; choosing one persists it (and re-converts every price in the app). Mirrors the other
-// settings rows so it sits naturally inside a SettingsSection.
+// Settings row for the display currency. Tapping it opens the shared PickerSheet listing the
+// supported currencies (each with its flag); choosing one persists it (and re-converts every price
+// in the app). Mirrors the other settings rows so it sits naturally inside a SettingsSection.
 export function CurrencySettingRow() {
   const colors = useThemeColors();
   const { currency, setCurrency } = useDisplayCurrency();
   const currencies = useSupportedCurrencies();
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const selectedMeta = CURRENCY_META[currency];
 
+  const options: PickerOption<SupportedCurrency>[] = currencies.map((code) => ({
+    value: code,
+    label: code,
+    description: CURRENCY_META[code]?.name,
+    leading: <CurrencyFlag code={code} />,
+  }));
+
   return (
-    <View>
+    <>
       <Pressable
-        onPress={() => setExpanded((open) => !open)}
+        onPress={() => setOpen(true)}
         className="flex-row items-center justify-between px-4 py-3.5"
       >
         <View className="flex-1 pr-4">
@@ -32,37 +42,20 @@ export function CurrencySettingRow() {
             Show prices in {selectedMeta ? `${selectedMeta.name} (${currency})` : currency}
           </Text>
         </View>
-        <View
-          style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}
-        >
-          <ChevronDown color={colors.muted} size={20} />
+        <View className="flex-row items-center gap-2">
+          <CurrencyFlag code={currency} size={28} />
+          <ChevronRight color={colors.muted} size={20} />
         </View>
       </Pressable>
 
-      {expanded
-        ? currencies.map((code) => {
-            const meta = CURRENCY_META[code];
-            const isSelected = code === currency;
-            return (
-              <Pressable
-                key={code}
-                onPress={() => {
-                  setCurrency(code);
-                  setExpanded(false);
-                }}
-                className="flex-row items-center justify-between border-t border-border px-4 py-3"
-              >
-                <View className="flex-row items-center gap-3">
-                  <Text weight="semibold" color="neutral-soft" className="w-8">
-                    {meta?.symbol ?? code}
-                  </Text>
-                  <Text>{meta ? `${meta.name} (${code})` : code}</Text>
-                </View>
-                {isSelected ? <Check color={colors.accent} size={18} /> : null}
-              </Pressable>
-            );
-          })
-        : null}
-    </View>
+      <PickerSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Currency"
+        options={options}
+        selected={currency}
+        onSelect={setCurrency}
+      />
+    </>
   );
 }
