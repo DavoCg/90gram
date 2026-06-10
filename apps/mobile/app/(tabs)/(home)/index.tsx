@@ -54,14 +54,9 @@ export default function HomeScreen() {
 
   const renderItem = useCallback(
     ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
-      <VinylRow
-        vinyl={item}
-        isCurrent={item.id === currentVinylId}
-        isPlaying={playWhenReady}
-        onPress={onPressVinyl}
-      />
+      <VinylRow vinyl={item} isCurrent={item.id === currentVinylId} onPress={onPressVinyl} />
     ),
-    [currentVinylId, playWhenReady, onPressVinyl],
+    [currentVinylId, onPressVinyl],
   );
 
   const onEndReached = useCallback(() => {
