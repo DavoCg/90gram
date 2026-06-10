@@ -3,8 +3,11 @@
 #   fly deploy -c apps/jobs/fly.toml
 #
 # This is an ALWAYS-ON worker: one machine stays up running the scheduler daemon, which fires jobs
-# on their in-process crons (schedules live in env, e.g. TRACK_DURATIONS_CRON). It exposes a private
-# /health endpoint for the liveness check; it is NOT published to the internet (no [[services.ports]]).
+# on their in-process crons (schedules live in env, e.g. TRACK_DURATIONS_CRON). It serves a private
+# /health endpoint used only by the machine liveness check; nothing is published to the internet.
+#
+# The app must exist before the first deploy (flyctl deploy does NOT create it):
+#   fly apps create getvinyls-jobs
 #
 # Set the database secret once (and tune schedules/timezone as needed):
 #   fly secrets set -c apps/jobs/fly.toml DATABASE_URL=postgres://...
@@ -23,21 +26,19 @@ primary_region = "cdg"
   NODE_ENV = "production"
   JOBS_PORT = "8080"
 
-# Always-on: keep exactly one machine up, never auto-stop it. The service is internal only (no
-# published ports), so the health check runs against the machine's private interface.
-[[services]]
-  internal_port = 8080
-  protocol = "tcp"
-  auto_stop_machines = false
-  auto_start_machines = false
-  min_machines_running = 1
-
-  [[services.http_checks]]
+# Always-on worker: one machine runs the scheduler daemon continuously. There is no [[services]]
+# block because the app serves no public traffic (a service with no ports is deprecated by Fly);
+# liveness is a top-level machine check that hits the internal /health port. With no service the
+# machine is never auto-stopped, so it stays up.
+[checks]
+  [checks.health]
+    type = "http"
+    port = 8080
+    method = "get"
+    path = "/health"
     interval = "15s"
     timeout = "2s"
     grace_period = "10s"
-    method = "get"
-    path = "/health"
 
 [[vm]]
   size = "shared-cpu-1x"
