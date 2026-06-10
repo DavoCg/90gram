@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
 import { Button } from '../src/components/button';
@@ -11,22 +12,20 @@ import { useThemeColors } from '../src/theme/colors';
 import { useDarkMode } from '../src/theme/theme';
 import { authClient } from '../src/auth/client';
 
-// Leaves room at the bottom of the scroll for the floating mini-player.
-const LIST_BOTTOM_PADDING = 160;
-
 // User/settings page. Lives at the root (not inside the (tabs) tree) so pushing it from the header
-// user button slides it in from the right ON TOP OF the tab bar, covering the bottom tabs. The
-// global mini-player still floats above it. The sections scroll so they stay reachable on shorter
-// screens (and once more sections are added). Scaffolded as labelled sections of rows; add new
-// settings by dropping rows into a section.
+// user button slides it in from the right ON TOP OF the tab bar, covering the bottom tabs (and the
+// mini-player, which the (tabs) layout owns), so there is no floating player to clear here. The
+// sections scroll so they stay reachable on shorter screens (and once more sections are added).
+// Scaffolded as labelled sections of rows; add new settings by dropping rows into a section.
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   return (
     <View className="flex-1 bg-bg">
       <AppHeader title="Settings" showBack />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         contentContainerClassName="gap-6 px-4 pt-4"
       >
         <SettingsSection title="Account">
