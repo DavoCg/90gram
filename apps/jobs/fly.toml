@@ -1,6 +1,8 @@
-# Fly.io config for the getvinyls jobs service (apps/jobs). Deploy from the repo ROOT so the
-# Dockerfile can see the whole pnpm workspace:
+# Fly.io config for the getvinyls jobs service (apps/jobs). Deploy from the repo ROOT so the build
+# context is the whole pnpm workspace (the Dockerfile COPYs pnpm-workspace.yaml, packages/*, etc):
 #   fly deploy -c apps/jobs/fly.toml
+# NOTE: the dockerfile path below is resolved relative to THIS config file's directory (apps/jobs),
+# not the repo root, so it is just "Dockerfile".
 #
 # This is an ALWAYS-ON worker: one machine stays up running the scheduler daemon, which fires jobs
 # on their in-process crons (schedules live in env, e.g. TRACK_DURATIONS_CRON). It exposes a private
@@ -17,7 +19,7 @@ app = "getvinyls-jobs"
 primary_region = "cdg"
 
 [build]
-  dockerfile = "apps/jobs/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   NODE_ENV = "production"

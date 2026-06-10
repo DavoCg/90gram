@@ -1,12 +1,14 @@
-# Fly.io config for the getvinyls API (apps/api). Deploy from the repo ROOT so the Dockerfile can
-# see the whole pnpm workspace (the dockerfile path below is relative to that root context):
+# Fly.io config for the getvinyls API (apps/api). Deploy from the repo ROOT so the build context is
+# the whole pnpm workspace (the Dockerfile COPYs pnpm-workspace.yaml, packages/*, etc):
 #   fly deploy -c apps/api/fly.toml
+# NOTE: the dockerfile path below is resolved relative to THIS config file's directory (apps/api),
+# not the repo root, so it is just "Dockerfile".
 
 app = "getvinyls-api"
 primary_region = "cdg"
 
 [build]
-  dockerfile = "apps/api/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   API_PORT = "8787"
