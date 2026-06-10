@@ -1,0 +1,27 @@
+# Fly.io config for the getvinyls jobs service (apps/jobs). Deploy from the repo ROOT so the
+# Dockerfile can see the whole pnpm workspace:
+#   fly deploy -c apps/jobs/fly.toml
+#
+# This is a worker app, not a server: it has NO http_service. A machine runs a single job and exits.
+# Set the database secret once:
+#   fly secrets set -c apps/jobs/fly.toml DATABASE_URL=postgres://...
+#
+# Run a job on demand:
+#   fly machine run . -c apps/jobs/fly.toml --rm pnpm --filter @getvinyls/jobs start track-durations
+#
+# Run it on a schedule (Fly scheduled machine; one of hourly|daily|weekly|monthly):
+#   fly machine run . -c apps/jobs/fly.toml --schedule daily \
+#     pnpm --filter @getvinyls/jobs start track-durations
+
+app = "getvinyls-jobs"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "apps/jobs/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -13,7 +13,11 @@
     "EXPO_PUBLIC_API_BASE_URL",
     "DISCOGS_TOKEN",
     "DISCOGS_FIXTURE",
-    "NODE_ENV"
+    "NODE_ENV",
+    "JOB_CONCURRENCY",
+    "JOB_BATCH_SIZE",
+    "JOB_REQUEST_TIMEOUT_MS",
+    "JOB_MAX_TRACKS"
   ],
   "globalDependencies": [".env", ".env.example"],
   "tasks": {

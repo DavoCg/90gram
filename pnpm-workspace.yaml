@@ -1,5 +1,6 @@
 packages:
   - apps/api
+  - apps/jobs
   - apps/mobile
   - apps/scraper
   - packages/db
