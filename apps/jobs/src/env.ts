@@ -7,6 +7,16 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
+  // The scheduler daemon binds a small HTTP liveness endpoint here (GET /health) so the platform
+  // can health-check the always-on machine and report job status.
+  JOBS_PORT: z.coerce.number().int().positive().default(8080),
+  // IANA timezone the cron schedules are evaluated in (e.g. "Europe/Paris"). UTC by default so a
+  // schedule means the same thing regardless of where the machine runs.
+  JOB_TIMEZONE: z.string().min(1).default('UTC'),
+
+  // Cron expression (5-field) for the track-durations job in scheduler mode. Default: daily 03:00.
+  TRACK_DURATIONS_CRON: z.string().min(1).default('0 3 * * *'),
+
   // How many preview downloads run at once. Keep modest to stay polite to the preview hosts.
   JOB_CONCURRENCY: z.coerce.number().int().positive().default(8),
   // How many candidate tracks are pulled from the DB per page (keyset paginated).

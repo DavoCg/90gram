@@ -5,11 +5,13 @@
 # Built from the monorepo ROOT (apps/jobs/fly.toml sets the build context to ".") because the jobs
 # service imports @getvinyls/db by source. At image-build time we bundle the entry with tsup
 # (esbuild) into a single dist/index.js: @getvinyls/db's TypeScript source and the generated Prisma
-# client are inlined, so plain `node dist/index.js <job>` runs at boot with no TS loader. The Prisma
+# client are inlined, so plain `node dist/index.js` runs at boot with no TS loader. The Prisma
 # runtime and the pg driver stay external and are resolved from node_modules. Mirrors apps/api.
 #
-# Unlike the API this is a worker, not a server: a machine runs one job and exits. It does NOT run
-# `prisma migrate deploy` (the API owns applying migrations); the jobs service only writes rows.
+# This is a long-running worker: the default command starts the scheduler daemon, which stays up and
+# fires jobs on their in-process crons (it also serves a small /health endpoint for the platform's
+# liveness check). It does NOT run `prisma migrate deploy` (the API owns applying migrations); the
+# jobs service only writes rows.
 FROM node:22.20.0-slim AS build
 
 ENV PNPM_HOME="/pnpm"
@@ -51,7 +53,9 @@ RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholde
   && pnpm --filter @getvinyls/jobs build
 
 ENV NODE_ENV=production
+ENV JOBS_PORT=8080
+EXPOSE 8080
 
-# Default job for a plain `fly deploy` machine / scheduled machine. Override the job name by passing
-# a different command to `fly machine run`, e.g. `... @getvinyls/jobs start <other-job>`.
-CMD ["pnpm", "--filter", "@getvinyls/jobs", "start", "track-durations"]
+# Default command: start the always-on scheduler daemon. For a manual one-off run instead, override
+# the command, e.g. `... @getvinyls/jobs start run track-durations`.
+CMD ["pnpm", "--filter", "@getvinyls/jobs", "start"]
