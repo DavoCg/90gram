@@ -43,9 +43,10 @@ official API, request its JSON instead of parsing HTML. Review the target's robo
   the per-shop record linking a shop to that vinyl (with `source_url`, its own `cover_art_url`, + the
   `raw_*` snapshot); `Offer` holds
   its price/stock. Genres hang off the canonical vinyl; **tracks belong to the `shop_vinyl`** (each shop
-  keeps its own tracklist + previews). After writing a shop's tracks the pipeline re-picks the best-quality
-  track per position (`_promote_reference_tracks`) and sets its `vinyl_id`, so `Vinyl.tracks` is the
-  reference tracklist.
+  keeps its own tracklist + previews). After writing a shop's tracks the pipeline adopts the single best
+  shop's whole tracklist as the reference (`_promote_reference_tracks`, by most previews then most tracks)
+  and sets its `vinyl_id`, so `Vinyl.tracks` is one internally consistent tracklist. Merging per position
+  across shops would duplicate tracks, since shops number the same tracks differently (01/02 vs A1/B1).
 - Idempotency keys: `shops.slug`, `vinyls.match_key`, `tracks (shop_vinyl_id, position)`, `genres.slug`,
   `vinyl_genres (vinyl_id, genre_id)`, `shop_vinyls (source, external_id)`, `offers (source, external_id)`.
   Re-running a crawl updates rows, never duplicates them. `prices` is append-only: a row is inserted only
