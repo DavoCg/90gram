@@ -126,14 +126,9 @@ export default function FavoritesScreen() {
 
   const renderItem = useCallback(
     ({ item }: LegendListRenderItemProps<VinylSummaryDto>) => (
-      <VinylRow
-        vinyl={item}
-        isCurrent={item.id === currentVinylId}
-        isPlaying={playWhenReady}
-        onPress={onPressVinyl}
-      />
+      <VinylRow vinyl={item} isCurrent={item.id === currentVinylId} onPress={onPressVinyl} />
     ),
-    [currentVinylId, playWhenReady, onPressVinyl],
+    [currentVinylId, onPressVinyl],
   );
 
   if (vinylsLoading || tracksLoading) {

@@ -42,9 +42,9 @@ import { VolumeSlider } from './VolumeSlider';
 // overlay is mounted, so we reconstruct the standard tab bar height from the platform default
 // plus the bottom safe-area inset.
 const TAB_BAR_BASE = Platform.OS === 'ios' ? 49 : 56;
-const MINI_HEIGHT = 60;
+const MINI_HEIGHT = 66;
 const MINI_MARGIN = 8;
-const MINI_ART = 44;
+const MINI_ART = 52;
 const PAD = 20;
 // iOS form-sheet corner radius. Constant: it does not change with the drag.
 const SHEET_RADIUS = 38;

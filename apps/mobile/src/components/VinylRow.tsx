@@ -8,7 +8,6 @@ import { formatPrice } from '../currency';
 export interface VinylRowProps {
   vinyl: VinylSummaryDto;
   isCurrent: boolean;
-  isPlaying: boolean;
   onPress: (vinyl: VinylSummaryDto) => void;
 }
 
@@ -19,16 +18,15 @@ function formatFromPrice(price: number | null, currency: string | null): string 
   return formatted === null ? null : `from ${formatted}`;
 }
 
-function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
+function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
   const fromPrice = formatFromPrice(vinyl.lowestPrice, vinyl.currency);
-  const genre = vinyl.genres[0]?.name ?? null;
   const shops = vinyl.shopCount === 1 ? '1 shop' : `${vinyl.shopCount} shops`;
   return (
     <Pressable
       onPress={() => onPress(vinyl)}
       className={`flex-row items-center gap-3 px-4 py-3 ${isCurrent ? 'bg-surface-2' : 'bg-bg'}`}
     >
-      <CoverArt uri={vinyl.coverArtUrl} size={56} radius={8} />
+      <CoverArt uri={vinyl.coverArtUrl} size={64} radius={8} />
       <View className="flex-1">
         <Text numberOfLines={1} weight="semibold">
           {vinyl.title}
@@ -37,13 +35,6 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
           {vinyl.artist}
           {vinyl.year ? ` · ${vinyl.year}` : ''}
         </Text>
-        {genre ? (
-          <View className="mt-1 self-start rounded-full curve-continuous bg-surface-2 px-2 py-0.5">
-            <Text size="xs" color="neutral-soft">
-              {genre}
-            </Text>
-          </View>
-        ) : null}
       </View>
       <View className="items-end gap-1">
         {fromPrice ? <Text size="sm">{fromPrice}</Text> : null}
@@ -52,9 +43,6 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
             {shops}
           </Text>
         ) : null}
-        <Text size="xs" color="accent">
-          {isCurrent && isPlaying ? '❚❚ Playing' : '▶ Preview'}
-        </Text>
       </View>
     </Pressable>
   );
@@ -63,7 +51,7 @@ function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
 // Memoized row for the LegendList. Pair with a stable onPress (useCallback) in the screen.
 export const VinylRow = memo(VinylRowBase);
 
-// Approximate rendered height of a row (56px cover + vertical padding, plus the genre chip line).
-// Fed to LegendList as `estimatedItemSize` so the first frame renders the right number of rows;
-// the real measured sizes take over after layout.
+// Approximate rendered height of a row (64px cover + vertical padding). Fed to LegendList as
+// `estimatedItemSize` so the first frame renders the right number of rows; the real measured
+// sizes take over after layout.
 export const VINYL_ROW_ESTIMATED_HEIGHT = 88;
