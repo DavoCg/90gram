@@ -4,7 +4,7 @@ import type { SupportedCurrency } from '@getvinyls/api-client';
 import { Pressable, View } from '../theme/uniwind';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
-import { CurrencyFlag } from './currency-flag';
+import { CurrencySymbol } from './currency-symbol';
 import { PickerSheet, type PickerOption } from './picker-sheet';
 import {
   CURRENCY_META,
@@ -13,7 +13,7 @@ import {
 } from '../currency';
 
 // Settings row for the display currency. Tapping it opens the shared PickerSheet listing the
-// supported currencies (each with its flag); choosing one persists it (and re-converts every price
+// supported currencies (each with its symbol); choosing one persists it (and re-converts every price
 // in the app). Mirrors the other settings rows so it sits naturally inside a SettingsSection.
 export function CurrencySettingRow() {
   const colors = useThemeColors();
@@ -27,7 +27,7 @@ export function CurrencySettingRow() {
     value: code,
     label: code,
     description: CURRENCY_META[code]?.name,
-    leading: <CurrencyFlag code={code} />,
+    leading: <CurrencySymbol code={code} />,
   }));
 
   return (
@@ -43,7 +43,7 @@ export function CurrencySettingRow() {
           </Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <CurrencyFlag code={currency} size={28} />
+          <CurrencySymbol code={currency} size={32} />
           <ChevronRight color={colors.muted} size={20} />
         </View>
       </Pressable>
