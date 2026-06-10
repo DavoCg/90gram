@@ -28,18 +28,18 @@ function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
     >
       <CoverArt uri={vinyl.coverArtUrl} size={56} radius={8} />
       <View className="flex-1 gap-1.5">
-        <Text numberOfLines={1} size="lg" weight="semibold">
+        <Text numberOfLines={1} size="md" weight="semibold">
           {vinyl.title}
         </Text>
-        <Text numberOfLines={1} size="md" color="neutral-soft">
+        <Text numberOfLines={1} size="sm" color="neutral-soft">
           {vinyl.artist}
           {vinyl.year ? ` · ${vinyl.year}` : ''}
         </Text>
       </View>
-      <View className="items-end gap-1">
-        {fromPrice ? <Text size="sm">{fromPrice}</Text> : null}
+      <View className="items-end gap-1.5">
+        {fromPrice ? <Text size="md">{fromPrice}</Text> : null}
         {vinyl.shopCount > 0 ? (
-          <Text size="xs" color="neutral-soft">
+          <Text size="sm" color="neutral-soft">
             {shops}
           </Text>
         ) : null}
