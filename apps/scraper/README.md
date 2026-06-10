@@ -32,9 +32,13 @@ getvinyls_scraper/
   spiders/
     discogs.py          Discogs spider (official API mode or offline fixture mode)
     coldcutshotwax.py   ColdCuts // HotWax spider (Shopify catalog JSON)
+    deejay.py           deejay.de spider (paginated listing HTML)
+    dancingvinyl.py     Dancing Vinyl spider (Common-Ground GraphQL API)
 fixtures/
   discogs_sample.json        offline sample data (Discogs)
   coldcutshotwax_sample.json offline sample data (raw Shopify products)
+  deejay_sample.json         offline sample data (deejay product pages)
+  dancingvinyl_sample.json   offline sample data (raw inventory items)
 ```
 
 Adding a reseller is adding a spider in `spiders/`, nothing else.
@@ -84,5 +88,28 @@ collections are skipped in phase B. A listing emitted with no tracks logs a `WAR
   phase A still walks the whole catalog.
 - **Fixture mode:** set `CCHW_FIXTURE` to a local JSON file (raw Shopify product objects, each optionally
   carrying a `tracklist_html` of collection-style track spans) to read via `file://` instead of crawling.
+
+### `dancingvinyl` (Dancing Vinyl Record Shop)
+
+`uv run scrapy crawl dancingvinyl`. Dancing Vinyl (EUR) runs on the Common-Ground.io platform: a
+JavaScript storefront backed by a public GraphQL endpoint at `/graphql`. We query that structured
+JSON straight rather than scraping markup (robots.txt allows the default user-agent everywhere; only
+named AI crawlers are disallowed, and our identifying browser User-Agent is not one of them). The
+catalogue (`/catalogue?stock=instock`) is the `inventory(stock: "instock", page, limit)` query; one
+call returns a page of fully-formed items (release metadata, label/catalog number, formats, genres,
+tracklist with MP3 previews, and the shop's listings with price + stock) plus `pagination.pages`. The
+spider walks every page and emits each item as it goes, so rows stream as pages arrive. The numeric
+release `id` is the offer's stable `external_id`.
+
+New vinyl only: the `stock=instock` filter still returns second-hand copies, so the spider drops any
+release whose only listing is `secondHand` and always picks the new listing when one exists; a
+non-vinyl `format` is a backstop guard. The free-text `duration` field is mapped to
+`duration_seconds` only when it parses as an actual time, never guessed.
+
+- **Live mode (default):** no credentials, the GraphQL catalogue is public.
+- **`-a stock=preorder`:** query a different stock filter (default `instock`). `-a limit=N` sets the
+  page size; `-a max_pages=N` / `-a max_items=N` cap the crawl (handy for a quick test run).
+- **Fixture mode:** set `DANCINGVINYL_FIXTURE` to a local JSON file (a list of raw `inventory.items`
+  objects) to read via `file://` instead of crawling.
 
 Re-running a crawl updates rows instead of duplicating them (unique on `source` + `external_id`).

@@ -1,0 +1,510 @@
+[
+  {
+    "id": 1769114641,
+    "uri": "https://www.dancingvinyl.com/release/1769114641/purple-disco-machine-defected-presents-house-masters-purple-disco-machine-3x12",
+    "listings": [
+      {
+        "available": 1778198400000,
+        "preOrder": false,
+        "secondHand": false,
+        "stock": {
+          "quantity": 1
+        },
+        "prices": {
+          "beforeTaxes": 45.45454545454545,
+          "sale": 55,
+          "compare": null
+        }
+      }
+    ],
+    "data": {
+      "title": "Defected presents House Masters - Purple Disco Machine (3x12\")",
+      "cat": null,
+      "releaseDate": 1772755200000,
+      "genres": [
+        "House"
+      ],
+      "styles": [
+        "Dance",
+        "Electro"
+      ],
+      "images": [
+        {
+          "uri": "https://static-production.fra1.cdn.digitaloceanspaces.com/accounts/538/items/1769114641/img-of7MoEEJ1A.jpg"
+        }
+      ],
+      "formats": [
+        {
+          "descriptions": [
+            "12\""
+          ],
+          "name": "Vinyl",
+          "qty": "2"
+        }
+      ],
+      "artists": [
+        {
+          "name": "Purple Disco Machine",
+          "join": null
+        }
+      ],
+      "labels": [
+        {
+          "name": "Defected",
+          "catno": "HOMAS40LP"
+        }
+      ],
+      "tracklist": [
+        {
+          "title": "Purple Disco Machine - Body Funk",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/A1.mp3?version=1",
+          "duration": null,
+          "position": "A1"
+        },
+        {
+          "title": "Shakedown - At Night (Purple Disco Machine Extended Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/A2.mp3?version=1",
+          "duration": null,
+          "position": "A2"
+        },
+        {
+          "title": "Claptone & Mylo - Drop The Pressure (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/B1.mp3?version=1",
+          "duration": null,
+          "position": "B1"
+        },
+        {
+          "title": "Tensnake - Coma Cat (Purple Disco Machine Extended Re-Work)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/B2.mp3?version=1",
+          "duration": null,
+          "position": "B2"
+        },
+        {
+          "title": "Purple Disco Machine - In My Arms",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/C1.mp3?version=1",
+          "duration": null,
+          "position": "C1"
+        },
+        {
+          "title": "The Shapeshifters - Lola's Theme Recut (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/C2.mp3?version=1",
+          "duration": null,
+          "position": "C2"
+        },
+        {
+          "title": "Purple Disco Machine - Beat Fantasy",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/D1.mp3?version=1",
+          "duration": null,
+          "position": "D1"
+        },
+        {
+          "title": "Fallout - The Morning After (Purple Disco Machine Re-Work)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/D2.mp3?version=1",
+          "duration": null,
+          "position": "D2"
+        },
+        {
+          "title": "Purple Disco Machine - Dished (Male Stripper)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/E1.mp3?version=1",
+          "duration": null,
+          "position": "E1"
+        },
+        {
+          "title": "Fatboy Slim - Praise You (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/E2.mp3?version=1",
+          "duration": null,
+          "position": "E2"
+        },
+        {
+          "title": "Spiller Ft. Sophie Ellis-Bextor - Groovejet (If This Ain't Love) (Purple Disco Machine & Lorenz Rhode Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/F1.mp3?version=1",
+          "duration": null,
+          "position": "F1"
+        },
+        {
+          "title": "Weiss - Feel My Needs (Purple Disco Machine Mix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/F2.mp3?version=1",
+          "duration": null,
+          "position": "F2"
+        }
+      ]
+    }
+  },
+  {
+    "id": 1779380614,
+    "uri": "https://www.dancingvinyl.com/release/1779380614/various-moblack-presents-from-latin-america-with-love",
+    "listings": [
+      {
+        "available": 1781222400000,
+        "preOrder": false,
+        "secondHand": false,
+        "stock": {
+          "quantity": 3
+        },
+        "prices": {
+          "beforeTaxes": 15.6198347107438,
+          "sale": 18.9,
+          "compare": null
+        }
+      }
+    ],
+    "data": {
+      "title": "MoBlack presents FROM LATIN AMERICA WITH LOVE",
+      "cat": null,
+      "releaseDate": 1781222400000,
+      "genres": [
+        "House"
+      ],
+      "styles": [
+        "Tribal",
+        "Deep"
+      ],
+      "images": [
+        {
+          "uri": "https://static-production.fra1.cdn.digitaloceanspaces.com/accounts/538/items/1779380614/img--D8oWVjZTRB.jpg"
+        }
+      ],
+      "formats": [
+        {
+          "descriptions": [
+            "12\""
+          ],
+          "name": "Vinyl",
+          "qty": "1"
+        }
+      ],
+      "artists": [
+        {
+          "name": "Various",
+          "join": null
+        }
+      ],
+      "labels": [
+        {
+          "name": "MOBLACK RECORDS",
+          "catno": "MBRV039"
+        }
+      ],
+      "tracklist": [
+        {
+          "title": "Sinego & Xinobi - Si Vas Al Mar (Extended Version)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779380614/A1.mp3?version=1",
+          "duration": null,
+          "position": "A1"
+        },
+        {
+          "title": "Martina Camargo, Evo Frost - Donde Esta (Extended Version)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779380614/A2.mp3?version=1",
+          "duration": null,
+          "position": "A2"
+        },
+        {
+          "title": "Mert Alt─▒N - No Puedo Parar (Original Mix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779380614/B1.mp3?version=1",
+          "duration": null,
+          "position": "B1"
+        },
+        {
+          "title": "Murmusica - Tete Ete",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779380614/B2.mp3?version=1",
+          "duration": null,
+          "position": "B2"
+        }
+      ]
+    }
+  },
+  {
+    "id": 1779353386,
+    "uri": "https://www.dancingvinyl.com/release/1779353386/dizzy-k-sweet-edits",
+    "listings": [
+      {
+        "available": 1779235200000,
+        "preOrder": false,
+        "secondHand": false,
+        "stock": {
+          "quantity": 2
+        },
+        "prices": {
+          "beforeTaxes": 16.52892561983471,
+          "sale": 20,
+          "compare": null
+        }
+      }
+    ],
+    "data": {
+      "title": "SWEET EDITS",
+      "cat": null,
+      "releaseDate": 1779235200000,
+      "genres": [
+        "House"
+      ],
+      "styles": [
+        "Tribal",
+        "Funky",
+        "Balearic",
+        "Funk",
+        "Soul",
+        "Afrobeat"
+      ],
+      "images": [
+        {
+          "uri": "https://static-production.fra1.cdn.digitaloceanspaces.com/accounts/538/items/1779353386/img-M2P8pDn-r2.jpg"
+        }
+      ],
+      "formats": [
+        {
+          "descriptions": [
+            "12\""
+          ],
+          "name": "Vinyl",
+          "qty": "1"
+        }
+      ],
+      "artists": [
+        {
+          "name": "DIZZY K.",
+          "join": null
+        }
+      ],
+      "labels": [
+        {
+          "name": "Sticky Buttons",
+          "catno": "SB006"
+        }
+      ],
+      "tracklist": [
+        {
+          "title": "Afrikan Jamboree (Clive From Accounts Audit)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779353386/A1.mp3?version=1",
+          "duration": null,
+          "position": "A1"
+        },
+        {
+          "title": "Afrikan Djamboree (Lipelis Disco Dub)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779353386/A2.mp3?version=1",
+          "duration": null,
+          "position": "A2"
+        },
+        {
+          "title": "I’ll Never Love Again (M.a.dizzy Mix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779353386/B1.mp3?version=1",
+          "duration": null,
+          "position": "B1"
+        },
+        {
+          "title": "Konga Mama (Mayurashka Edit)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1779353386/B2.mp3?version=1",
+          "duration": null,
+          "position": "B2"
+        }
+      ]
+    }
+  },
+  {
+    "id": 1778490537,
+    "uri": "https://www.dancingvinyl.com/release/1778490537/various-from-the-vaults-vol-5",
+    "listings": [
+      {
+        "available": 1798675200000,
+        "preOrder": false,
+        "secondHand": false,
+        "stock": {
+          "quantity": 6
+        },
+        "prices": {
+          "beforeTaxes": 13.96694214876033,
+          "sale": 16.9,
+          "compare": null
+        }
+      }
+    ],
+    "data": {
+      "title": "From The Vaults Vol. 5",
+      "cat": null,
+      "releaseDate": 1783728000000,
+      "genres": [
+        "House"
+      ],
+      "styles": [
+        "Tech"
+      ],
+      "images": [
+        {
+          "uri": "https://static-production.fra1.cdn.digitaloceanspaces.com/accounts/538/items/1778490537/img-PO8l9MZbkdk.jpg"
+        }
+      ],
+      "formats": [
+        {
+          "descriptions": [
+            "12\""
+          ],
+          "name": "Vinyl",
+          "qty": "1"
+        }
+      ],
+      "artists": [
+        {
+          "name": "Various",
+          "join": null
+        }
+      ],
+      "labels": [
+        {
+          "name": "8bit Records",
+          "catno": "FTV005"
+        }
+      ],
+      "tracklist": [
+        {
+          "title": "Markus Homm, Mihai Popoviciu, Jay Bliss - Bis Co",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1778490537/A1.mp3?version=1",
+          "duration": null,
+          "position": "A1"
+        },
+        {
+          "title": "Markus Homm - Got To Make It",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1778490537/B1.mp3?version=1",
+          "duration": null,
+          "position": "B1"
+        },
+        {
+          "title": "Mihai Popoviciu - To The People",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1778490537/B2.mp3?version=1",
+          "duration": null,
+          "position": "B2"
+        }
+      ]
+    }
+  },
+  {
+    "id": 999999999,
+    "uri": "https://www.dancingvinyl.com/release/999999999/synthetic-second-hand-only",
+    "listings": [
+      {
+        "available": 1778198400000,
+        "preOrder": false,
+        "secondHand": true,
+        "stock": {
+          "quantity": 1
+        },
+        "prices": {
+          "beforeTaxes": 45.45454545454545,
+          "sale": 55,
+          "compare": null
+        }
+      }
+    ],
+    "data": {
+      "title": "Defected presents House Masters - Purple Disco Machine (3x12\") (USED COPY)",
+      "cat": null,
+      "releaseDate": 1772755200000,
+      "genres": [
+        "House"
+      ],
+      "styles": [
+        "Dance",
+        "Electro"
+      ],
+      "images": [
+        {
+          "uri": "https://static-production.fra1.cdn.digitaloceanspaces.com/accounts/538/items/1769114641/img-of7MoEEJ1A.jpg"
+        }
+      ],
+      "formats": [
+        {
+          "descriptions": [
+            "12\""
+          ],
+          "name": "Vinyl",
+          "qty": "2"
+        }
+      ],
+      "artists": [
+        {
+          "name": "Purple Disco Machine",
+          "join": null
+        }
+      ],
+      "labels": [
+        {
+          "name": "Defected",
+          "catno": "HOMAS40LP"
+        }
+      ],
+      "tracklist": [
+        {
+          "title": "Purple Disco Machine - Body Funk",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/A1.mp3?version=1",
+          "duration": null,
+          "position": "A1"
+        },
+        {
+          "title": "Shakedown - At Night (Purple Disco Machine Extended Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/A2.mp3?version=1",
+          "duration": null,
+          "position": "A2"
+        },
+        {
+          "title": "Claptone & Mylo - Drop The Pressure (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/B1.mp3?version=1",
+          "duration": null,
+          "position": "B1"
+        },
+        {
+          "title": "Tensnake - Coma Cat (Purple Disco Machine Extended Re-Work)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/B2.mp3?version=1",
+          "duration": null,
+          "position": "B2"
+        },
+        {
+          "title": "Purple Disco Machine - In My Arms",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/C1.mp3?version=1",
+          "duration": null,
+          "position": "C1"
+        },
+        {
+          "title": "The Shapeshifters - Lola's Theme Recut (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/C2.mp3?version=1",
+          "duration": null,
+          "position": "C2"
+        },
+        {
+          "title": "Purple Disco Machine - Beat Fantasy",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/D1.mp3?version=1",
+          "duration": null,
+          "position": "D1"
+        },
+        {
+          "title": "Fallout - The Morning After (Purple Disco Machine Re-Work)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/D2.mp3?version=1",
+          "duration": null,
+          "position": "D2"
+        },
+        {
+          "title": "Purple Disco Machine - Dished (Male Stripper)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/E1.mp3?version=1",
+          "duration": null,
+          "position": "E1"
+        },
+        {
+          "title": "Fatboy Slim - Praise You (Purple Disco Machine Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/E2.mp3?version=1",
+          "duration": null,
+          "position": "E2"
+        },
+        {
+          "title": "Spiller Ft. Sophie Ellis-Bextor - Groovejet (If This Ain't Love) (Purple Disco Machine & Lorenz Rhode Remix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/F1.mp3?version=1",
+          "duration": null,
+          "position": "F1"
+        },
+        {
+          "title": "Weiss - Feel My Needs (Purple Disco Machine Mix)",
+          "uri": "https://creators-audio-snippets-production.fra1.cdn.digitaloceanspaces.com/custom/1769114641/F2.mp3?version=1",
+          "duration": null,
+          "position": "F2"
+        }
+      ]
+    }
+  }
+]
