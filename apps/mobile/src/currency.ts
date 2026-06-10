@@ -30,21 +30,20 @@ const FALLBACK_CURRENCIES: SupportedCurrency[] = [
   'PLN',
 ];
 
-// Human-readable names, display symbols, and a flag emoji for the picker and price formatting.
-// Keyed by ISO code. The flag is the issuing region (EUR uses the EU flag) and renders inside a
-// clipped circle in the currency picker.
-export const CURRENCY_META: Record<string, { name: string; symbol: string; flag: string }> = {
-  EUR: { name: 'Euro', symbol: '€', flag: '🇪🇺' },
-  USD: { name: 'US Dollar', symbol: '$', flag: '🇺🇸' },
-  GBP: { name: 'British Pound', symbol: '£', flag: '🇬🇧' },
-  JPY: { name: 'Japanese Yen', symbol: '¥', flag: '🇯🇵' },
-  CHF: { name: 'Swiss Franc', symbol: 'CHF', flag: '🇨🇭' },
-  CAD: { name: 'Canadian Dollar', symbol: 'CA$', flag: '🇨🇦' },
-  AUD: { name: 'Australian Dollar', symbol: 'A$', flag: '🇦🇺' },
-  SEK: { name: 'Swedish Krona', symbol: 'kr', flag: '🇸🇪' },
-  NOK: { name: 'Norwegian Krone', symbol: 'kr', flag: '🇳🇴' },
-  DKK: { name: 'Danish Krone', symbol: 'kr', flag: '🇩🇰' },
-  PLN: { name: 'Polish Zloty', symbol: 'zł', flag: '🇵🇱' },
+// Human-readable names and display symbols for the picker and price formatting. Keyed by ISO code.
+// The symbol renders inside a coin-like circle in the currency picker.
+export const CURRENCY_META: Record<string, { name: string; symbol: string }> = {
+  EUR: { name: 'Euro', symbol: '€' },
+  USD: { name: 'US Dollar', symbol: '$' },
+  GBP: { name: 'British Pound', symbol: '£' },
+  JPY: { name: 'Japanese Yen', symbol: '¥' },
+  CHF: { name: 'Swiss Franc', symbol: 'CHF' },
+  CAD: { name: 'Canadian Dollar', symbol: 'CA$' },
+  AUD: { name: 'Australian Dollar', symbol: 'A$' },
+  SEK: { name: 'Swedish Krona', symbol: 'kr' },
+  NOK: { name: 'Norwegian Krone', symbol: 'kr' },
+  DKK: { name: 'Danish Krone', symbol: 'kr' },
+  PLN: { name: 'Polish Zloty', symbol: 'zł' },
 };
 
 // Format a price for display: symbol-prefixed where we know the symbol, otherwise the code. Returns
