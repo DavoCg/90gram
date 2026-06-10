@@ -241,11 +241,31 @@ model User {
   sessions  Session[]
   accounts  Account[]
   favorites Favorite[]
+  setting   UserSetting?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+/// Per-user app preferences. One row per user (PK == userId, a 1:1 with User). Kept separate from
+/// the better-auth `users` table so that mirror stays exactly in lockstep with better-auth's schema
+/// (the db skill: never bolt arbitrary columns onto the auth tables). Currently just the display
+/// currency the app converts all prices into (ISO-4217, defaults to "EUR"). The scraper never
+/// touches this table.
+model UserSetting {
+  userId String @id @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ISO-4217 code the user wants prices shown in. Validated against the supported set at the API
+  // boundary (Zod); stored as a plain string here, mirroring Offer.currentCurrency.
+  currency String @default("EUR")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_settings")
 }
 
 /// A signed-in session. The `token` is the bearer the client stores (SecureStore on

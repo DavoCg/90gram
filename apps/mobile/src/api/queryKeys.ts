@@ -18,4 +18,8 @@ export const queryKeys = {
     // The favorited tracks (not paginated: tracks are not a vinyls list).
     tracks: ['favorites', 'tracks'] as const,
   },
+  // The signed-in user's settings (display currency today).
+  settings: ['settings'] as const,
+  // The supported display currencies (drives the picker; rarely changes).
+  currencies: ['currencies'] as const,
 };

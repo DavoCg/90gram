@@ -68,6 +68,15 @@ carry no `@default` on `id`. The scraper never touches these tables. If you bump
 auth plugin that needs new columns, regenerate the expected shape and migrate here (Prisma stays the
 sole owner; never let the better-auth CLI run DDL against this database).
 
+## Per-user data (favorites, settings)
+
+`Favorite` (`favorites`) and `UserSetting` (`user_settings`) hang off `User` and are owned by the
+app, not the scraper (it never touches them). `UserSetting` is a 1:1 with `User` (PK == `userId`),
+holding the display `currency` (ISO-4217, defaults to `"EUR"`) the API converts all prices into; it
+is kept as its own table rather than columns on `users` so the better-auth mirror stays exact. The
+supported currency set is validated at the API boundary (Zod), not by a DB enum, mirroring how
+`Offer.currentCurrency` is a plain string.
+
 ## Workflow
 
 - Edit `prisma/schema.prisma`, then `pnpm --filter @getvinyls/db migrate` (creates a migration + applies it).

@@ -17,20 +17,23 @@ import { player$ } from '../audio/store';
 import { useThemeColors } from '../theme/colors';
 import { useScreenRefresh } from '../hooks/use-screen-refresh';
 import { BIG_COVER_MAX } from '../theme/sizes';
+import { formatPrice } from '../currency';
 
 // Leaves room at the bottom of the scroll for the floating mini-player.
 const LIST_BOTTOM_PADDING = 160;
 
-// "from EUR 24.99" using the cheapest offer across shops, null when no priced offer.
+// "from €24.99" using the cheapest offer across shops (in the display currency), null when no
+// priced offer.
 function formatFromPrice(price: number | null, currency: string | null): string | null {
-  if (price === null) return null;
-  return `from ${currency ?? ''}${currency ? ' ' : ''}${price.toFixed(2)}`.trim();
+  const formatted = formatPrice(price, currency);
+  return formatted === null ? null : `from ${formatted}`;
 }
 
-// "EUR 24.99" for a single offer, null when the offer carries no price.
-function formatOfferPrice(price: number | null, currency: string | null): string | null {
-  if (price === null) return null;
-  return `${currency ?? ''}${currency ? ' ' : ''}${price.toFixed(2)}`.trim();
+// The shop's original (pre-conversion) price, shown under the converted one only when it actually
+// differs (a different source currency), so a EUR listing viewed in EUR shows nothing extra.
+function formatOriginalPrice(offer: OfferDto): string | null {
+  if (offer.originalCurrency === null || offer.originalCurrency === offer.currency) return null;
+  return formatPrice(offer.originalPrice, offer.originalCurrency);
 }
 
 // A track plus the parent-vinyl context the favorites list needs to render and navigate.
@@ -265,7 +268,8 @@ export default function VinylDetailScreen() {
               Available at
             </Text>
             {vinyl.offers.map((offer) => {
-              const offerPrice = formatOfferPrice(offer.price, offer.currency);
+              const offerPrice = formatPrice(offer.price, offer.currency);
+              const originalPrice = formatOriginalPrice(offer);
               return (
                 <Pressable
                   key={offer.id}
@@ -282,7 +286,16 @@ export default function VinylDetailScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  {offerPrice ? <Text size="sm">{offerPrice}</Text> : null}
+                  {offerPrice ? (
+                    <View className="items-end">
+                      <Text size="sm">{offerPrice}</Text>
+                      {originalPrice ? (
+                        <Text size="xs" color="neutral-soft" className="mt-0.5">
+                          {originalPrice}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
                   <ChevronRight color={colors.muted} size={18} />
                 </Pressable>
               );

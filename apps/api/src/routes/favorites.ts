@@ -18,11 +18,16 @@ import {
   toVinylSummaryDto,
   toFavoriteTrackDto,
 } from '../schemas.js';
+import { currencyContext, type CurrencyVariables } from '../currency/middleware.js';
 
 // Favorites are the API's only per-user WRITE surface (the vinyl routes stay read-only). Each
 // handler resolves the better-auth session from the request and 401s when there is none; the
 // mobile client forwards the session cookie, so these authenticate without a CORS change.
-export const favoritesRouter = new OpenAPIHono();
+export const favoritesRouter = new OpenAPIHono<{ Variables: CurrencyVariables }>();
+
+// Favorited vinyls carry prices, so convert them into the signed-in user's display currency. (The
+// other favorites routes return ids/tracks with no prices, so they skip this.)
+favoritesRouter.use('/favorites/vinyls', currencyContext);
 
 // Resolve the signed-in user id, or null when the request carries no valid session.
 async function getUserId(c: Context): Promise<string | null> {
@@ -94,7 +99,8 @@ favoritesRouter.openapi(listFavoriteVinylsRoute, async (c) => {
     include: { vinyl: { include: vinylSummaryInclude } },
   });
   const { items, nextCursor } = toPage(rows, limit);
-  const vinyls = items.flatMap((row) => (row.vinyl ? [toVinylSummaryDto(row.vinyl)] : []));
+  const converter = c.var.converter;
+  const vinyls = items.flatMap((row) => (row.vinyl ? [toVinylSummaryDto(row.vinyl, converter)] : []));
   return c.json({ vinyls, nextCursor }, 200);
 });
 

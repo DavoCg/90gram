@@ -180,6 +180,23 @@
           "previewUrl"
         ]
       },
+      "SupportedCurrency": {
+        "type": "string",
+        "enum": [
+          "EUR",
+          "USD",
+          "GBP",
+          "JPY",
+          "CHF",
+          "CAD",
+          "AUD",
+          "SEK",
+          "NOK",
+          "DKK",
+          "PLN"
+        ],
+        "example": "GBP"
+      },
       "Vinyl": {
         "allOf": [
           {
@@ -243,6 +260,20 @@
             ],
             "example": "EUR"
           },
+          "originalPrice": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "example": 21.5
+          },
+          "originalCurrency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "GBP"
+          },
           "scrapedAt": {
             "type": [
               "string",
@@ -260,6 +291,8 @@
           "condition",
           "price",
           "currency",
+          "originalPrice",
+          "originalCurrency",
           "scrapedAt"
         ]
       },
@@ -531,6 +564,63 @@
         "required": [
           "success"
         ]
+      },
+      "CurrencyList": {
+        "type": "object",
+        "properties": {
+          "currencies": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/SupportedCurrency"
+                },
+                {
+                  "example": "EUR"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "currencies"
+        ]
+      },
+      "CurrencySetting": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportedCurrency"
+              },
+              {
+                "example": "EUR"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency"
+        ]
+      },
+      "UpdateCurrencySetting": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportedCurrency"
+              },
+              {
+                "example": "EUR"
+              }
+            ]
+          }
+        },
+        "required": [
+          "currency"
+        ]
       }
     },
     "parameters": {}
@@ -564,11 +654,19 @@
             "required": false,
             "name": "cursor",
             "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/SupportedCurrency"
+            },
+            "required": false,
+            "name": "currency",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary.",
+            "description": "A paginated page of vinyls with their tracks, genres, and a cheapest-price summary. Vinyls listed by more shops come first (so records available in multiple shops lead), then newest first. The cursor is an offset into this ranking.",
             "content": {
               "application/json": {
                 "schema": {
@@ -596,6 +694,14 @@
             "required": true,
             "name": "id",
             "in": "path"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/SupportedCurrency"
+            },
+            "required": false,
+            "name": "currency",
+            "in": "query"
           }
         ],
         "responses": {
@@ -721,6 +827,14 @@
             },
             "required": false,
             "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/SupportedCurrency"
+            },
+            "required": false,
+            "name": "currency",
             "in": "query"
           }
         ],
@@ -959,6 +1073,93 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/currencies": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "List the supported display currencies",
+        "responses": {
+          "200": {
+            "description": "The currencies a user can choose to view prices in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrencyList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Get the signed-in user settings",
+        "responses": {
+          "200": {
+            "description": "The user's settings (the default currency when none has been saved yet).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrencySetting"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "Update the signed-in user settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrencySetting"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated settings.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrencySetting"
                 }
               }
             }
