@@ -24,10 +24,10 @@ function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
   return (
     <Pressable
       onPress={() => onPress(vinyl)}
-      className={`flex-row items-center gap-3 px-4 py-3 ${isCurrent ? 'bg-surface-2' : 'bg-bg'}`}
+      className={`flex-row items-center gap-3 px-4 py-2 ${isCurrent ? 'bg-surface-2' : 'bg-bg'}`}
     >
       <CoverArt uri={vinyl.coverArtUrl} size={56} radius={8} />
-      <View className="flex-1 gap-1.5">
+      <View className="flex-1 gap-0.5">
         <Text numberOfLines={1} size="md" weight="semibold">
           {vinyl.title}
         </Text>
@@ -36,7 +36,7 @@ function VinylRowBase({ vinyl, isCurrent, onPress }: VinylRowProps) {
           {vinyl.year ? ` · ${vinyl.year}` : ''}
         </Text>
       </View>
-      <View className="items-end gap-1.5">
+      <View className="items-end gap-0.5">
         {fromPrice ? <Text size="md">{fromPrice}</Text> : null}
         {vinyl.shopCount > 0 ? (
           <Text size="sm" color="neutral-soft">
@@ -54,4 +54,4 @@ export const VinylRow = memo(VinylRowBase);
 // Approximate rendered height of a row (two text lines with spacing dominate the 56px cover, plus
 // vertical padding). Fed to LegendList as `estimatedItemSize` so the first frame renders the right
 // number of rows; the real measured sizes take over after layout.
-export const VINYL_ROW_ESTIMATED_HEIGHT = 84;
+export const VINYL_ROW_ESTIMATED_HEIGHT = 72;
