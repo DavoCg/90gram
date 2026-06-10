@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -11,6 +12,7 @@ import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/Vi
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useThemeColors } from '../../../src/theme/colors';
+import { useScreenRefresh } from '../../../src/hooks/use-screen-refresh';
 import { player$ } from '../../../src/audio/store';
 
 // The header user button (top-right): opens the settings page within the Home stack.
@@ -33,8 +35,10 @@ const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useVinyls();
+  const { refreshing, handleRefresh } = useScreenRefresh(refetch);
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
@@ -114,6 +118,14 @@ export default function HomeScreen() {
         onEndReachedThreshold={0.5}
         ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
+          />
+        }
       />
     </View>
   );
