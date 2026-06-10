@@ -21,6 +21,15 @@ import {
 
 export const vinylsRouter = new OpenAPIHono();
 
+// GET /vinyls is ranked by shop count (most shops first), a relation aggregate that Prisma's keyset
+// `cursor` cannot resume from, so this one list pages by offset and carries that offset in `cursor`.
+// A missing or malformed cursor starts at the first page.
+function parseOffset(cursor: string | undefined): number {
+  if (cursor === undefined) return 0;
+  const n = Number(cursor);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
+
 const listVinylsRoute = createRoute({
   method: 'get',
   path: '/vinyls',
@@ -30,7 +39,9 @@ const listVinylsRoute = createRoute({
   responses: {
     200: {
       description:
-        'A cursor-paginated page of vinyls with their tracks, genres, and a cheapest-price summary.',
+        'A paginated page of vinyls with their tracks, genres, and a cheapest-price summary. Vinyls ' +
+        'listed by more shops come first (so records available in multiple shops lead), then newest ' +
+        'first. The cursor is an offset into this ranking.',
       content: { 'application/json': { schema: VinylListSchema } },
     },
   },
@@ -38,13 +49,17 @@ const listVinylsRoute = createRoute({
 
 vinylsRouter.openapi(listVinylsRoute, async (c) => {
   const { limit, cursor } = c.req.valid('query');
+  const offset = parseOffset(cursor);
   const rows = await prisma.vinyl.findMany({
-    // Deterministic order (newest first, id as tiebreaker) so the keyset cursor is stable.
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    ...cursorArgs(limit, cursor),
+    // Most shops first (records sold in multiple shops lead), then newest, id as a stable tiebreaker.
+    orderBy: [{ shopVinyls: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }],
+    skip: offset,
+    take: limit + 1, // over-fetch by one to detect a further page
     include: vinylSummaryInclude,
   });
-  const { items, nextCursor } = toPage(rows, limit);
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const nextCursor = hasMore ? String(offset + limit) : null;
   return c.json({ vinyls: items.map(toVinylSummaryDto), nextCursor }, 200);
 });
 
