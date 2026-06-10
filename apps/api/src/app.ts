@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { auth } from './auth.js';
 import { vinylsRouter } from './routes/vinyls.js';
 import { favoritesRouter } from './routes/favorites.js';
+import { settingsRouter } from './routes/settings.js';
 
 // The OpenAPI document is GENERATED from the registered Zod routes, never authored by hand.
 export function createApp(): OpenAPIHono {
@@ -31,6 +32,7 @@ export function createApp(): OpenAPIHono {
 
   app.route('/', vinylsRouter);
   app.route('/', favoritesRouter);
+  app.route('/', settingsRouter);
 
   // OpenAPI 3.1 JSON. This is the contract consumed by `pnpm gen:api-types`.
   app.doc31('/openapi.json', {

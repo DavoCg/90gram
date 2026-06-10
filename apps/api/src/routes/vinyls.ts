@@ -9,6 +9,7 @@ import {
   ErrorSchema,
   IdParamSchema,
   PaginationQuerySchema,
+  CurrencyQuerySchema,
   cursorArgs,
   toPage,
   vinylSummaryInclude,
@@ -18,8 +19,17 @@ import {
   toShopDetailDto,
   toGenreDto,
 } from '../schemas.js';
+import { currencyContext, type CurrencyVariables } from '../currency/middleware.js';
 
-export const vinylsRouter = new OpenAPIHono();
+// The price-returning routes resolve a display currency per request (see currencyContext) and expose
+// the converter on the typed context, so this router carries that variable type.
+export const vinylsRouter = new OpenAPIHono<{ Variables: CurrencyVariables }>();
+
+// Resolve a display currency + converter only on the price-returning routes (the list, the detail,
+// and a shop's vinyls). /shops, /shops/{id}, and /genres carry no prices, so they skip it.
+vinylsRouter.use('/vinyls', currencyContext);
+vinylsRouter.use('/vinyls/:id', currencyContext);
+vinylsRouter.use('/shops/:id/vinyls', currencyContext);
 
 // GET /vinyls is ranked by shop count (most shops first), a relation aggregate that Prisma's keyset
 // `cursor` cannot resume from, so this one list pages by offset and carries that offset in `cursor`.
@@ -35,7 +45,7 @@ const listVinylsRoute = createRoute({
   path: '/vinyls',
   tags: ['vinyls'],
   summary: 'List vinyls',
-  request: { query: PaginationQuerySchema },
+  request: { query: PaginationQuerySchema.extend(CurrencyQuerySchema.shape) },
   responses: {
     200: {
       description:
@@ -60,7 +70,8 @@ vinylsRouter.openapi(listVinylsRoute, async (c) => {
   const hasMore = rows.length > limit;
   const items = hasMore ? rows.slice(0, limit) : rows;
   const nextCursor = hasMore ? String(offset + limit) : null;
-  return c.json({ vinyls: items.map(toVinylSummaryDto), nextCursor }, 200);
+  const converter = c.var.converter;
+  return c.json({ vinyls: items.map((row) => toVinylSummaryDto(row, converter)), nextCursor }, 200);
 });
 
 const getVinylRoute = createRoute({
@@ -68,7 +79,7 @@ const getVinylRoute = createRoute({
   path: '/vinyls/{id}',
   tags: ['vinyls'],
   summary: 'Get a vinyl by id',
-  request: { params: IdParamSchema },
+  request: { params: IdParamSchema, query: CurrencyQuerySchema },
   responses: {
     200: {
       description: 'The requested vinyl with its tracks, genres, and shop offers.',
@@ -94,7 +105,7 @@ vinylsRouter.openapi(getVinylRoute, async (c) => {
   if (!row) {
     return c.json({ error: 'not_found', message: `No vinyl with id ${id}` }, 404);
   }
-  return c.json(toVinylDto(row), 200);
+  return c.json(toVinylDto(row, c.var.converter), 200);
 });
 
 const listShopsRoute = createRoute({
@@ -154,7 +165,7 @@ const listShopVinylsRoute = createRoute({
   path: '/shops/{id}/vinyls',
   tags: ['shops'],
   summary: "List a shop's vinyls",
-  request: { params: IdParamSchema, query: PaginationQuerySchema },
+  request: { params: IdParamSchema, query: PaginationQuerySchema.extend(CurrencyQuerySchema.shape) },
   responses: {
     200: {
       description: 'A cursor-paginated page of the vinyls this shop lists.',
@@ -175,7 +186,11 @@ vinylsRouter.openapi(listShopVinylsRoute, async (c) => {
     include: { vinyl: { include: vinylSummaryInclude } },
   });
   const { items, nextCursor } = toPage(rows, limit);
-  return c.json({ vinyls: items.map((sv) => toVinylSummaryDto(sv.vinyl)), nextCursor }, 200);
+  const converter = c.var.converter;
+  return c.json(
+    { vinyls: items.map((sv) => toVinylSummaryDto(sv.vinyl, converter)), nextCursor },
+    200,
+  );
 });
 
 const listGenresRoute = createRoute({

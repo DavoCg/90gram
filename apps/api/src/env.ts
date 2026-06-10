@@ -20,6 +20,17 @@ const EnvSchema = z.object({
   // logged to the server console so the flow is usable in local development without a provider.
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM: z.string().default('getvinyls <onboarding@resend.dev>'),
+
+  // Currency exchange rates (Frankfurter). The base is EUR (our default display currency), so the
+  // cached table is keyed per-EUR. The TTL bounds how stale a cached table may get; Frankfurter
+  // publishes rates about once per working day, so a few hours is plenty. Override the URL only for
+  // tests or a self-hosted mirror.
+  FRANKFURTER_BASE_URL: z.url().default('https://api.frankfurter.dev/v1'),
+  EXCHANGE_RATES_TTL_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(6 * 60 * 60 * 1000),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

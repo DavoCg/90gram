@@ -1,5 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import type { Prisma, ShopRow, GenreRow } from '@getvinyls/db';
+import type { CurrencyConverter } from './currency/converter.js';
+import { SupportedCurrencySchema } from './currency/currencies.js';
 
 // The wire shapes for the API. Zod schemas are the source of truth; the OpenAPI document
 // and the generated client types both derive from these.
@@ -44,8 +46,13 @@ export const OfferSchema = z
     sourceUrl: z.url().nullable().openapi({ example: 'https://www.discogs.com/release/123456' }),
     stockStatus: StockStatusSchema,
     condition: z.string().nullable().openapi({ example: 'NM' }),
+    // `price`/`currency` are converted into the request's display currency (the signed-in user's
+    // setting, a ?currency= override, or EUR). `originalPrice`/`originalCurrency` are the values the
+    // shop actually listed, kept so the app can show what the offer was before conversion.
     price: z.number().nullable().openapi({ example: 24.99 }),
     currency: z.string().nullable().openapi({ example: 'EUR' }),
+    originalPrice: z.number().nullable().openapi({ example: 21.5 }),
+    originalCurrency: z.string().nullable().openapi({ example: 'GBP' }),
     scrapedAt: z.iso.datetime().nullable().openapi({ example: '2026-06-01T12:00:00.000Z' }),
   })
   .openapi('Offer');
@@ -61,7 +68,9 @@ export const VinylSummarySchema = z
     format: z.string().nullable().openapi({ example: 'LP' }),
     genres: z.array(GenreSchema),
     tracks: z.array(TrackSchema),
-    // Cheapest current price across this vinyl's offers, and how many shops list it.
+    // Cheapest current price across this vinyl's offers, CONVERTED into the request's display
+    // currency (so "cheapest" is a like-for-like comparison even across mixed-currency offers), plus
+    // that currency and how many shops list it.
     lowestPrice: z.number().nullable().openapi({ example: 24.99 }),
     currency: z.string().nullable().openapi({ example: 'EUR' }),
     shopCount: z.number().int().openapi({ example: 3 }),
@@ -112,6 +121,39 @@ export const ErrorSchema = z
     message: z.string(),
   })
   .openapi('Error');
+
+// --- Currency (display currency + user setting) ---
+
+// Optional ?currency= override for the price-returning routes. Used for ANONYMOUS browsing; a
+// signed-in user's currency always comes from their saved setting (the server ignores this param
+// for them). Validated against the supported set; an invalid value falls back to the default.
+export const CurrencyQuerySchema = z.object({
+  currency: SupportedCurrencySchema.optional().openapi({
+    param: { name: 'currency', in: 'query' },
+    example: 'GBP',
+  }),
+});
+
+// The signed-in user's display-currency setting.
+export const CurrencySettingSchema = z
+  .object({
+    currency: SupportedCurrencySchema,
+  })
+  .openapi('CurrencySetting');
+
+// Body for updating the display-currency setting.
+export const UpdateCurrencySettingSchema = z
+  .object({
+    currency: SupportedCurrencySchema,
+  })
+  .openapi('UpdateCurrencySetting');
+
+// The list of currencies the app supports (drives the picker, keeps mobile in sync with the server).
+export const CurrencyListSchema = z
+  .object({
+    currencies: z.array(SupportedCurrencySchema),
+  })
+  .openapi('CurrencyList');
 
 // --- Favorites (per-user) ---
 
@@ -208,11 +250,15 @@ export const PaginationQuerySchema = z.object({
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
 // Prisma findMany args for keyset (cursor) pagination. Over-fetch by one row so the handler can tell
-// whether a further page exists. Pair every use with a deterministic orderBy ending in `id`.
-export function cursorArgs(limit: number, cursor: string | undefined) {
-  return cursor
-    ? ({ take: limit + 1, cursor: { id: cursor }, skip: 1 } as const)
-    : ({ take: limit + 1 } as const);
+// whether a further page exists. Pair every use with a deterministic orderBy ending in `id`. The
+// explicit return type (rather than a `... as const` union) keeps the spread assignable to Prisma's
+// findMany args: a `cursor`-as-const union widens to `cursor?: {id} | undefined`, which trips up the
+// generated arg type.
+export function cursorArgs(
+  limit: number,
+  cursor: string | undefined,
+): { take: number; cursor?: { id: string }; skip?: number } {
+  return cursor ? { take: limit + 1, cursor: { id: cursor }, skip: 1 } : { take: limit + 1 };
 }
 
 // Slice the over-fetched rows into a single page plus the cursor for the following page (the id of
@@ -285,45 +331,55 @@ export function toTrackDto(row: VinylSummaryRow['tracks'][number]): z.infer<type
   };
 }
 
-// An offer's shop and source URL live on its parent ShopVinyl, so the mapper takes both.
+// An offer's shop and source URL live on its parent ShopVinyl, so the mapper takes both. The
+// converter turns the shop's listed (original) price into the request's display currency; both the
+// converted and the original price/currency are returned.
 export function toOfferDto(
   offer: OfferRow,
   shopVinyl: ShopVinylWithOffersRow,
+  converter: CurrencyConverter,
 ): z.infer<typeof OfferSchema> {
+  const originalPrice = offer.currentPrice === null ? null : Number(offer.currentPrice);
+  const converted =
+    originalPrice === null ? null : converter.convert(originalPrice, offer.currentCurrency);
   return {
     id: offer.id,
     shop: toShopDto(shopVinyl.shop),
     sourceUrl: shopVinyl.sourceUrl,
     stockStatus: offer.stockStatus,
     condition: offer.condition,
-    price: offer.currentPrice === null ? null : Number(offer.currentPrice),
-    currency: offer.currentCurrency,
+    price: converted === null ? null : converted.amount,
+    currency: converted === null ? converter.target : converted.currency,
+    originalPrice,
+    originalCurrency: offer.currentCurrency,
     scrapedAt: offer.scrapedAt === null ? null : offer.scrapedAt.toISOString(),
   };
 }
 
-// Compute the cheapest current price (and its currency) across all offers on all of a vinyl's
-// shop listings.
+// Compute the cheapest current price across all offers on all of a vinyl's shop listings, comparing
+// in the display currency (so a cheaper GBP offer beats a pricier EUR one correctly). Returns the
+// converted amount and the currency it is expressed in (the converter's target).
 function lowestOffer(
   shopVinyls: { offers: { currentPrice: Prisma.Decimal | null; currentCurrency: string | null }[] }[],
+  converter: CurrencyConverter,
 ): { lowestPrice: number | null; currency: string | null } {
   let lowestPrice: number | null = null;
   let currency: string | null = null;
   for (const shopVinyl of shopVinyls) {
     for (const offer of shopVinyl.offers) {
       if (offer.currentPrice === null) continue;
-      const value = Number(offer.currentPrice);
-      if (lowestPrice === null || value < lowestPrice) {
-        lowestPrice = value;
-        currency = offer.currentCurrency;
+      const converted = converter.convert(Number(offer.currentPrice), offer.currentCurrency);
+      if (lowestPrice === null || converted.amount < lowestPrice) {
+        lowestPrice = converted.amount;
+        currency = converted.currency;
       }
     }
   }
   return { lowestPrice, currency };
 }
 
-export function toVinylSummaryDto(row: VinylSummaryRow): VinylSummary {
-  const { lowestPrice, currency } = lowestOffer(row.shopVinyls);
+export function toVinylSummaryDto(row: VinylSummaryRow, converter: CurrencyConverter): VinylSummary {
+  const { lowestPrice, currency } = lowestOffer(row.shopVinyls, converter);
   // One ShopVinyl per shop that lists this record; count the distinct shops.
   const shopCount = new Set(row.shopVinyls.map((sv) => sv.shopId)).size;
   return {
@@ -342,10 +398,12 @@ export function toVinylSummaryDto(row: VinylSummaryRow): VinylSummary {
   };
 }
 
-export function toVinylDto(row: VinylDetailRow): Vinyl {
+export function toVinylDto(row: VinylDetailRow, converter: CurrencyConverter): Vinyl {
   return {
-    ...toVinylSummaryDto(row),
-    offers: row.shopVinyls.flatMap((sv) => sv.offers.map((offer) => toOfferDto(offer, sv))),
+    ...toVinylSummaryDto(row, converter),
+    offers: row.shopVinyls.flatMap((sv) =>
+      sv.offers.map((offer) => toOfferDto(offer, sv, converter)),
+    ),
   };
 }
 

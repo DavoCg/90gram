@@ -32,5 +32,9 @@ export type FavoriteTrackDto = components['schemas']['FavoriteTrack'];
 export type FavoriteTargetType = components['schemas']['FavoriteTargetType'];
 export type CreateFavoriteDto = components['schemas']['CreateFavorite'];
 export type FavoriteRefDto = components['schemas']['FavoriteRef'];
+export type SupportedCurrency = components['schemas']['SupportedCurrency'];
+export type CurrencySettingDto = components['schemas']['CurrencySetting'];
+export type UpdateCurrencySettingDto = components['schemas']['UpdateCurrencySetting'];
+export type CurrencyListDto = components['schemas']['CurrencyList'];
 
 export type { paths, components } from './schema';

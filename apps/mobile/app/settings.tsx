@@ -5,6 +5,7 @@ import { Text } from '../src/components/text';
 import { Button } from '../src/components/button';
 import { AppHeader } from '../src/components/AppHeader';
 import { CheckForUpdatesRow } from '../src/components/check-for-updates-row';
+import { CurrencySettingRow } from '../src/components/currency-setting-row';
 import { toast } from '../src/components/toast';
 import { useThemeColors } from '../src/theme/colors';
 import { useDarkMode } from '../src/theme/theme';
@@ -22,6 +23,9 @@ export default function SettingsScreen() {
         <SettingsSection title="Account">
           <AccountRow />
           <SignOutRow />
+        </SettingsSection>
+        <SettingsSection title="Preferences">
+          <CurrencySettingRow />
         </SettingsSection>
         <SettingsSection title="Appearance">
           <DarkModeRow />

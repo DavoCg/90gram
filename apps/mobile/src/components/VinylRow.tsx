@@ -3,6 +3,7 @@ import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { Pressable, View } from '../theme/uniwind';
 import { CoverArt } from './cover-art';
 import { Text } from './text';
+import { formatPrice } from '../currency';
 
 export interface VinylRowProps {
   vinyl: VinylSummaryDto;
@@ -11,10 +12,11 @@ export interface VinylRowProps {
   onPress: (vinyl: VinylSummaryDto) => void;
 }
 
-// "from EUR 24.99" using the cheapest offer across shops, null when no priced offer.
+// "from €24.99" using the cheapest offer across shops (converted to the display currency), null
+// when no priced offer.
 function formatFromPrice(price: number | null, currency: string | null): string | null {
-  if (price === null) return null;
-  return `from ${currency ?? ''}${currency ? ' ' : ''}${price.toFixed(2)}`.trim();
+  const formatted = formatPrice(price, currency);
+  return formatted === null ? null : `from ${formatted}`;
 }
 
 function VinylRowBase({ vinyl, isCurrent, isPlaying, onPress }: VinylRowProps) {
