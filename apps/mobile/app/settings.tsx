@@ -5,6 +5,7 @@ import { Pressable, ScrollView, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
 import { Button } from '../src/components/button';
 import { AppHeader } from '../src/components/AppHeader';
+import { BottomSheetDemoRow } from '../src/components/bottom-sheet-demo-row';
 import { CheckForUpdatesRow } from '../src/components/check-for-updates-row';
 import { CurrencySettingRow } from '../src/components/currency-setting-row';
 import { toast } from '../src/components/toast';
@@ -43,6 +44,7 @@ export default function SettingsScreen() {
         </SettingsSection>
         <SettingsSection title="Developer">
           <ToastDemoRow />
+          <BottomSheetDemoRow />
         </SettingsSection>
       </ScrollView>
     </View>

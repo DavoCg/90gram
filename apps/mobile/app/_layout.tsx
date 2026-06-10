@@ -2,6 +2,7 @@ import '../global.css';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -20,13 +21,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <StatusBar style="auto" />
-          <RootNavigator />
-          {/* Global toast host: mounted above the navigator so toasts float over every screen.
-              Lives inside the gesture-handler + safe-area providers, which sonner-native needs. */}
-          <AppToaster />
-        </QueryClientProvider>
+        {/* BottomSheetProvider owns the portal that ModalBottomSheet renders through, so it wraps
+            the whole app (high enough that modal sheets float over the navigator and the toasts). */}
+        <BottomSheetProvider>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="auto" />
+            <RootNavigator />
+            {/* Global toast host: mounted above the navigator so toasts float over every screen.
+                Lives inside the gesture-handler + safe-area providers, which sonner-native needs. */}
+            <AppToaster />
+          </QueryClientProvider>
+        </BottomSheetProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
