@@ -185,6 +185,8 @@ export default function FavoritesScreen() {
         data={favoriteVinyls}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         recycleItems
         estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}

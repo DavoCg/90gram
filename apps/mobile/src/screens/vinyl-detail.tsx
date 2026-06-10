@@ -142,6 +142,8 @@ export default function VinylDetailScreen() {
       <AppHeader right={<FavoriteButton targetType="vinyl" vinyl={vinyl} />} />
       <ScrollView
         className="flex-1"
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
         refreshControl={
           <RefreshControl

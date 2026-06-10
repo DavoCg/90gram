@@ -126,6 +126,8 @@ export default function ShopDetailScreen() {
         data={vinyls ?? []}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         recycleItems
         estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
         ListHeaderComponent={<ShopHeader shop={shop} />}
