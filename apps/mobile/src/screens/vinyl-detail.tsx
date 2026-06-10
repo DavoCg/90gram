@@ -16,6 +16,7 @@ import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
 import { useThemeColors } from '../theme/colors';
 import { useScreenRefresh } from '../hooks/use-screen-refresh';
+import { useStackPrefix } from '../hooks/use-stack-prefix';
 import { BIG_COVER_MAX } from '../theme/sizes';
 
 // Leaves room at the bottom of the scroll for the floating mini-player.
@@ -60,6 +61,7 @@ export default function VinylDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: vinyl, isLoading, isError, refetch } = useVinyl(id ?? '');
   const router = useRouter();
+  const stackPrefix = useStackPrefix();
   const colors = useThemeColors();
   const { width: screenWidth } = useWindowDimensions();
   const { refreshing, handleRefresh } = useScreenRefresh(refetch);
@@ -99,12 +101,14 @@ export default function VinylDetailScreen() {
     if (vinyl) void audioEngine.shuffleVinyl(vinyl);
   }, [vinyl]);
 
-  // Open the shop page (name, address, the rest of its catalogue) for an offer's shop.
+  // Open the shop page (name, address, the rest of its catalogue) for an offer's shop. Push it onto
+  // the SAME tab stack this record was opened in (Home or Favorites) so the tab stays put; an
+  // absolute `/shop/[id]` would always land in the Home stack and jump the user back to Home.
   const onPressOffer = useCallback(
     (offer: OfferDto) => {
-      router.push(`/shop/${offer.shop.id}`);
+      router.push(`${stackPrefix}/shop/${offer.shop.id}`);
     },
-    [router],
+    [router, stackPrefix],
   );
 
   if (isLoading || !vinyl) {

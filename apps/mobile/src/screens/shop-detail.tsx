@@ -14,6 +14,7 @@ import { AppHeader } from '../components/AppHeader';
 import { useShop, useShopVinyls } from '../api/hooks';
 import { useThemeColors } from '../theme/colors';
 import { useScreenRefresh } from '../hooks/use-screen-refresh';
+import { useStackPrefix } from '../hooks/use-stack-prefix';
 import { player$ } from '../audio/store';
 
 // Leaves room at the bottom of the list for the floating mini-player + the tab bar.
@@ -57,6 +58,7 @@ export default function ShopDetailScreen() {
     isFetchingNextPage,
   } = useShopVinyls(id ?? '');
   const router = useRouter();
+  const stackPrefix = useStackPrefix();
   const colors = useThemeColors();
   // A pull refreshes both the shop header and its vinyl listing.
   const { refreshing, handleRefresh } = useScreenRefresh(() =>
@@ -67,11 +69,13 @@ export default function ShopDetailScreen() {
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
   const playWhenReady = use$(player$.playWhenReady);
 
+  // Open a record onto the SAME tab stack this shop was opened in (Home or Favorites) so the tab
+  // stays put; an absolute `/vinyl/[id]` would always land in the Home stack and jump to Home.
   const onPressVinyl = useCallback(
     (vinyl: VinylSummaryDto) => {
-      router.push(`/vinyl/${vinyl.id}`);
+      router.push(`${stackPrefix}/vinyl/${vinyl.id}`);
     },
-    [router],
+    [router, stackPrefix],
   );
 
   const renderItem = useCallback(
