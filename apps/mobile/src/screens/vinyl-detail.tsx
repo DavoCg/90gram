@@ -99,10 +99,13 @@ export default function VinylDetailScreen() {
     if (vinyl) void audioEngine.shuffleVinyl(vinyl);
   }, [vinyl]);
 
-  // Open the shop page (name, address, the rest of its catalogue) for an offer's shop.
+  // Open the shop page (name, address, the rest of its catalogue) for an offer's shop. This screen is
+  // shared across tab stacks (Home, Favorites), so navigate to the sibling `shop/[id]` RELATIVE to the
+  // current route: that keeps the push inside whichever stack opened the record. An absolute
+  // `/shop/[id]` would always resolve to the Home stack and jump the user back to Home.
   const onPressOffer = useCallback(
     (offer: OfferDto) => {
-      router.push(`/shop/${offer.shop.id}`);
+      router.push(`../shop/${offer.shop.id}`);
     },
     [router],
   );

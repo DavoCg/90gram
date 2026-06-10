@@ -67,9 +67,12 @@ export default function ShopDetailScreen() {
   // Follow play/pause intent so the row indicator does not flash while a tapped track buffers.
   const playWhenReady = use$(player$.playWhenReady);
 
+  // This screen is shared across tab stacks (Home, Favorites), so open a record at the sibling
+  // `vinyl/[id]` RELATIVE to the current route, keeping the push inside whichever stack opened the
+  // shop. An absolute `/vinyl/[id]` would always resolve to the Home stack and jump to Home.
   const onPressVinyl = useCallback(
     (vinyl: VinylSummaryDto) => {
-      router.push(`/vinyl/${vinyl.id}`);
+      router.push(`../vinyl/${vinyl.id}`);
     },
     [router],
   );
