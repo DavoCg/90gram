@@ -49,7 +49,10 @@ const PAD = 20;
 // iOS form-sheet corner radius. Constant: it does not change with the drag.
 const SHEET_RADIUS = 38;
 
-const SPRING = { damping: 22, stiffness: 180, mass: 0.7 } as const;
+// Open (mini -> big) and the close-on-release morph both ride this spring. Stiffer + lighter than
+// before so it snaps quickly, with damping kept near-critical so it settles fast without sloppy
+// overshoot.
+const SPRING = { damping: 26, stiffness: 320, mass: 0.55 } as const;
 // Snappier spring for the play/pause cover scale: stiffer and lighter so it pops quickly.
 const SCALE_SPRING = { damping: 18, stiffness: 380, mass: 0.5 } as const;
 
