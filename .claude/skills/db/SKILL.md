@@ -52,6 +52,11 @@ A vinyl is sold by many shops, so the data is normalized into a canonical releas
   price (also denormalized onto `Offer`).
 - `Genre` (`genres`, unique name/slug) joins to the canonical `Vinyl` through the explicit `VinylGenre`
   (`vinyl_genres`, composite PK `(vinylId, genreId)`) join table, so genres union across a vinyl's shops.
+  `Genre.validated` (Boolean, `@default(false)`) is a curation gate: scraper-discovered genres start
+  unvalidated and the public API hides them (the `/genres` list and the genres on a vinyl) until a
+  human flips the flag. The scraper NEVER sets it true (insert relies on the DB default; the upsert's
+  conflict path does not touch `validated`, so it preserves a human's decision). Curate it in the
+  admin app (the genres list has a per-row validate toggle and a status filter).
 
 The scraper's idempotency keys are `shops.slug`, **`vinyls.matchKey`**, `tracks (vinylId, position)`,
 `genres.slug`, `vinyl_genres (vinylId, genreId)`, **`shop_vinyls (source, externalId)`**, and

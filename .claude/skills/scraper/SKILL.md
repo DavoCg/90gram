@@ -13,18 +13,45 @@ description: >-
 
 Python 3.12+, Scrapy, managed by `uv`. Lint/format with `ruff`, type-check with `pyright` (strict).
 NOT a pnpm workspace member; Turbo drives it via a thin `package.json` that shells out to `uv`/`ruff`/`pyright`
-(`lint`, `typecheck`, `scrape` tasks). It shares `DATABASE_URL` with Prisma and writes rows ONLY.
+(`lint`, `typecheck`, `test`, `scrape` tasks). It shares `DATABASE_URL` with Prisma and writes rows ONLY.
 
 ## Layout
 
 Standard Scrapy project under `getvinyls_scraper/`: `settings.py`, `items.py`, `pipelines.py`,
-`middlewares.py`, and one spider per source in `spiders/`. Adding a reseller is adding a spider, nothing else.
+`genres.py` (genre canonicalization), `middlewares.py`, and one spider per source in `spiders/`.
+Adding a reseller is adding a spider, nothing else.
 
 ## Politeness (Scrapy settings, not custom code)
 
 `ROBOTSTXT_OBEY = True`, AutoThrottle enabled, a sane `DOWNLOAD_DELAY` and per-domain concurrency cap,
 the built-in retry middleware for 429/5xx, and a real identifying `USER_AGENT`. Where a source offers an
 official API, request its JSON instead of parsing HTML. Review the target's robots.txt and terms before crawling.
+
+## Pipelines (genre sanitizing, then DB write)
+
+`ITEM_PIPELINES` runs `GenreSanitizerPipeline` (order 100) before `PostgresPipeline` (300).
+
+`GenreSanitizerPipeline` rewrites `item.genres` in place via `genres.sanitize_genres`, which does two
+things:
+
+1. Canonicalizes spelling/format variants onto one name (Avant-garde = Avantgarde = Avante-garde,
+   deephouse = Deep House, Drum&Bass = Drum N Bass). Rules live in `genres.py`: a comparison key
+   (lower-case, accent-stripped, every non-alphanumeric dropped) plus a conservative `_ALIASES` map
+   for the cases the `genres.slug` cannot merge on its own (a separator present in one form but joined
+   in another, or a genuine typo). Pure case/spacing/accent variants need no alias entry: they already
+   collapse because they slugify to the same `genres.slug` (the unique key). Adding a merge is a
+   one-line `_ALIASES` entry keyed by the variant's comparison key.
+2. Drops non-genres via the `_NON_GENRE_NAMES` blocklist (`is_genre`): shop tags that are medium/format
+   ("Vinyl Only", "Reissue"), stock/condition, or marketing labels ("Limited", "Banger"). Kept
+   conservative; ambiguous words are left in because the `Genre.validated` gate already hides anything
+   unreviewed.
+
+The slug rule (`slugify`) lives in `genres.py` and is imported by `pipelines.py`, so genre slugs are
+computed identically everywhere. The pipeline never sets `validated`: new genres take the DB default
+(false) and the upsert's conflict path does not touch it (see the db skill), so newly discovered
+genres stay hidden from the public API until a human validates them in the admin app (the genres list
+has a per-row toggle and a status filter). Unit tests for the canonicalization and blocklist live in
+`tests/test_genres.py` (`pnpm --filter @getvinyls/scraper test`).
 
 ## PostgresPipeline (direct DB writes)
 

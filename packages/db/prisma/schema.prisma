@@ -75,6 +75,11 @@ model Genre {
   name String @unique
   slug String @unique
 
+  /// Curation gate. Genres the scraper discovers start unvalidated and are hidden from the public
+  /// API (the `genres` list and the genres on a vinyl) until a human validates them, so newly
+  /// scraped genre strings cannot leak into the app unreviewed. The scraper never sets this true.
+  validated Boolean @default(false)
+
   vinyls VinylGenre[]
 
   createdAt DateTime @default(now()) @map("created_at")

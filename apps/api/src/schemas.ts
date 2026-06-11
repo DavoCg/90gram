@@ -277,7 +277,8 @@ export function toPage<T extends { id: string }>(
 // compute the cheapest price and shop count. Shared by every route that returns vinyl summaries.
 export const vinylSummaryInclude = {
   tracks: { orderBy: { position: 'asc' } },
-  genres: { include: { genre: true } },
+  // Only surface validated genres; unreviewed ones the scraper discovered stay hidden.
+  genres: { where: { genre: { validated: true } }, include: { genre: true } },
   shopVinyls: {
     select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } },
   },

@@ -36,14 +36,10 @@ from scrapy.exceptions import DropItem
 from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
+from .genres import sanitize_genres, slugify
 from .items import ListingItem, TrackItem
 
-_SLUG_RE = re.compile(r"[^a-z0-9]+")
 _NON_ALNUM_RE = re.compile(r"[^A-Z0-9]+")
-
-
-def _slugify(name: str) -> str:
-    return _SLUG_RE.sub("-", name.lower()).strip("-")
 
 
 def _normalize_key_part(value: str) -> str:
@@ -71,6 +67,21 @@ def _to_sqlalchemy_url(database_url: str) -> str:
     """
     parts = urlsplit(database_url)
     return urlunsplit(("postgresql+psycopg", parts.netloc, parts.path, "", ""))
+
+
+class GenreSanitizerPipeline:
+    """Canonicalize a listing's genres before it reaches the database.
+
+    Runs ahead of ``PostgresPipeline`` (a lower ``ITEM_PIPELINES`` order) and rewrites
+    ``item.genres`` in place, folding spelling and format variants onto one canonical name
+    ("Avantgarde"/"Avante-garde" -> "Avant-garde", "deephouse" -> "Deep House") so the ``genres``
+    table and its ``vinyl_genres`` joins stay clean. All rules live in ``genres.canonical_genre``;
+    this stage just applies them. Items with no genres pass through untouched."""
+
+    def process_item(self, item: Any) -> Any:
+        if isinstance(item, ListingItem):
+            item.genres = sanitize_genres(item.genres)
+        return item
 
 
 class PostgresPipeline:
@@ -270,7 +281,7 @@ class PostgresPipeline:
             clean = name.strip()
             if not clean:
                 continue
-            slug = _slugify(clean)
+            slug = slugify(clean)
             genre_stmt = (
                 pg_insert(genre_table)
                 .values(id=uuid4().hex, name=clean, slug=slug, updated_at=now)
