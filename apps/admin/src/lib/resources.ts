@@ -18,6 +18,10 @@ export interface ResourceDef {
   hasDetail: boolean;
   // Stable ordering for pagination.
   orderBy: Record<string, 'asc' | 'desc'>;
+  // Optional: a to-many relation to count and show as an extra `${countOf}Count` column.
+  countOf?: string;
+  // Optional: a boolean field the list can filter on and toggle per row (e.g. genres.validated).
+  toggleField?: string;
 }
 
 export const RESOURCES: ResourceDef[] = [
@@ -90,6 +94,9 @@ export const RESOURCES: ResourceDef[] = [
     idField: 'id',
     hasDetail: true,
     orderBy: { name: 'asc' },
+    // Count linked vinyls (shown as `vinylsCount`) and let the list filter/toggle the curation gate.
+    countOf: 'vinyls',
+    toggleField: 'validated',
   },
   {
     key: 'vinyl-genres',

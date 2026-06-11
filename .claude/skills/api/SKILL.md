@@ -22,6 +22,10 @@ Hono + `@hono/zod-openapi` (requires Zod v4). Read-only public API over the shar
   cheapest-price summary), `GET /vinyls/{id}` (detail, adds the shop offers), plus `GET /shops` and
   `GET /genres`. The list returns the lighter `VinylSummary`; detail extends it with `offers`. Add new read
   endpoints the same way; keep the API read-only.
+- Genres are gated by `Genre.validated`: `GET /genres` and the genres embedded in vinyl responses both
+  filter to `validated: true` (the `where` lives on `prisma.genre.findMany` and on the `genres` relation
+  in `vinylSummaryInclude` + the detail include). Unvalidated genres the scraper discovered stay hidden
+  until curated. The flag is internal: it is filtered on, not exposed in the wire schema.
 - Centralize env in `src/env.ts` (Zod-validated, fail fast). Read `DATABASE_URL` and `API_PORT` there.
 - Responses are typed from Zod output schemas. Map Prisma rows to the response schema explicitly (dates to
   ISO strings, Decimal to number/string) so the wire shape is stable and matches what openapi-typescript sees.

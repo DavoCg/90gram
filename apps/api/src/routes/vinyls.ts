@@ -98,7 +98,8 @@ vinylsRouter.openapi(getVinylRoute, async (c) => {
     where: { id },
     include: {
       tracks: { orderBy: { position: 'asc' } },
-      genres: { include: { genre: true } },
+      // Only surface validated genres (see vinylSummaryInclude).
+      genres: { where: { genre: { validated: true } }, include: { genre: true } },
       shopVinyls: { include: { shop: true, offers: { orderBy: { currentPrice: 'asc' } } } },
     },
   });
@@ -207,6 +208,9 @@ const listGenresRoute = createRoute({
 });
 
 vinylsRouter.openapi(listGenresRoute, async (c) => {
-  const rows = await prisma.genre.findMany({ orderBy: { name: 'asc' } });
+  const rows = await prisma.genre.findMany({
+    where: { validated: true },
+    orderBy: { name: 'asc' },
+  });
   return c.json({ genres: rows.map(toGenreDto), total: rows.length }, 200);
 });

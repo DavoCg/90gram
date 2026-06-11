@@ -94,7 +94,11 @@ DOWNLOADER_MIDDLEWARES = {
 # IMPERSONATE_BROWSER = "chrome124"
 
 # Pipelines -----------------------------------------------------------------
-ITEM_PIPELINES = {"getvinyls_scraper.pipelines.PostgresPipeline": 300}
+# GenreSanitizerPipeline canonicalizes genres (must run before the DB write).
+ITEM_PIPELINES = {
+    "getvinyls_scraper.pipelines.GenreSanitizerPipeline": 100,
+    "getvinyls_scraper.pipelines.PostgresPipeline": 300,
+}
 
 # Database (shared with Prisma; the scraper writes rows ONLY) ----------------
 DATABASE_URL = os.environ.get("DATABASE_URL", "")

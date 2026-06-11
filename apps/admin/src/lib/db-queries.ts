@@ -15,11 +15,12 @@ export type Cell = string | number | boolean | null;
 export type SerializedRow = Record<string, Cell>;
 
 type RawRow = Record<string, unknown>;
-type ListArgs = { skip?: number; take?: number; where?: object; orderBy?: object };
+type ListArgs = { skip?: number; take?: number; where?: object; orderBy?: object; include?: object };
 type AnyDelegate = {
   findMany(args: ListArgs): Promise<RawRow[]>;
   findUnique(args: { where: object }): Promise<RawRow | null>;
   count(args?: { where?: object }): Promise<number>;
+  update(args: { where: object; data: object }): Promise<RawRow>;
 };
 
 // One contained cast (NOT `any`): index the Prisma client by delegate name. Every ResourceDef.model
@@ -45,12 +46,22 @@ function serializeRow(row: RawRow): SerializedRow {
   return out;
 }
 
-function buildWhere(def: ResourceDef, q: string): object | undefined {
+// Combine the free-text search and the optional boolean (toggleField) filter. `flag` is undefined
+// when the filter is "all", or true/false to keep only rows in that state.
+function buildWhere(def: ResourceDef, q: string, flag?: boolean): object | undefined {
+  const clauses: object[] = [];
   const term = q.trim();
-  if (!term || def.searchFields.length === 0) return undefined;
-  return {
-    OR: def.searchFields.map((field) => ({ [field]: { contains: term, mode: 'insensitive' } })),
-  };
+  if (term && def.searchFields.length > 0) {
+    clauses.push({
+      OR: def.searchFields.map((field) => ({ [field]: { contains: term, mode: 'insensitive' } })),
+    });
+  }
+  if (def.toggleField && flag !== undefined) {
+    clauses.push({ [def.toggleField]: flag });
+  }
+  if (clauses.length === 0) return undefined;
+  if (clauses.length === 1) return clauses[0];
+  return { AND: clauses };
 }
 
 function delegateFor(def: ResourceDef): AnyDelegate {
@@ -59,26 +70,36 @@ function delegateFor(def: ResourceDef): AnyDelegate {
   return delegate;
 }
 
-export async function listRows(resource: string, page: number, q: string) {
+export async function listRows(resource: string, page: number, q: string, flag?: boolean) {
   const def = RESOURCE_MAP[resource];
   if (!def) throw new Error(`Unknown resource: ${resource}`);
   const delegate = delegateFor(def);
-  const where = buildWhere(def, q);
+  const where = buildWhere(def, q, flag);
   const skip = (page - 1) * PAGE_SIZE;
+  // Count a to-many relation (e.g. a genre's vinyls) and surface it as a `${countOf}Count` column.
+  const include = def.countOf ? { _count: { select: { [def.countOf]: true } } } : undefined;
+  const countCol = def.countOf ? `${def.countOf}Count` : null;
   const [rows, total] = await Promise.all([
-    delegate.findMany({ skip, take: PAGE_SIZE, where, orderBy: def.orderBy }),
+    delegate.findMany({ skip, take: PAGE_SIZE, where, orderBy: def.orderBy, ...(include && { include }) }),
     delegate.count(where ? { where } : undefined),
   ]);
   return {
-    rows: rows.map(serializeRow),
+    rows: rows.map((raw) => {
+      const { _count, ...rest } = raw as RawRow & { _count?: Record<string, number> };
+      const row = serializeRow(rest);
+      if (countCol && def.countOf) row[countCol] = _count?.[def.countOf] ?? 0;
+      return row;
+    }),
     total,
     page,
     pageSize: PAGE_SIZE,
-    columns: def.columns,
+    columns: countCol ? [...def.columns, countCol] : def.columns,
     label: def.label,
     key: def.key,
     idField: def.idField,
     hasDetail: def.hasDetail,
+    // Drives the list's per-row toggle + status filter; null when the resource has no boolean gate.
+    toggleField: def.toggleField ?? null,
   };
 }
 
@@ -88,6 +109,16 @@ export async function getRow(resource: string, id: string) {
   const delegate = delegateFor(def);
   const row = await delegate.findUnique({ where: { [def.idField]: id } });
   return { row: row ? serializeRow(row) : null, label: def.label, key: def.key };
+}
+
+// Set a resource's boolean toggleField on one row (e.g. mark a genre validated). The field name is
+// not taken from the caller: it comes from the resource definition, so only the whitelisted gate can
+// be written.
+export async function setFlag(resource: string, id: string, value: boolean) {
+  const def = RESOURCE_MAP[resource];
+  if (!def) throw new Error(`Unknown resource: ${resource}`);
+  if (!def.toggleField) throw new Error(`Resource "${resource}" has no toggle field`);
+  await delegateFor(def).update({ where: { [def.idField]: id }, data: { [def.toggleField]: value } });
 }
 
 export async function countAll() {
