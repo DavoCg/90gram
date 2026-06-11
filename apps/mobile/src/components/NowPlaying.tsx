@@ -190,7 +190,7 @@ export function NowPlaying({
     const ty = interpolate(expand.value, [0, 1], [H, 0], Extrapolation.CLAMP) + drag.value;
     const opacity =
       closing.value === 1
-        ? interpolate(ty, [miniBarTop - 80, miniBarTop], [1, 0], Extrapolation.CLAMP)
+        ? interpolate(ty, [miniBarTop - 220, miniBarTop - 120], [1, 0], Extrapolation.CLAMP)
         : 1;
     return {
       opacity,
