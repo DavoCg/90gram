@@ -1,0 +1,50 @@
+# Fly.io config for the getvinyls admin (apps/admin). Deploy from the repo ROOT so the build context
+# is the whole pnpm workspace (the Dockerfile COPYs pnpm-workspace.yaml, packages/*, etc):
+#   fly deploy -c apps/admin/fly.toml
+# NOTE: the dockerfile path below is resolved relative to THIS config file's directory (apps/admin),
+# not the repo root, so it is just "Dockerfile".
+#
+# This is a published web app (the admin dashboard). It is internet-facing but every data route is
+# gated on a better-auth session with role == "admin". It runs NO migrations (apps/api owns
+# `prisma migrate deploy`); the role/ban columns it needs ship in packages/db and are applied by the
+# API deploy (or `pnpm db:migrate`).
+#
+# One-time provisioning:
+#   fly apps create getvinyls-admin
+#   fly secrets set -c apps/admin/fly.toml \
+#     DATABASE_URL=postgres://... \
+#     BETTER_AUTH_SECRET=<same secret as the API> \
+#     RESEND_API_KEY=<resend key> \
+#     ADMIN_BASE_URL=https://getvinyls-admin.fly.dev
+#
+# Promote the first admin (after they have signed in once to create the user row):
+#   pnpm --filter @getvinyls/admin promote you@example.com
+
+app = "getvinyls-admin"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  ADMIN_PORT = "8080"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

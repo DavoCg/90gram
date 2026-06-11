@@ -1,0 +1,38 @@
+# Deploy the getvinyls admin app to Fly.io.
+#
+# Runs on pushes to develop that touch the admin app, the db package, or the deploy config, and can
+# also be triggered by hand (Actions tab -> Run workflow). The image is built remotely by Fly's
+# builder (--remote-only), so no Docker is needed on the runner. The admin runs NO migrations (the
+# API owns prisma migrate deploy).
+name: Deploy Admin to Fly
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "apps/admin/**"
+      - "packages/db/**"
+      - ".dockerignore"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/fly-deploy-admin.yml"
+  workflow_dispatch:
+
+# Never run two admin deploys at once; cancel an in-progress deploy when a newer commit lands. A
+# separate group from the API/jobs deploys so the apps deploy independently.
+concurrency:
+  group: fly-deploy-admin
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only --ha=false -c apps/admin/fly.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

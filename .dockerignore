@@ -7,6 +7,11 @@
 **/.venv
 **/__pycache__
 
+# TanStack Start / Nitro build output (apps/admin): regenerated in the image, never copied.
+**/.output
+**/.nitro
+**/.tanstack
+
 # Generated Prisma client: regenerated in the image, never copied from the host.
 packages/db/src/generated
 

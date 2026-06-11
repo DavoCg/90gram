@@ -8,6 +8,11 @@ build/
 .turbo/
 *.tsbuildinfo
 
+# TanStack Start / Nitro (apps/admin) build output
+.output/
+.nitro/
+apps/admin/.tanstack/
+
 # Prisma generated client (regenerated from schema)
 packages/db/src/generated/
 
