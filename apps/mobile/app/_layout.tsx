@@ -28,7 +28,8 @@ export default function RootLayout() {
             <StatusBar style="auto" />
             <RootNavigator />
             {/* Global toast host: mounted above the navigator so toasts float over every screen.
-                Lives inside the gesture-handler + safe-area providers, which sonner-native needs. */}
+                Lives inside the gesture-handler + safe-area providers, which the toasts need for
+                swipe-to-dismiss and top-inset positioning. */}
             <AppToaster />
           </QueryClientProvider>
         </BottomSheetProvider>
