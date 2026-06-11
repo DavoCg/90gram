@@ -16,9 +16,13 @@ import type {
   VinylGenre as VinylGenreRow,
   Favorite as FavoriteRow,
   UserSetting as UserSettingRow,
-  Prisma,
 } from './generated/prisma/client.js';
 import { StockStatus } from './generated/prisma/enums.js';
+
+// `Prisma` re-exported as a VALUE (not type-only) so consumers can reach runtime helpers like
+// `Prisma.Decimal` (e.g. apps/admin serializes Decimal columns for the browser). It still carries
+// the `Prisma.*` namespace types too.
+export { Prisma } from './generated/prisma/client.js';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -50,5 +54,4 @@ export type {
   VinylGenreRow,
   FavoriteRow,
   UserSettingRow,
-  Prisma,
 };

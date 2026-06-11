@@ -1,0 +1,21 @@
+{
+  "extends": "@getvinyls/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "target": "ES2022",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    // This is an application (Vite/Nitro bundles it); it never emits .d.ts files. Disabling
+    // declaration (inherited as true from the base config) avoids TS2742 portability errors on
+    // library types whose inferred shape references deep node_modules paths (e.g. better-auth).
+    "declaration": false,
+    "types": ["node", "vite/client"],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src", "scripts", "vite.config.ts"],
+  "exclude": ["node_modules", ".output", ".nitro"]
+}

@@ -238,6 +238,14 @@ model User {
   emailVerified Boolean @default(false) @map("email_verified")
   image         String?
 
+  // better-auth `admin` plugin columns (apps/admin gates access on `role == "admin"`). These are
+  // part of better-auth's expected shape for that plugin, not arbitrary app columns, so they live on
+  // the auth table per the db skill. role defaults to "user"; the ban fields stay null for normal users.
+  role       String    @default("user")
+  banned     Boolean   @default(false)
+  banReason  String?   @map("ban_reason")
+  banExpires DateTime? @map("ban_expires")
+
   sessions  Session[]
   accounts  Account[]
   favorites Favorite[]
@@ -279,6 +287,9 @@ model Session {
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // better-auth `admin` plugin column: the id of the admin impersonating this session (null normally).
+  impersonatedBy String? @map("impersonated_by")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
