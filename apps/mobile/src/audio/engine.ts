@@ -48,6 +48,7 @@ function toPlayableTracks(vinyl: VinylSummaryDto): PlayableTrack[] {
       artist: vinyl.artist,
       artwork: vinyl.coverArtUrl ?? undefined,
       vinylId: vinyl.id,
+      durationSec: track.durationSeconds ?? 0,
     });
   }
   return tracks;
@@ -64,6 +65,7 @@ function favoriteToPlayableTrack(track: FavoriteTrackDto): PlayableTrack | null 
     artist: track.vinyl.artist,
     artwork: track.vinyl.coverArtUrl ?? undefined,
     vinylId: track.vinyl.id,
+    durationSec: track.durationSeconds ?? 0,
   };
 }
 
@@ -179,7 +181,9 @@ function startPositionTimer(): void {
     void TrackPlayer.getProgress().then((progress) => {
       player$.assign({
         positionSec: progress.position,
-        durationSec: progress.duration,
+        // Once RNTP measures the source it owns the duration; until then keep the seeded known
+        // length so the SeekBar's right label does not flash back from the real total to "0:00".
+        ...(progress.duration > 0 ? { durationSec: progress.duration } : {}),
         canSeek: progress.duration > 0,
       });
     });
@@ -210,13 +214,16 @@ function onActiveTrackChanged(index: number | undefined, track: Track | undefine
   }
   const queue = player$.queue.get();
   const current = queue[index] ?? player$.track.get();
-  const duration = track?.duration ?? 0;
+  // RNTP has not measured the new source yet (we never set a native Track.duration), so seed the
+  // displayed total from the track's known length and leave canSeek tied to RNTP's real reading.
+  const reported = track?.duration ?? 0;
+  const duration = reported > 0 ? reported : (current?.durationSec ?? 0);
   player$.assign({
     queueIndex: index,
     track: current,
     positionSec: 0,
     durationSec: duration,
-    canSeek: duration > 0,
+    canSeek: reported > 0,
   });
 }
 
@@ -311,7 +318,9 @@ export const audioEngine = {
     if (!startTrack) return;
 
     // Optimistic UI: show the tapped track as loading, and set intent to play so the transport
-    // button shows pause immediately (and stays there) instead of flashing the play icon.
+    // button shows pause immediately (and stays there) instead of flashing the play icon. Seed
+    // durationSec from the track's known length so the SeekBar shows the real total at its right
+    // edge while loading; canSeek stays false until RNTP reports a real (seekable) duration.
     player$.assign({
       track: startTrack,
       queue: tracks,
@@ -319,7 +328,7 @@ export const audioEngine = {
       status: 'loading',
       playWhenReady: true,
       positionSec: 0,
-      durationSec: 0,
+      durationSec: startTrack.durationSec,
       canSeek: false,
     });
 

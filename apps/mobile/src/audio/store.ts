@@ -18,6 +18,10 @@ export interface PlayableTrack {
   artist: string;
   artwork?: string;
   vinylId: string;
+  // The track's known length in seconds (from the catalog metadata, durationSeconds), or 0 when
+  // unknown. Used to seed `durationSec` so the SeekBar shows the real total at its right edge while
+  // the source is still loading, instead of "0:00". RNTP's measured duration replaces it once known.
+  durationSec: number;
 }
 
 export interface PlayerState {
