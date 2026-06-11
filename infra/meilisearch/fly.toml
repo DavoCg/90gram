@@ -64,5 +64,9 @@ primary_region = "cdg"
     path = "/health"
 
 [[vm]]
+  # Meilisearch holds its index in memory-mapped LMDB; 512MB OOM-crash-looped at startup (resident set
+  # already ~400MB just opening the database, before serving traffic or a reindex). 2GB gives headroom
+  # for reindex spikes and the self-contained search documents the API now returns. Keep this in sync
+  # with the live machine (fly scale memory 2048 -a getvinyls-search).
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "2048mb"
