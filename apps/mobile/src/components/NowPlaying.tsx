@@ -225,9 +225,9 @@ export function NowPlaying({
     };
   });
 
-  const miniStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(expand.value, [0, 0.25], [1, 0], Extrapolation.CLAMP),
-  }));
+  // The mini-bar does NOT animate. It sits fully formed just above the tab bar at all times; when
+  // the full player is open it is simply hidden BEHIND the opaque sheet, and the close fade reveals
+  // it already in place (no opacity ramp on the bar itself). Only the shared cover morphs in.
 
   // All hooks above are unconditional; only now do we bail out when nothing is playing.
   if (!track) return null;
@@ -240,8 +240,7 @@ export function NowPlaying({
           (the last sibling below) sits on top of its left slot when collapsed. */}
       <Animated.View
         pointerEvents={isExpanded ? 'none' : 'auto'}
-        style={[
-          {
+        style={{
             position: 'absolute',
             top: miniBarTop,
             left: MINI_MARGIN,
@@ -256,9 +255,7 @@ export function NowPlaying({
             alignItems: 'center',
             paddingRight: 6,
             overflow: 'hidden',
-          },
-          miniStyle,
-        ]}
+          }}
       >
         {/* Tap the bar (outside the buttons) to expand. The artwork floats over this left slot. */}
         <Pressable onPress={openPlayer} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
