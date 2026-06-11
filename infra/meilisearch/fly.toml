@@ -30,7 +30,10 @@ primary_region = "cdg"
   MEILI_NO_ANALYTICS = "true"
   # Persist the index on the mounted volume so a redeploy/restart does not lose it (a lost index is
   # still rebuildable from Postgres by the reindex-vinyls job, but persistence avoids the rebuild).
-  MEILI_DB_PATH = "/meili_data"
+  # Point at a SUBDIRECTORY of the volume, not its root: Fly volumes are ext4 and contain a
+  # `lost+found` dir at the mount root, which Meilisearch would mistake for an existing database and
+  # fail with "failed to infer the version of the database". A clean subdir avoids that.
+  MEILI_DB_PATH = "/meili_data/data.ms"
 
 [[mounts]]
   source = "meili_data"
