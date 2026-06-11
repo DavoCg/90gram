@@ -16,8 +16,9 @@ export interface ResourceDef {
   idField: string;
   // Whether rows link to a detail page (false for composite-key join tables).
   hasDetail: boolean;
-  // Stable ordering for pagination.
-  orderBy: Record<string, 'asc' | 'desc'>;
+  // Stable ordering for pagination. A nested `{ _count: ... }` value orders by a to-many relation's
+  // row count (e.g. order genres by how many vinyls link to them).
+  orderBy: Record<string, 'asc' | 'desc' | { _count: 'asc' | 'desc' }>;
   // Optional: a to-many relation to count and show as an extra `${countOf}Count` column.
   countOf?: string;
   // Optional: a boolean field the list can filter on and toggle per row (e.g. genres.validated).
@@ -93,7 +94,8 @@ export const RESOURCES: ResourceDef[] = [
     searchFields: ['name', 'slug'],
     idField: 'id',
     hasDetail: true,
-    orderBy: { name: 'asc' },
+    // Order by the linked-vinyl count (the `vinylsCount` column), most-used genres first.
+    orderBy: { vinyls: { _count: 'desc' } },
     // Count linked vinyls (shown as `vinylsCount`) and let the list filter/toggle the curation gate.
     countOf: 'vinyls',
     toggleField: 'validated',
