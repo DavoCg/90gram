@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
   type InfiniteData,
+  type QueryKey,
   type UseInfiniteQueryResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
@@ -95,6 +96,19 @@ function findCachedSummary(
   return data?.pages.flatMap((page) => page.vinyls).find((vinyl) => vinyl.id === id);
 }
 
+// Scan several infinite vinyls caches (as returned by getQueriesData) for a summary. Used for the
+// search results, which live under a per-query key, so there is no single cache to read by key.
+function findCachedSummaryAcross(
+  entries: [QueryKey, InfiniteData<VinylListDto> | undefined][],
+  id: string,
+): VinylSummaryDto | undefined {
+  for (const [, data] of entries) {
+    const found = findCachedSummary(data, id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 export function useVinyl(id: string): UseQueryResult<VinylDto> {
   const queryClient = useQueryClient();
   return useQuery({
@@ -111,7 +125,16 @@ export function useVinyl(id: string): UseQueryResult<VinylDto> {
         queryClient.getQueryData<InfiniteData<VinylListDto>>(queryKeys.favorites.vinyls),
         id,
       );
-      const summary = fromFeed ?? fromFavorites;
+      // Search results live under a per-query key (queryKeys.vinyls.search(q)), so scan every loaded
+      // search cache. Without this, opening a vinyl from search has nothing to seed from and shows a
+      // spinner, while the home feed and favorites render instantly from their cached summary.
+      const fromSearch = findCachedSummaryAcross(
+        queryClient.getQueriesData<InfiniteData<VinylListDto>>({
+          queryKey: queryKeys.vinyls.searchAll,
+        }),
+        id,
+      );
+      const summary = fromFeed ?? fromFavorites ?? fromSearch;
       return summary ? { ...summary, offers: [] } : undefined;
     },
     queryFn: async (): Promise<VinylDto> => {

@@ -6,6 +6,9 @@ export const queryKeys = {
     detail: (id: string) => ['vinyls', id] as const,
     // Full-text search results for a query, cursor-paginated (an infinite query).
     search: (query: string) => ['vinyls', 'search', query] as const,
+    // Prefix matching every per-query search cache: a partial key for scanning all loaded search
+    // results (e.g. to seed the detail sheet from whichever search the vinyl was opened from).
+    searchAll: ['vinyls', 'search'] as const,
   },
   shops: {
     detail: (id: string) => ['shops', id] as const,
