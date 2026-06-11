@@ -19,6 +19,22 @@ const EnvSchema = z.object({
 	// Cron expression (5-field) for the track-durations job in scheduler mode. Default: daily 03:00.
 	TRACK_DURATIONS_CRON: z.string().min(1).default("* * * * *"),
 
+	// Meilisearch (full-text search) -------------------------------------------------------------
+	// The search index is a DERIVED view of the canonical vinyls: the reindex-vinyls job rebuilds it
+	// from Postgres on its cron (and once at launch). MEILI_HOST is the search server's base URL;
+	// MEILI_MASTER_KEY is the admin key used to configure index settings and write documents. Both
+	// optional: when MEILI_HOST is unset the reindex job logs and no-ops, so the daemon runs without
+	// a search server in local development. REINDEX_VINYLS_CRON is its 5-field schedule (default
+	// every 6 hours), evaluated in JOB_TIMEZONE like the other jobs.
+	MEILI_HOST: z.string().url().optional(),
+	MEILI_MASTER_KEY: z.string().optional(),
+	REINDEX_VINYLS_CRON: z.string().min(1).default("0 */6 * * *"),
+
+	// Exchange rates (Frankfurter), used by the reindex job ONLY to normalize each vinyl's cheapest
+	// price into a single base (EUR) so the search index has one comparable, sortable price field.
+	// Mirrors the API's currency source; the displayed price always comes from the DB at query time.
+	FRANKFURTER_BASE_URL: z.string().url().default("https://api.frankfurter.dev/v1"),
+
 	// How many preview downloads run at once. Keep modest to stay polite to the preview hosts.
 	JOB_CONCURRENCY: z.coerce.number().int().positive().default(8),
 	// How many candidate tracks are pulled from the DB per page (keyset paginated).

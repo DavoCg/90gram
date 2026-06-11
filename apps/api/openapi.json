@@ -197,6 +197,21 @@
         ],
         "example": "GBP"
       },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ]
+      },
       "Vinyl": {
         "allOf": [
           {
@@ -350,21 +365,6 @@
           "out_of_stock",
           "preorder",
           "unknown"
-        ]
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "error",
-          "message"
         ]
       },
       "ShopList": {
@@ -671,6 +671,78 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VinylList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vinyls/search": {
+      "get": {
+        "tags": [
+          "vinyls"
+        ],
+        "summary": "Search vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "aphex twin"
+            },
+            "required": true,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "20"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/SupportedCurrency"
+            },
+            "required": false,
+            "name": "currency",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of vinyls matching the query, in relevance order. Same shape as GET /vinyls; the cursor is an offset into the ranked results.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinylList"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Search is unavailable (not configured, or the search server is unreachable).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

@@ -31,7 +31,12 @@
     "SCRAPE_DEEJAY_CRON",
     "SCRAPE_DANCINGVINYL_CRON",
     "SCRAPE_POLL_INTERVAL_MS",
-    "SCRAPE_MAX_WAIT_MS"
+    "SCRAPE_MAX_WAIT_MS",
+    "MEILI_HOST",
+    "MEILI_MASTER_KEY",
+    "MEILI_SEARCH_KEY",
+    "REINDEX_VINYLS_CRON",
+    "FRANKFURTER_BASE_URL"
   ],
   "globalDependencies": [".env", ".env.example"],
   "tasks": {

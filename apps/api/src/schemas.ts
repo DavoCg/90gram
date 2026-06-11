@@ -249,6 +249,25 @@ export const PaginationQuerySchema = z.object({
 
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
+// Query for full-text search (GET /vinyls/search). `q` is the search text. Results are relevance
+// ranked (not keyset friendly), so this list pages by offset carried in `cursor`, like GET /vinyls;
+// the response reuses VinylListSchema so the client and react-query machinery are shared.
+export const SearchQuerySchema = z.object({
+  q: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'q', in: 'query' }, example: 'aphex twin' }),
+  limit: z.coerce.number().int().min(1).max(50).default(20).openapi({
+    param: { name: 'limit', in: 'query' },
+    example: 20,
+  }),
+  cursor: z
+    .string()
+    .min(1)
+    .optional()
+    .openapi({ param: { name: 'cursor', in: 'query' }, example: '20' }),
+});
+
 // Prisma findMany args for keyset (cursor) pagination. Over-fetch by one row so the handler can tell
 // whether a further page exists. Pair every use with a deterministic orderBy ending in `id`. The
 // explicit return type (rather than a `... as const` union) keeps the spread assignable to Prisma's

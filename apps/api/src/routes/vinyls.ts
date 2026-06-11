@@ -9,6 +9,7 @@ import {
   ErrorSchema,
   IdParamSchema,
   PaginationQuerySchema,
+  SearchQuerySchema,
   CurrencyQuerySchema,
   cursorArgs,
   toPage,
@@ -20,6 +21,7 @@ import {
   toGenreDto,
 } from '../schemas.js';
 import { currencyContext, type CurrencyVariables } from '../currency/middleware.js';
+import { searchVinylIds } from '../search/meili.js';
 
 // The price-returning routes resolve a display currency per request (see currencyContext) and expose
 // the converter on the typed context, so this router carries that variable type.
@@ -72,6 +74,67 @@ vinylsRouter.openapi(listVinylsRoute, async (c) => {
   const nextCursor = hasMore ? String(offset + limit) : null;
   const converter = c.var.converter;
   return c.json({ vinyls: items.map((row) => toVinylSummaryDto(row, converter)), nextCursor }, 200);
+});
+
+// GET /vinyls/search: full-text search over the canonical vinyls. Meilisearch does the matching and
+// ranking and returns vinyl ids; the row data is then HYDRATED from Postgres through the same
+// include + DTO mapper as every other vinyls list, so the wire shape is identical to GET /vinyls and
+// the price is converted into the request's display currency here (never baked into the index). The
+// `/vinyls/:id` currency middleware above also matches `/vinyls/search`, so c.var.converter is set.
+// This route is registered before GET /vinyls/{id}; Hono's router prefers the static path anyway.
+const searchVinylsRoute = createRoute({
+  method: 'get',
+  path: '/vinyls/search',
+  tags: ['vinyls'],
+  summary: 'Search vinyls',
+  request: { query: SearchQuerySchema.extend(CurrencyQuerySchema.shape) },
+  responses: {
+    200: {
+      description:
+        'A page of vinyls matching the query, in relevance order. Same shape as GET /vinyls; the ' +
+        'cursor is an offset into the ranked results.',
+      content: { 'application/json': { schema: VinylListSchema } },
+    },
+    503: {
+      description: 'Search is unavailable (not configured, or the search server is unreachable).',
+      content: { 'application/json': { schema: ErrorSchema } },
+    },
+  },
+});
+
+vinylsRouter.openapi(searchVinylsRoute, async (c) => {
+  const { q, limit, cursor } = c.req.valid('query');
+  const offset = parseOffset(cursor);
+
+  let result;
+  try {
+    result = await searchVinylIds(q, limit, offset);
+  } catch (error) {
+    console.error('[search] Meilisearch query failed:', error);
+    return c.json(
+      { error: 'search_unavailable', message: 'Search is temporarily unavailable.' },
+      503,
+    );
+  }
+  if (result === null) {
+    return c.json({ error: 'search_unavailable', message: 'Search is not configured.' }, 503);
+  }
+
+  // Hydrate the matched ids from Postgres. `findMany` ignores the order of `id: { in }`, so re-sort
+  // the rows back into Meilisearch's relevance ranking before mapping.
+  const rows = await prisma.vinyl.findMany({
+    where: { id: { in: result.ids } },
+    include: vinylSummaryInclude,
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const converter = c.var.converter;
+  const vinyls = result.ids
+    .map((id) => byId.get(id))
+    .filter((row): row is NonNullable<typeof row> => row !== undefined)
+    .map((row) => toVinylSummaryDto(row, converter));
+
+  const nextCursor = offset + limit < result.total ? String(offset + limit) : null;
+  return c.json({ vinyls, nextCursor }, 200);
 });
 
 const getVinylRoute = createRoute({
