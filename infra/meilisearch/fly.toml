@@ -23,7 +23,10 @@ app = "getvinyls-search"
 primary_region = "cdg"
 
 [build]
-  image = "getmeili/meilisearch:v1.12"
+  # Pinned to an explicit patch. The search index is a derived view (rebuildable from Postgres by the
+  # reindex-vinyls job), so bumping the server version carries no data-migration risk. Our meilisearch
+  # JS client (apps/api, apps/jobs) is compatible with any v1.x server.
+  image = "getmeili/meilisearch:v1.46.1"
 
 [env]
   MEILI_ENV = "production"
