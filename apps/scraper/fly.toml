@@ -1,0 +1,47 @@
+# Fly.io config for the getvinyls scraper service (apps/scraper): a Scrapyd daemon that runs the
+# Scrapy spiders. Deploy from the repo ROOT so the build context is the whole repo (the Dockerfile
+# COPYs apps/scraper/*); the dockerfile path below is resolved relative to THIS file's directory:
+#   fly deploy -c apps/scraper/fly.toml
+#
+# This is an ALWAYS-ON worker: one machine stays up running Scrapyd. Scrapyd has no scheduler of its
+# own, so apps/jobs (the cron daemon) drives it, POSTing each spider's run to schedule.json on its
+# cron. The Scrapyd API is PRIVATE: no [[services.ports]] are published, so it is reachable only over
+# Fly's private network at getvinyls-scraper.internal:6800 (which is where apps/jobs points its
+# SCRAPYD_URL). The crawls write straight to Postgres via the PostgresPipeline.
+#
+# One-time setup (create the app, then set the database secret):
+#   fly apps create getvinyls-scraper
+#   fly secrets set -c apps/scraper/fly.toml DATABASE_URL=postgres://...
+#
+# Kick a spider by hand without waiting for its cron (over the private net, e.g. from the jobs app):
+#   curl -d project=getvinyls_scraper -d spider=discogs http://getvinyls-scraper.internal:6800/schedule.json
+
+app = "getvinyls-scraper"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+
+# Always-on: keep exactly one machine up, never auto-stop it. The service is internal only (no
+# published ports), so the health check runs against the machine's private interface. Scrapyd's
+# /daemonstatus.json returns 200 JSON when the daemon is healthy.
+[[services]]
+  internal_port = 6800
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/daemonstatus.json"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1024mb"
