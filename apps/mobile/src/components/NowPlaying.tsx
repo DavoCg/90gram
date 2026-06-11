@@ -89,6 +89,11 @@ export function NowPlaying({
   // updates per animation frame.
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // 1 only during the committed close (after release), 0 otherwise (opening, dragging, or a drag
+  // that snaps back open). Gates the descending sheet's fade-out so the page goes transparent as it
+  // sinks behind the mini-player instead of sweeping its opaque background over the tab bar.
+  const closing = useSharedValue(0);
+
   // The transport icon (and artwork scale) follow the user's play/pause INTENT, not raw playback
   // state. Intent stays true across a track switch while the new track buffers, so the button
   // does not flash to the play triangle; it only shows play when genuinely paused.
@@ -141,13 +146,18 @@ export function NowPlaying({
   const collapsedRadius = 10 / collapsedScale;
 
   const openPlayer = () => {
+    closing.value = 0;
     setIsExpanded(true);
     expand.value = withSpring(1, SPRING);
   };
 
   const finishClose = (finished?: boolean) => {
     'worklet';
-    if (finished) runOnJS(setIsExpanded)(false);
+    if (finished) {
+      runOnJS(setIsExpanded)(false);
+      // Restore opacity for the next open; the sheet is off-screen (expand 0) so this is invisible.
+      closing.value = 0;
+    }
   };
 
   // Drag the whole open sheet down to dismiss. Can be started from anywhere on the sheet:
@@ -164,18 +174,29 @@ export function NowPlaying({
     .onEnd((e) => {
       const shouldClose = e.translationY > H * 0.2 || e.velocityY > 900;
       if (shouldClose) {
+        closing.value = 1;
         expand.value = withSpring(0, SPRING, finishClose);
       }
       drag.value = withSpring(0, SPRING);
     });
 
   // The sheet slides up from the bottom on open and rides the drag down on dismiss. Its top
-  // corner radius is constant (set statically below); only the translate animates.
-  const sheetStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateY: interpolate(expand.value, [0, 1], [H, 0], Extrapolation.CLAMP) + drag.value },
-    ],
-  }));
+  // corner radius is constant (set statically below); only the translate animates. During the
+  // committed close, fade the whole sheet (background + controls) out over the last stretch of the
+  // descent so once its top edge reaches the mini-player it is fully transparent and never sweeps
+  // its opaque page over the tab bar. The morphing artwork is a sibling, so it still lands in the
+  // mini slot to carry the eye. Opaque otherwise (opening, dragging, or a drag that snaps back).
+  const sheetStyle = useAnimatedStyle(() => {
+    const ty = interpolate(expand.value, [0, 1], [H, 0], Extrapolation.CLAMP) + drag.value;
+    const opacity =
+      closing.value === 1
+        ? interpolate(ty, [miniBarTop - 80, miniBarTop], [1, 0], Extrapolation.CLAMP)
+        : 1;
+    return {
+      opacity,
+      transform: [{ translateY: ty }],
+    };
+  });
 
   // Artwork morph (expand) composed with the rigid drag offset on the way out. It settles into
   // the mini slot as expand returns to 0 while the sheet (controls) slides off the bottom.
