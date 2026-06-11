@@ -107,7 +107,7 @@ function SignOutRow() {
   );
 }
 
-// Example trigger for the design-system toast (sonner-native). Fires a success toast with a
+// Example trigger for the design-system toast. Fires a success toast with a
 // description and an action so the themed surface, typography, icon, and button styling are all
 // visible at once. Handy as a living reference for how to call `toast` from anywhere in the app.
 function ToastDemoRow() {
