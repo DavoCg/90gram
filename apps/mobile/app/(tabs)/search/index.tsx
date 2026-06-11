@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -16,22 +16,16 @@ import { player$ } from '../../../src/audio/store';
 
 // Leaves room at the bottom of the list for the floating mini-player + the tab bar.
 const LIST_BOTTOM_PADDING = 140;
-// Wait this long after the last keystroke before querying, so typing does not fire a request per
-// character. Short enough to still feel instant.
-const SEARCH_DEBOUNCE_MS = 250;
 
 export default function SearchScreen() {
   const router = useRouter();
   const colors = useThemeColors();
 
-  // `text` is what the field shows (updates on every keystroke); `query` is the debounced value the
-  // request actually uses. Trimming happens before the hook so " " never triggers a search.
+  // `text` is what the field shows; `query` is what the request uses. No debounce: the API is fast
+  // enough to query on every keystroke, and react-query caches each term (staleTime) so backspacing
+  // to an earlier term is served from cache. Trimmed so " " never triggers a search.
   const [text, setText] = useState('');
-  const [query, setQuery] = useState('');
-  useEffect(() => {
-    const handle = setTimeout(() => setQuery(text.trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(handle);
-  }, [text]);
+  const query = text.trim();
 
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useVinylSearch(query);
