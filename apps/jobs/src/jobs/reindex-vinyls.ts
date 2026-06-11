@@ -24,10 +24,10 @@ const SEARCHABLE_ATTRIBUTES = [
   'title',
   'label',
   'catalogNumber',
-  'trackTitles',
-  'genres',
+  'tracks.title',
+  'genres.name',
 ];
-const FILTERABLE_ATTRIBUTES = ['genreSlugs', 'format', 'year', 'hasOffers'];
+const FILTERABLE_ATTRIBUTES = ['genres.slug', 'format', 'year', 'hasOffers'];
 const SORTABLE_ATTRIBUTES = ['shopCount', 'year', 'lowestPriceEur', 'createdAtTimestamp'];
 const RANKING_RULES = [
   'words',
@@ -40,10 +40,21 @@ const RANKING_RULES = [
 ];
 
 // What the reindex query loads per vinyl. Declared once so the row type and the mapper stay in
-// lockstep. Only validated genres are indexed, matching what the public API exposes.
+// lockstep. Only validated genres are indexed, matching what the public API exposes. Tracks carry
+// their full display fields (the document is what the search route returns, so it must mirror the
+// `VinylSummary` wire shape, not just the searchable text).
 const reindexInclude = {
   genres: { where: { genre: { validated: true } }, include: { genre: true } },
-  tracks: { select: { title: true } },
+  tracks: {
+    orderBy: { position: 'asc' },
+    select: {
+      id: true,
+      position: true,
+      title: true,
+      durationSeconds: true,
+      previewUrl: true,
+    },
+  },
   shopVinyls: {
     select: { shopId: true, offers: { select: { currentPrice: true, currentCurrency: true } } },
   },
@@ -83,19 +94,28 @@ function toEur(amount: number, currency: string | null, rates: EurRates | null):
   return amount / rate;
 }
 
-// Project a canonical vinyl (with its relations) into a flat search document.
+// Project a canonical vinyl (with its relations) into a self-contained search document. The cheapest
+// offer is chosen by comparing in EUR (a currency-independent ordering), and its ORIGINAL price +
+// currency are kept so the API can convert into the request's display currency at query time.
 function toDocument(row: ReindexRow, rates: EurRates | null): VinylDocument {
   const shopIds = new Set<string>();
   let lowestPriceEur: number | null = null;
+  let lowestPrice: number | null = null;
+  let lowestCurrency: string | null = null;
   let hasOffers = false;
   for (const shopVinyl of row.shopVinyls) {
     shopIds.add(shopVinyl.shopId);
     for (const offer of shopVinyl.offers) {
       hasOffers = true;
       if (offer.currentPrice === null) continue;
-      const eur = toEur(Number(offer.currentPrice), offer.currentCurrency, rates);
+      const original = Number(offer.currentPrice);
+      const eur = toEur(original, offer.currentCurrency, rates);
       if (eur === null) continue;
-      if (lowestPriceEur === null || eur < lowestPriceEur) lowestPriceEur = eur;
+      if (lowestPriceEur === null || eur < lowestPriceEur) {
+        lowestPriceEur = eur;
+        lowestPrice = original;
+        lowestCurrency = offer.currentCurrency;
+      }
     }
   }
   return {
@@ -103,14 +123,26 @@ function toDocument(row: ReindexRow, rates: EurRates | null): VinylDocument {
     title: row.title,
     artist: row.artist,
     year: row.year,
+    coverArtUrl: row.coverArtUrl,
     label: row.label,
     catalogNumber: row.catalogNumber,
     format: row.format,
-    genres: row.genres.map((vg) => vg.genre.name),
-    genreSlugs: row.genres.map((vg) => vg.genre.slug),
-    trackTitles: row.tracks.map((track) => track.title),
+    genres: row.genres.map((vg) => ({
+      id: vg.genre.id,
+      name: vg.genre.name,
+      slug: vg.genre.slug,
+    })),
+    tracks: row.tracks.map((track) => ({
+      id: track.id,
+      position: track.position,
+      title: track.title,
+      durationSeconds: track.durationSeconds,
+      previewUrl: track.previewUrl,
+    })),
     shopCount: shopIds.size,
     hasOffers,
+    lowestPrice,
+    lowestCurrency,
     lowestPriceEur: lowestPriceEur === null ? null : Math.round(lowestPriceEur * 100) / 100,
     createdAtTimestamp: row.createdAt.getTime(),
   };
