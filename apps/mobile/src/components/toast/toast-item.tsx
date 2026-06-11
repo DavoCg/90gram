@@ -1,8 +1,9 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
   LinearTransition,
   runOnJS,
   useAnimatedStyle,
@@ -43,6 +44,10 @@ const EXIT_DURATION = 180;
 const SWIPE_DISMISS_DISTANCE = 28;
 const SWIPE_DISMISS_VELOCITY = 450;
 
+// Floor on the speed (px/s) used to time the swipe exit, so a slow drag past the distance
+// threshold still leaves within EXIT_DURATION instead of crawling off over a huge interval.
+const MIN_EXIT_SPEED = 300;
+
 // Slack added so the toast clears its own shadow/border when parked off the top edge.
 const OFFSCREEN_SLACK = 24;
 
@@ -64,6 +69,10 @@ export function ToastItem({ data, onRemove }: ToastItemProps) {
   const drag = useSharedValue(0);
   const height = useSharedValue(0);
   const entered = useSharedValue(false);
+
+  // True while a finger rests on the toast (hold or in-progress swipe). The auto-dismiss
+  // countdown is paused for as long as this is set, so a held toast never vanishes mid-read.
+  const [held, setHeld] = useState(false);
 
   const remove = useCallback(() => onRemove(data.id), [onRemove, data.id]);
 
@@ -92,14 +101,35 @@ export function ToastItem({ data, onRemove }: ToastItemProps) {
     );
   }, [base, height, insets.top, remove]);
 
-  // Auto-dismiss after `duration` (skip when Infinity, e.g. a pending promise toast).
+  // Time left on the auto-dismiss countdown, banked across pauses so a hold suspends the timer
+  // instead of restarting it. Reset whenever `duration` changes (e.g. a promise toast resolving).
+  const remaining = useRef(data.duration);
   useEffect(() => {
-    if (!Number.isFinite(data.duration)) return;
-    const timer = setTimeout(dismiss, data.duration);
-    return () => clearTimeout(timer);
-  }, [data.duration, dismiss]);
+    remaining.current = data.duration;
+  }, [data.duration]);
+
+  // Auto-dismiss after `duration`, skipping while held (finger down) and when the duration is
+  // Infinity (e.g. a pending promise toast). On pause, bank the elapsed time so resuming
+  // continues the same countdown rather than starting a fresh one.
+  useEffect(() => {
+    if (held || !Number.isFinite(remaining.current)) return;
+    const startedAt = Date.now();
+    const timer = setTimeout(dismiss, remaining.current);
+    return () => {
+      clearTimeout(timer);
+      remaining.current -= Date.now() - startedAt;
+    };
+  }, [held, data.duration, dismiss]);
 
   const pan = Gesture.Pan()
+    // onBegin/onFinalize bracket the whole touch (a still hold never activates the pan), so
+    // they drive the hold-to-pause: finger down pauses the countdown, finger up resumes it.
+    .onBegin(() => {
+      runOnJS(setHeld)(true);
+    })
+    .onFinalize(() => {
+      runOnJS(setHeld)(false);
+    })
     .onUpdate((event) => {
       // Upward follows the finger 1:1; downward is heavily rubber-banded so the toast resists
       // being pulled below its resting place.
@@ -109,13 +139,17 @@ export function ToastItem({ data, onRemove }: ToastItemProps) {
       const shouldDismiss =
         event.translationY < -SWIPE_DISMISS_DISTANCE || event.velocityY < -SWIPE_DISMISS_VELOCITY;
       if (shouldDismiss) {
-        drag.value = withTiming(
-          -(height.value + insets.top + OFFSCREEN_SLACK),
-          { duration: EXIT_DURATION },
-          (finished) => {
-            if (finished) runOnJS(remove)();
-          },
-        );
+        // Scale the exit to the release speed so the toast keeps the finger's momentum: a hard
+        // fling whips off in a few ms, a slow drag past the threshold eases out over the full
+        // EXIT_DURATION. Linear easing so it leaves at the gesture's speed instead of
+        // re-accelerating from rest. `event.velocityY` is upward (negative), hence the abs.
+        const target = -(height.value + insets.top + OFFSCREEN_SLACK);
+        const distance = target - drag.value;
+        const speed = Math.max(Math.abs(event.velocityY), MIN_EXIT_SPEED);
+        const duration = Math.min((Math.abs(distance) / speed) * 1000, EXIT_DURATION);
+        drag.value = withTiming(target, { duration, easing: Easing.linear }, (finished) => {
+          if (finished) runOnJS(remove)();
+        });
       } else {
         drag.value = withSpring(0, SETTLE_SPRING);
       }
