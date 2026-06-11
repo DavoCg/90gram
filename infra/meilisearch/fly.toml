@@ -31,10 +31,11 @@ primary_region = "cdg"
 [env]
   MEILI_ENV = "production"
   MEILI_NO_ANALYTICS = "true"
-  # Bind all interfaces. Meilisearch defaults to 127.0.0.1:7700, which is only reachable from inside
-  # the machine, so the api/jobs apps over `.internal` and Fly's own health check cannot connect.
-  # 0.0.0.0 exposes it on the machine's private 6PN address (still no public port is published).
-  MEILI_HTTP_ADDR = "0.0.0.0:7700"
+  # Bind the IPv6 wildcard, NOT the image default of 0.0.0.0:7700 (IPv4 only). Fly's `.internal`
+  # DNS that the api and jobs apps use is IPv6-only, so an IPv4-only bind answers the health check
+  # (which hits the machine's private IPv4) while every `.internal` caller gets ECONNREFUSED. On
+  # Linux `[::]` is dual-stack, so this still accepts the IPv4 health check.
+  MEILI_HTTP_ADDR = "[::]:7700"
   # Persist the index on the mounted volume so a redeploy/restart does not lose it (a lost index is
   # still rebuildable from Postgres by the reindex-vinyls job, but persistence avoids the rebuild).
   # Point at a SUBDIRECTORY of the volume, not its root: Fly volumes are ext4 and contain a
@@ -63,5 +64,9 @@ primary_region = "cdg"
     path = "/health"
 
 [[vm]]
+  # Meilisearch holds its index in memory-mapped LMDB; 512MB OOM-crash-looped at startup (resident set
+  # already ~400MB just opening the database, before serving traffic or a reindex). 2GB gives headroom
+  # for reindex spikes and the self-contained search documents the API now returns. Keep this in sync
+  # with the live machine (fly scale memory 2048 -a getvinyls-search).
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "2048mb"
