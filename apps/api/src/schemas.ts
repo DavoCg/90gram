@@ -1,6 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import type { Prisma, ShopRow, GenreRow } from '@getvinyls/db';
 import type { CurrencyConverter } from './currency/converter.js';
+import type { VinylSearchDocument } from './search/meili.js';
 import { SupportedCurrencySchema } from './currency/currencies.js';
 
 // The wire shapes for the API. Zod schemas are the source of truth; the OpenAPI document
@@ -415,6 +416,37 @@ export function toVinylSummaryDto(row: VinylSummaryRow, converter: CurrencyConve
     lowestPrice,
     currency,
     shopCount,
+  };
+}
+
+// Map a self-contained search document straight to the `VinylSummary` wire shape (no Postgres). The
+// document already holds the cheapest offer's ORIGINAL price + currency; convert that single pair into
+// the request's display currency, exactly as `lowestOffer` does for the DB path. When the document has
+// no priced offer, both price and currency are null (matching the DB path's empty-offers result).
+export function meiliDocToVinylSummary(
+  doc: VinylSearchDocument,
+  converter: CurrencyConverter,
+): VinylSummary {
+  const converted = doc.lowestPrice === null ? null : converter.convert(doc.lowestPrice, doc.lowestCurrency);
+  return {
+    id: doc.id,
+    title: doc.title,
+    artist: doc.artist,
+    year: doc.year,
+    coverArtUrl: doc.coverArtUrl,
+    label: doc.label,
+    format: doc.format,
+    genres: doc.genres.map((g) => ({ id: g.id, name: g.name, slug: g.slug })),
+    tracks: doc.tracks.map((t) => ({
+      id: t.id,
+      position: t.position,
+      title: t.title,
+      durationSeconds: t.durationSeconds,
+      previewUrl: t.previewUrl,
+    })),
+    lowestPrice: converted === null ? null : converted.amount,
+    currency: converted === null ? null : converted.currency,
+    shopCount: doc.shopCount,
   };
 }
 
