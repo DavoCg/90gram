@@ -20,7 +20,15 @@
     "JOB_CONCURRENCY",
     "JOB_BATCH_SIZE",
     "JOB_REQUEST_TIMEOUT_MS",
-    "JOB_MAX_TRACKS"
+    "JOB_MAX_TRACKS",
+    "SCRAPYD_URL",
+    "SCRAPYD_PROJECT",
+    "SCRAPE_DISCOGS_CRON",
+    "SCRAPE_COLDCUTSHOTWAX_CRON",
+    "SCRAPE_DEEJAY_CRON",
+    "SCRAPE_DANCINGVINYL_CRON",
+    "SCRAPE_POLL_INTERVAL_MS",
+    "SCRAPE_MAX_WAIT_MS"
   ],
   "globalDependencies": [".env", ".env.example"],
   "tasks": {

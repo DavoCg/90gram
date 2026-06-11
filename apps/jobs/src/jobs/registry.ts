@@ -1,4 +1,5 @@
 import { env } from '../env.js';
+import { scrapeSpider } from './scrapyd.js';
 import { runTrackDurations } from './track-durations.js';
 
 // The single source of truth for what jobs exist. Both the scheduler (cron mode) and the one-off
@@ -12,6 +13,17 @@ export type Job = {
   run: () => Promise<void>;
 };
 
+// A scrape-<spider> job: on its cron it asks Scrapyd (apps/scraper) to run the spider and waits for
+// it to finish. Scrapyd is the daemon that actually crawls; this daemon only owns the timing.
+function spiderJob(spider: string, shop: string, cron: string): Job {
+  return {
+    name: `scrape-${spider}`,
+    description: `Crawl ${shop} via Scrapyd (spider "${spider}") into Postgres.`,
+    cron,
+    run: () => scrapeSpider(spider),
+  };
+}
+
 export const jobs: readonly Job[] = [
   {
     name: 'track-durations',
@@ -19,6 +31,10 @@ export const jobs: readonly Job[] = [
     cron: env.TRACK_DURATIONS_CRON,
     run: runTrackDurations,
   },
+  spiderJob('discogs', 'Discogs', env.SCRAPE_DISCOGS_CRON),
+  spiderJob('coldcutshotwax', 'ColdCuts // HotWax', env.SCRAPE_COLDCUTSHOTWAX_CRON),
+  spiderJob('deejay', 'deejay.de', env.SCRAPE_DEEJAY_CRON),
+  spiderJob('dancingvinyl', 'Dancing Vinyl', env.SCRAPE_DANCINGVINYL_CRON),
 ];
 
 export function findJob(name: string): Job | undefined {

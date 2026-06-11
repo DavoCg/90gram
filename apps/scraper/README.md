@@ -113,3 +113,41 @@ non-vinyl `format` is a backstop guard. The free-text `duration` field is mapped
   objects) to read via `file://` instead of crawling.
 
 Re-running a crawl updates rows instead of duplicating them (unique on `source` + `external_id`).
+
+## Running in the cloud (Scrapyd on Fly.io)
+
+Locally you run a spider one-shot with `uv run scrapy crawl <spider>`. In the cloud the spiders run on
+**Scrapyd**, a long-running daemon that runs Scrapy projects from a packaged egg and exposes a JSON API.
+It lives in its own always-on Fly app, `getvinyls-scraper`, deployed exactly like `apps/jobs` and
+`apps/api` (`Dockerfile` + `fly.toml` + `.github/workflows/fly-deploy-scraper.yml` on pushes to
+`develop`).
+
+- **Baked egg.** The image builds the project into a Scrapy egg at build time (`setup.py` ->
+  `bdist_egg`) and pre-loads it into Scrapyd's eggs dir, so deploying is just shipping the image. There
+  is no runtime egg upload and no public `addversion` endpoint.
+- **Private only.** Scrapyd binds `0.0.0.0:6800` (`scrapyd.conf`) but publishes NO public ports, so it
+  is reachable only over Fly's private network at `getvinyls-scraper.internal:6800`. Health is checked
+  via `GET /daemonstatus.json`.
+- **Writes to Postgres.** Each spider subprocess inherits `DATABASE_URL` (a Fly secret) and writes
+  through the same `PostgresPipeline` as a local run, so idempotency is identical.
+
+### Scheduling
+
+Scrapyd has no scheduler of its own. The `apps/jobs` cron daemon owns the timing: it runs one
+`scrape-<spider>` job per spider, each POSTing a run to Scrapyd's `schedule.json` on its cron and
+polling `listjobs.json` until it finishes. Schedules are staggered (see `apps/jobs/README.md`) so the
+shops are crawled one at a time. Tune the crons via the `SCRAPE_*_CRON` env vars on the jobs app.
+
+### One-time setup
+
+```bash
+fly apps create getvinyls-scraper
+fly secrets set -c apps/scraper/fly.toml DATABASE_URL=postgres://...
+fly deploy -c apps/scraper/fly.toml          # from the repo root
+```
+
+Kick a spider by hand (over the private network, e.g. from another Fly app in the org):
+
+```bash
+curl -d project=getvinyls_scraper -d spider=discogs http://getvinyls-scraper.internal:6800/schedule.json
+```

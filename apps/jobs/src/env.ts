@@ -28,6 +28,27 @@ const EnvSchema = z.object({
 	// Optional cap on how many tracks a single run will process (handy for a first smoke run).
 	// Unset means process every candidate.
 	JOB_MAX_TRACKS: z.coerce.number().int().positive().optional(),
+
+	// Scrapyd (apps/scraper) ----------------------------------------------------------------------
+	// Scrapyd has no scheduler of its own, so this daemon drives it: each scrape-<spider> job POSTs a
+	// run to schedule.json on its cron. SCRAPYD_URL is the daemon's base URL; the default is the
+	// always-on getvinyls-scraper Fly app reached over the private network (no public port).
+	SCRAPYD_URL: z.string().url().default("http://getvinyls-scraper.internal:6800"),
+	// The Scrapy project name Scrapyd serves (matches apps/scraper/scrapy.cfg + the baked egg).
+	SCRAPYD_PROJECT: z.string().min(1).default("getvinyls_scraper"),
+
+	// Per-spider cron expressions (5-field, evaluated in JOB_TIMEZONE). Staggered across the early
+	// morning so the shops are crawled one at a time and never all at once (track-durations runs 03:00).
+	SCRAPE_DISCOGS_CRON: z.string().min(1).default("0 2 * * *"),
+	SCRAPE_COLDCUTSHOTWAX_CRON: z.string().min(1).default("0 4 * * *"),
+	SCRAPE_DEEJAY_CRON: z.string().min(1).default("0 5 * * *"),
+	SCRAPE_DANCINGVINYL_CRON: z.string().min(1).default("0 6 * * *"),
+
+	// How often to poll Scrapyd's listjobs.json while waiting for a crawl to finish, and the longest a
+	// single crawl may run before the job gives up waiting (the crawl is not killed, the wait just ends
+	// so a stuck crawl cannot pin the scheduler slot forever).
+	SCRAPE_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(15000),
+	SCRAPE_MAX_WAIT_MS: z.coerce.number().int().positive().default(1_800_000),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
