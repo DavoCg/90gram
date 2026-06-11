@@ -31,6 +31,11 @@ primary_region = "cdg"
 [env]
   MEILI_ENV = "production"
   MEILI_NO_ANALYTICS = "true"
+  # Bind the IPv6 wildcard, NOT the image default of 0.0.0.0:7700 (IPv4 only). Fly's `.internal`
+  # DNS that the api and jobs apps use is IPv6-only, so an IPv4-only bind answers the health check
+  # (which hits the machine's private IPv4) while every `.internal` caller gets ECONNREFUSED. On
+  # Linux `[::]` is dual-stack, so this still accepts the IPv4 health check.
+  MEILI_HTTP_ADDR = "[::]:7700"
   # Persist the index on the mounted volume so a redeploy/restart does not lose it (a lost index is
   # still rebuildable from Postgres by the reindex-vinyls job, but persistence avoids the rebuild).
   # Point at a SUBDIRECTORY of the volume, not its root: Fly volumes are ext4 and contain a
