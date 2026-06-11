@@ -65,6 +65,28 @@ export function useVinyls(): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
   });
 }
 
+// Full-text search, cursor-paginated. Disabled until `query` is non-empty (an empty search would
+// just page the whole catalog). Same flattening + infinite-scroll machinery as the home feed, so a
+// result row behaves identically. The query is trimmed by the caller before it reaches here.
+export function useVinylSearch(query: string): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.vinyls.search(query),
+    enabled: query.length > 0,
+    queryFn: async ({ pageParam }): Promise<VinylListDto> => {
+      const { data, error } = await apiClient.GET('/vinyls/search', {
+        params: { query: { q: query, limit: PAGE_SIZE, cursor: pageParam } },
+      });
+      if (error || !data) {
+        throw new Error('Search failed');
+      }
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    select: flattenVinyls,
+  });
+}
+
 // Scan the loaded pages of an infinite vinyls cache for a summary (used to seed the detail sheet).
 function findCachedSummary(
   data: InfiniteData<VinylListDto> | undefined,

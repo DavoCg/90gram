@@ -4,6 +4,8 @@ export const queryKeys = {
     // The home feed, cursor-paginated (an infinite query).
     list: ['vinyls', 'list'] as const,
     detail: (id: string) => ['vinyls', id] as const,
+    // Full-text search results for a query, cursor-paginated (an infinite query).
+    search: (query: string) => ['vinyls', 'search', query] as const,
   },
   shops: {
     detail: (id: string) => ['shops', id] as const,

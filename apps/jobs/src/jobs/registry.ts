@@ -1,6 +1,7 @@
 import { env } from '../env.js';
 import { scrapeSpider } from './scrapyd.js';
 import { runTrackDurations } from './track-durations.js';
+import { runReindexVinyls } from './reindex-vinyls.js';
 
 // The single source of truth for what jobs exist. Both the scheduler (cron mode) and the one-off
 // CLI runner read from here. Each job carries its cron expression so the always-on daemon knows
@@ -35,6 +36,14 @@ export const jobs: readonly Job[] = [
     description: 'Backfill tracks.duration_seconds by reading each track preview audio.',
     cron: env.TRACK_DURATIONS_CRON,
     run: runTrackDurations,
+  },
+  {
+    name: 'reindex-vinyls',
+    description: 'Rebuild the Meilisearch vinyls index from Postgres (derived, additive upsert).',
+    cron: env.REINDEX_VINYLS_CRON,
+    // Build the index once on launch so search works on a fresh deploy without waiting for the cron.
+    runOnStart: true,
+    run: runReindexVinyls,
   },
   spiderJob('discogs', 'Discogs', env.SCRAPE_DISCOGS_CRON),
   spiderJob('coldcutshotwax', 'ColdCuts // HotWax', env.SCRAPE_COLDCUTSHOTWAX_CRON),

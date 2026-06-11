@@ -1,0 +1,57 @@
+# Fly.io config for the getvinyls Meilisearch server (the search backend).
+#
+# Unlike the other Fly apps, this is NOT a workspace package we build: it runs the official
+# Meilisearch image directly. Deploy from this directory:
+#   fly deploy -c infra/meilisearch/fly.toml
+#
+# The search index is a DERIVED view of the canonical vinyls: the jobs service (apps/jobs
+# reindex-vinyls) rebuilds it from Postgres, and the API (apps/api) reads it for GET /vinyls/search.
+# Both reach this server over the Fly PRIVATE network (no public port is published), e.g.
+#   MEILI_HOST = "http://getvinyls-search.internal:7700"
+# Set that (plus the keys) as secrets on the jobs and api apps:
+#   fly secrets set -c apps/jobs/fly.toml MEILI_HOST=http://getvinyls-search.internal:7700 MEILI_MASTER_KEY=...
+#   fly secrets set -c apps/api/fly.toml  MEILI_HOST=http://getvinyls-search.internal:7700 MEILI_SEARCH_KEY=...
+#
+# Set the master key once on THIS app and create the volume before the first deploy:
+#   fly secrets set -c infra/meilisearch/fly.toml MEILI_MASTER_KEY="$(openssl rand -base64 32)"
+#   fly volumes create meili_data -c infra/meilisearch/fly.toml --region cdg --size 1
+#
+# MEILI_SEARCH_KEY for the API is a SCOPED search-only key derived from the master key (create it via
+# the /keys API with action "search" only); never give the API the master key.
+
+app = "getvinyls-search"
+primary_region = "cdg"
+
+[build]
+  image = "getmeili/meilisearch:v1.12"
+
+[env]
+  MEILI_ENV = "production"
+  MEILI_NO_ANALYTICS = "true"
+  # Persist the index on the mounted volume so a redeploy/restart does not lose it (a lost index is
+  # still rebuildable from Postgres by the reindex-vinyls job, but persistence avoids the rebuild).
+  MEILI_DB_PATH = "/meili_data"
+
+[[mounts]]
+  source = "meili_data"
+  destination = "/meili_data"
+
+# Internal only: no [[services.ports]], so the server is reachable just over the private .internal
+# network by the api and jobs apps. One always-on machine; Meilisearch holds the index on its volume.
+[[services]]
+  internal_port = 7700
+  protocol = "tcp"
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

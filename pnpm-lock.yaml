@@ -129,6 +129,9 @@ importers:
       hono:
         specifier: ^4.12.23
         version: 4.12.23
+      meilisearch:
+        specifier: ^0.58.0
+        version: 0.58.0
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -160,6 +163,9 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
+      meilisearch:
+        specifier: ^0.58.0
+        version: 0.58.0
       music-metadata:
         specifier: ^11.2.0
         version: 11.13.0
@@ -4644,6 +4650,10 @@ packages:
   media-typer@2.0.0:
     resolution: {integrity: sha512-kOy3OxT2HH39N70UnKgu4NWDZjLOz8W/mfyvniHjRH/DrL3f2pOfvWQ4p60offbbtDAnXWp0v9LfMIqMec269Q==}
     engines: {node: '>=18'}
+
+  meilisearch@0.58.0:
+    resolution: {integrity: sha512-MXFlU+JVG2I3tDI4brS3UHxEv2fjOROP24TPP16c8dGHTulb1kxMgXvKP0x4ImvUcsVVJFi4QXP0JNDS/TaWaw==}
+    engines: {node: ^20.19.0 || >=22.12.0}
 
   memoize-one@5.2.1:
     resolution: {integrity: sha512-zYiwtZUcYyXKo/np96AGZAckk+FWWsUdJ3cHGGmld7+AhvcWmQyGCYUh1hc4Q/pkOhb65dQR/pqCyK0cOaHz4Q==}
@@ -11351,6 +11361,8 @@ snapshots:
   mdn-data@2.0.14: {}
 
   media-typer@2.0.0: {}
+
+  meilisearch@0.58.0: {}
 
   memoize-one@5.2.1: {}
 

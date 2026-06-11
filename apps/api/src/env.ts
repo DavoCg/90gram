@@ -31,6 +31,14 @@ const EnvSchema = z.object({
     .int()
     .positive()
     .default(6 * 60 * 60 * 1000),
+
+  // Meilisearch (full-text search). The index is a DERIVED view of the canonical vinyls, rebuilt
+  // from Postgres by the jobs service; the API only READS it. MEILI_HOST is the search server's
+  // base URL; MEILI_SEARCH_KEY is a search-only (read) API key. Both optional: when MEILI_HOST is
+  // unset the /vinyls/search route answers 503 (search not configured) rather than fail to boot, so
+  // the rest of the API runs without a search server in local development.
+  MEILI_HOST: z.url().optional(),
+  MEILI_SEARCH_KEY: z.string().optional(),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
