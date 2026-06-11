@@ -7,7 +7,8 @@
 # uses apps/scraper: the Scrapy project writes to Postgres directly and has no workspace deps. The
 # project is baked into the image as a Scrapy egg and pre-loaded into Scrapyd's eggs dir, so deploying
 # is just shipping the image (no runtime egg upload, no public addversion endpoint). Scrapyd binds
-# 0.0.0.0:6800 and is reached privately by apps/jobs at getvinyls-scraper.internal:6800.
+# [::]:6800 (IPv6, since Fly's .internal private network is IPv6-only) and is reached privately by
+# apps/jobs at getvinyls-scraper.internal:6800.
 FROM python:3.12-slim AS base
 
 # uv for fast, reproducible installs straight from the project's uv.lock.
@@ -39,6 +40,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 EXPOSE 6800
 
-# Start the Scrapyd daemon. It reads ./scrapyd.conf (bind 0.0.0.0:6800) and serves the JSON API that
+# Start the Scrapyd daemon. It reads ./scrapyd.conf (bind [::]:6800) and serves the JSON API that
 # apps/jobs calls. DATABASE_URL comes from Fly secrets and is inherited by each spider subprocess.
 CMD ["scrapyd"]
