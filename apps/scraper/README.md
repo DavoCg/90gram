@@ -135,8 +135,9 @@ It lives in its own always-on Fly app, `getvinyls-scraper`, deployed exactly lik
 
 Scrapyd has no scheduler of its own. The `apps/jobs` cron daemon owns the timing: it runs one
 `scrape-<spider>` job per spider, each POSTing a run to Scrapyd's `schedule.json` on its cron and
-polling `listjobs.json` until it finishes. Schedules are staggered (see `apps/jobs/README.md`) so the
-shops are crawled one at a time. Tune the crons via the `SCRAPE_*_CRON` env vars on the jobs app.
+polling `listjobs.json` until it finishes. Every shop runs every 30 minutes by default, and each job
+also fires once when the jobs daemon launches (see `apps/jobs/README.md`). Tune the crons via the
+`SCRAPE_*_CRON` env vars on the jobs app.
 
 ### One-time setup
 

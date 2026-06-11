@@ -10,16 +10,21 @@ export type Job = {
   description: string;
   // 5-field cron expression, evaluated in env.JOB_TIMEZONE by the scheduler.
   cron: string;
+  // When true, the scheduler also fires this job once at daemon launch (in addition to its cron),
+  // so the first run does not wait for the next tick.
+  runOnStart?: boolean;
   run: () => Promise<void>;
 };
 
 // A scrape-<spider> job: on its cron it asks Scrapyd (apps/scraper) to run the spider and waits for
-// it to finish. Scrapyd is the daemon that actually crawls; this daemon only owns the timing.
+// it to finish. Scrapyd is the daemon that actually crawls; this daemon only owns the timing. Flagged
+// runOnStart so a fresh deploy kicks one crawl immediately rather than waiting up to a full interval.
 function spiderJob(spider: string, shop: string, cron: string): Job {
   return {
     name: `scrape-${spider}`,
     description: `Crawl ${shop} via Scrapyd (spider "${spider}") into Postgres.`,
     cron,
+    runOnStart: true,
     run: () => scrapeSpider(spider),
   };
 }

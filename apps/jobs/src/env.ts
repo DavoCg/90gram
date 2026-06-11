@@ -37,12 +37,13 @@ const EnvSchema = z.object({
 	// The Scrapy project name Scrapyd serves (matches apps/scraper/scrapy.cfg + the baked egg).
 	SCRAPYD_PROJECT: z.string().min(1).default("getvinyls_scraper"),
 
-	// Per-spider cron expressions (5-field, evaluated in JOB_TIMEZONE). Staggered across the early
-	// morning so the shops are crawled one at a time and never all at once (track-durations runs 03:00).
-	SCRAPE_DISCOGS_CRON: z.string().min(1).default("0 2 * * *"),
-	SCRAPE_COLDCUTSHOTWAX_CRON: z.string().min(1).default("0 4 * * *"),
-	SCRAPE_DEEJAY_CRON: z.string().min(1).default("0 5 * * *"),
-	SCRAPE_DANCINGVINYL_CRON: z.string().min(1).default("0 6 * * *"),
+	// Per-spider cron expressions (5-field, evaluated in JOB_TIMEZONE). Every 30 minutes for all
+	// shops; the scheduler also fires each shop scrape once at launch so the first crawl does not
+	// wait for the next tick (see jobs/registry.ts runOnStart + scheduler.ts).
+	SCRAPE_DISCOGS_CRON: z.string().min(1).default("*/30 * * * *"),
+	SCRAPE_COLDCUTSHOTWAX_CRON: z.string().min(1).default("*/30 * * * *"),
+	SCRAPE_DEEJAY_CRON: z.string().min(1).default("*/30 * * * *"),
+	SCRAPE_DANCINGVINYL_CRON: z.string().min(1).default("*/30 * * * *"),
 
 	// How often to poll Scrapyd's listjobs.json while waiting for a crawl to finish, and the longest a
 	// single crawl may run before the job gives up waiting (the crawl is not killed, the wait just ends
