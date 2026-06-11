@@ -19,6 +19,7 @@ import type {
 } from '@getvinyls/api-client';
 import { apiClient } from './client';
 import { queryKeys } from './queryKeys';
+import { toast } from '../components/toast';
 
 // react-query hooks wrapping the typed client. These live in the app, not in
 // @getvinyls/api-client (which stays React-free). No hand-written fetch, zero any.
@@ -276,6 +277,13 @@ function targetIdOf(target: ToggleFavoriteTarget): string {
   return target.targetType === 'vinyl' ? target.vinyl.id : target.track.id;
 }
 
+// What goes under the "Added to favorites" toast: the record/track that was favorited.
+function favoriteToastDescription(target: ToggleFavoriteTarget): string {
+  return target.targetType === 'vinyl'
+    ? `${target.vinyl.title} - ${target.vinyl.artist}`
+    : `${target.track.title} - ${target.track.vinyl.artist}`;
+}
+
 // Flip a target in the ids cache (drives every heart instantly).
 function applyIdsToggle(ids: FavoriteIdsDto, m: FavoriteMutation): FavoriteIdsDto {
   const id = targetIdOf(m);
@@ -375,6 +383,12 @@ export function useToggleFavorite(): ToggleFavoriteApi {
       if (!m) return;
       // Even number of taps: desired state equals the server state, so nothing needs to be sent.
       if (m.add === start) return;
+      // Toast only on a net add (the persisted intent), so a burst that nets out shows nothing and a
+      // net remove stays silent. Fired here (the debounced commit) rather than per tap, so it tracks
+      // the truth we send rather than every optimistic flip.
+      if (m.add) {
+        toast.success('Added to favorites', { description: favoriteToastDescription(m) });
+      }
       sync.mutate(m);
     },
     [sync],
