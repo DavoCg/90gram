@@ -28,6 +28,10 @@ export type JobStatus = {
 export class Scheduler {
   private readonly crons: Cron[] = [];
   private readonly lastRun = new Map<string, JobRunState>();
+  // Names of jobs currently executing. The cron's `protect: true` only guards a scheduled tick
+  // against re-entering itself; this also covers the runOnStart launch trigger overlapping a
+  // same-instant scheduled tick, so a job never runs twice concurrently regardless of the caller.
+  private readonly running = new Set<string>();
 
   start(): void {
     for (const job of jobs) {
@@ -43,9 +47,23 @@ export class Scheduler {
           `next=${next === null ? 'never' : next.toISOString()}`,
       );
     }
+    // Kick off any runOnStart job once now, so the first run does not wait for the next tick. Fire on
+    // the next event-loop tick so the daemon finishes wiring up before crawls start; execute() skips
+    // a job already running, so this never overlaps a same-instant scheduled tick.
+    for (const job of jobs) {
+      if (job.runOnStart === true) {
+        console.log(`[scheduler] triggering "${job.name}" once at launch`);
+        setImmediate(() => void this.execute(job));
+      }
+    }
   }
 
   private async execute(job: Job): Promise<void> {
+    if (this.running.has(job.name)) {
+      console.log(`[scheduler] skipping "${job.name}", previous run still in progress`);
+      return;
+    }
+    this.running.add(job.name);
     const startedAt = new Date();
     this.lastRun.set(job.name, {
       startedAt: startedAt.toISOString(),
@@ -77,6 +95,8 @@ export class Scheduler {
         error: message,
       });
       console.error(`[scheduler] job "${job.name}" failed:`, error);
+    } finally {
+      this.running.delete(job.name);
     }
   }
 
@@ -89,7 +109,7 @@ export class Scheduler {
         description: job?.description ?? '',
         cron: job?.cron ?? '',
         timezone: env.JOB_TIMEZONE,
-        running: cron.isBusy(),
+        running: cron.isBusy() || this.running.has(job?.name ?? ''),
         nextRun: next === null ? null : next.toISOString(),
         lastRun: this.lastRun.get(job?.name ?? '') ?? null,
       };
@@ -97,7 +117,7 @@ export class Scheduler {
   }
 
   isAnyJobRunning(): boolean {
-    return this.crons.some((cron) => cron.isBusy());
+    return this.running.size > 0 || this.crons.some((cron) => cron.isBusy());
   }
 
   stop(): void {
