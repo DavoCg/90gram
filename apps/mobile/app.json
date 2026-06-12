@@ -65,7 +65,9 @@
           "logo": "./assets/bootsplash-logo.png",
           "logoWidth": 100,
           "background": "#faf7f2",
-          "assetsOutput": "assets/bootsplash"
+          "darkBackground": "#1c1714",
+          "assetsOutput": "assets/bootsplash",
+          "licenseKey": "779062A7-4F8E4354-8C20D04D-1C68795A"
         }
       ]
     ],
