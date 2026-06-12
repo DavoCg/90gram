@@ -6,8 +6,6 @@ import {
   ListMusic,
   MessageSquare,
   MoreHorizontal,
-  Pause,
-  Play,
   SkipBack,
   SkipForward,
   Star,
@@ -31,6 +29,7 @@ import { useSmoothPosition } from '../hooks/use-smooth-position';
 import { Pressable, View } from '../theme/uniwind';
 import { Button } from './button/button';
 import { MarqueeText } from './marquee-text';
+import { PlayPauseIcon } from './PlayPauseIcon';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 import { BIG_COVER_MAX, BIG_COVER_RADIUS } from '../theme/sizes';
@@ -275,13 +274,7 @@ export function NowPlaying({
           size="xs"
           layout="square"
           accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-          startSlot={
-            isPlaying ? (
-              <Pause color={colors.text} size={22} fill={colors.text} />
-            ) : (
-              <Play color={colors.text} size={22} fill={colors.text} />
-            )
-          }
+          startSlot={<PlayPauseIcon playing={isPlaying} size={22} color={colors.text} />}
         />
         <Button
           onPress={() => audioEngine.next()}
@@ -439,13 +432,7 @@ export function NowPlaying({
                 size="lg"
                 layout="square"
                 accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-                startSlot={
-                  isPlaying ? (
-                    <Pause color={colors.text} size={44} fill={colors.text} />
-                  ) : (
-                    <Play color={colors.text} size={44} fill={colors.text} />
-                  )
-                }
+                startSlot={<PlayPauseIcon playing={isPlaying} size={44} color={colors.text} />}
               />
               <Button
                 onPress={() => audioEngine.next()}
