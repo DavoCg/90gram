@@ -48,7 +48,10 @@ function flattenUniqueVinyls(data: InfiniteData<VinylListDto>): VinylSummaryDto[
 }
 
 // The home feed: every vinyl, cursor-paginated. `data` is the flattened list; pull more with
-// fetchNextPage() when the list nears its end (hasNextPage gates whether there is more).
+// fetchNextPage() when the list nears its end (hasNextPage gates whether there is more). Deduped by
+// id: /vinyls pages by offset over a shop-count ranking that the scraper mutates, so a vinyl can slip
+// across the page boundary and repeat. A duplicate id is a duplicate list key, which a recycling list
+// must never see (it misroutes taps to the wrong detail), so we collapse repeats here.
 export function useVinyls(): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
   return useInfiniteQuery({
     queryKey: queryKeys.vinyls.list,
@@ -63,13 +66,15 @@ export function useVinyls(): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    select: flattenVinyls,
+    select: flattenUniqueVinyls,
   });
 }
 
 // Full-text search, cursor-paginated. Disabled until `query` is non-empty (an empty search would
 // just page the whole catalog). Same flattening + infinite-scroll machinery as the home feed, so a
-// result row behaves identically. The query is trimmed by the caller before it reaches here.
+// result row behaves identically. The query is trimmed by the caller before it reaches here. Deduped
+// by id for the same reason as the home feed: offset paging over results that can shift between page
+// fetches must not surface a vinyl twice, or the recycling list keys collide and taps misroute.
 export function useVinylSearch(query: string): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
   return useInfiniteQuery({
     queryKey: queryKeys.vinyls.search(query),
@@ -85,7 +90,7 @@ export function useVinylSearch(query: string): UseInfiniteQueryResult<VinylSumma
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
-    select: flattenVinyls,
+    select: flattenUniqueVinyls,
   });
 }
 
