@@ -14,7 +14,7 @@ export interface ThemeColors {
   accent: string;
 }
 
-const light: ThemeColors = {
+export const lightColors: ThemeColors = {
   bg: '#faf7f2',
   surface: '#ffffff',
   surface2: '#f1ece3',
@@ -25,7 +25,7 @@ const light: ThemeColors = {
   accent: '#46a758',
 };
 
-const dark: ThemeColors = {
+export const darkColors: ThemeColors = {
   bg: '#1c1714',
   surface: '#251e19',
   surface2: '#312922',
@@ -39,5 +39,5 @@ export function useThemeColors(): ThemeColors {
   // Read Uniwind's active theme, not useColorScheme(). Uniwind.setTheme() notifies its
   // subscribers synchronously, so the nav chrome flips in the same pass as the className
   // views; useColorScheme() only updates on the async native Appearance event, which lagged.
-  return useUniwind().theme === 'dark' ? dark : light;
+  return useUniwind().theme === 'dark' ? darkColors : lightColors;
 }

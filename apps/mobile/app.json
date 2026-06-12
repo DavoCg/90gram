@@ -62,10 +62,11 @@
       [
         "react-native-bootsplash",
         {
-          "assetsDir": "assets/bootsplash",
-          "android": {
-            "parentTheme": "EdgeToEdge"
-          }
+          "logo": "./assets/bootsplash/logo.png",
+          "logoWidth": 100,
+          "background": "#faf7f2",
+          "darkBackground": "#1c1714",
+          "assetsOutput": "assets/bootsplash"
         }
       ]
     ],

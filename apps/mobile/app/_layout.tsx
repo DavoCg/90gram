@@ -12,6 +12,7 @@ import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
 import { AppToaster } from '../src/components/toast';
+import { useThemeColors } from '../src/theme/colors';
 import { STACK_ANIMATION_DURATION } from '../src/theme/motion';
 import { initializeTheme } from '../src/theme/theme';
 
@@ -19,8 +20,12 @@ import { initializeTheme } from '../src/theme/theme';
 initializeTheme();
 
 export default function RootLayout() {
+  // Backdrop behind the navigator and the bootsplash fade. Use the theme bg so it matches the
+  // splash background and the screens, rather than a hardcoded black that would flash through.
+  const colors = useThemeColors();
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* KeyboardProvider feeds the native keyboard frame to react-native-keyboard-controller so
           screens can track the keyboard smoothly on the UI thread (used by sign-in). It wraps the
           app high up so any screen can opt in. */}
