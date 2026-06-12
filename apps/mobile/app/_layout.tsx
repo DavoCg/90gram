@@ -20,11 +20,15 @@ import { initializeTheme } from '../src/theme/theme';
 initializeTheme();
 
 // Shared options for screens presented as native formSheets. `contentStyle` paints the sheet surface
-// with the themed background so it matches the rest of the app behind the safe areas. `detents` defaults
-// to `fitToContents` (the sheet is sized to, and re-animates with, its content), which is right for
-// short, scroll-free content. Sheets that contain a ScrollView MUST pass fixed fractional detents
-// instead: react-native-screens cannot measure a scroll container, so `fitToContents` mis-sizes it and
-// the content overflows. Those sheets give the scroll view a known height to fill via a fixed detent.
+// with the themed background so it matches the rest of the app. `detents` defaults to `fitToContents`
+// (the sheet is sized to, and re-animates with, its content), which is right for short, scroll-free
+// content. Sheets that contain a ScrollView pass a fixed fractional detent instead: a scroll container
+// has no intrinsic height for `fitToContents` to measure, so the sheet gets a known height to fill.
+//
+// Deliberately NO `headerShown` here. The root Stack already hides headers globally (see its
+// screenOptions), so it is redundant; and setting `headerShown` in a formSheet's own options makes a
+// `fitToContents` sheet expand to full screen on iOS (expo/expo#42066, react-native-screens#2665). The
+// (auth) auth-method sheet works precisely because it omits it and inherits the global value.
 type ScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
 function sheetScreenOptions(
   background: string,
@@ -36,7 +40,6 @@ function sheetScreenOptions(
     sheetGrabberVisible: true,
     sheetCornerRadius: 24,
     contentStyle: { backgroundColor: background },
-    headerShown: false,
   };
 }
 
