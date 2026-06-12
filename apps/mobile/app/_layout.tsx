@@ -1,6 +1,7 @@
 import '../global.css';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -20,20 +21,25 @@ initializeTheme();
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
-      <SafeAreaProvider>
-        {/* BottomSheetProvider owns the portal that ModalBottomSheet renders through, so it wraps
-            the whole app (high enough that modal sheets float over the navigator and the toasts). */}
-        <BottomSheetProvider>
-          <QueryClientProvider client={queryClient}>
-            <StatusBar style="auto" />
-            <RootNavigator />
-            {/* Global toast host: mounted above the navigator so toasts float over every screen.
-                Lives inside the gesture-handler + safe-area providers, which the toasts need for
-                swipe-to-dismiss and top-inset positioning. */}
-            <AppToaster />
-          </QueryClientProvider>
-        </BottomSheetProvider>
-      </SafeAreaProvider>
+      {/* KeyboardProvider feeds the native keyboard frame to react-native-keyboard-controller so
+          screens can track the keyboard smoothly on the UI thread (used by sign-in). It wraps the
+          app high up so any screen can opt in. */}
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          {/* BottomSheetProvider owns the portal that ModalBottomSheet renders through, so it wraps
+              the whole app (high enough that modal sheets float over the navigator and the toasts). */}
+          <BottomSheetProvider>
+            <QueryClientProvider client={queryClient}>
+              <StatusBar style="auto" />
+              <RootNavigator />
+              {/* Global toast host: mounted above the navigator so toasts float over every screen.
+                  Lives inside the gesture-handler + safe-area providers, which the toasts need for
+                  swipe-to-dismiss and top-inset positioning. */}
+              <AppToaster />
+            </QueryClientProvider>
+          </BottomSheetProvider>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
