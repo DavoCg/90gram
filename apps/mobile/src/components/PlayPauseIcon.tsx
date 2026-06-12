@@ -36,8 +36,9 @@ const PLAY_R: Quad = [
   [13, 16.5],
 ];
 // Pause = lucide's two bars (x 5..10 and 14..19, y 3..21), each a quad that lines up point-for-point
-// with a play quad. The 1px corner radius is dropped so the morph stays a clean vertex tween; at the
-// rendered sizes the filled bars read identically to the lucide glyph.
+// with a play quad. lucide's 1px bar radius / rounded triangle tip come from its default round-join
+// stroke, which we reproduce on the rendered path below (see the stroke* props), so corners round
+// consistently across the whole morph rather than baking arcs into the vertices.
 const PAUSE_L: Quad = [
   [5, 3],
   [10, 3],
@@ -92,9 +93,20 @@ export function PlayPauseIcon({
     return { d: subpath(PLAY_L, PAUSE_L, t) + subpath(PLAY_R, PAUSE_R, t) };
   });
 
+  // fill + a width-2 round-join/round-cap stroke is exactly how lucide renders its icons (the app
+  // already layers fill={colors.text} over lucide's default stroke). The round joins round every
+  // corner: the bar corners (~rx 1) and the triangle tip, matching the neighboring SkipBack /
+  // SkipForward glyphs at rest and all the way through the morph.
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
-      <AnimatedPath animatedProps={animatedProps} fill={color} />
+      <AnimatedPath
+        animatedProps={animatedProps}
+        fill={color}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
