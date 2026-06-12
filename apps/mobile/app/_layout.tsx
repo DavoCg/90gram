@@ -92,7 +92,9 @@ function RootNavigator() {
       }}
     >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" />
+      {/* Signing out navigates here; fade in rather than slide so leaving the app feels like a
+          dissolve, not a sideways push back to a previous screen. */}
+      <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
       {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
           screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
       <Stack.Screen name="settings" />
