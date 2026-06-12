@@ -99,7 +99,7 @@
 			--background-color-accent-elevation-page: var(--color-accent-light-1);
 			--background-color-accent-elevation-popover: var(--color-accent-light-1);
 			--background-color-accent-elevation-sheet: var(--color-accent-light-1);
-			--background-color-accent: var(--color-accent-light-9);
+			--background-color-accent: var(--color-accent-light-12);
 			--background-color-accent-soft: var(--color-accent-light-a-3);
 			--background-color-accent-softest: var(--color-accent-light-a-2);
 			--background-color-accent-intense: var(--color-accent-light-12);
@@ -108,10 +108,10 @@
 			--text-color-accent-soft: var(--color-accent-light-10);
 			--text-color-accent-softest: var(--color-accent-light-a-8);
 			--text-color-accent-disabled: var(--color-accent-light-a-6);
-			--text-color-accent-on-solid: white;
+			--text-color-accent-on-solid: var(--color-accent-light-1);
 			--text-color-accent-on-intense: var(--color-accent-light-1);
 			--border-color-accent-intense: var(--color-accent-light-12);
-			--border-color-accent: var(--color-accent-light-9);
+			--border-color-accent: var(--color-accent-light-12);
 			--border-color-accent-soft: var(--color-accent-light-a-4);
 			--border-color-accent-softest: var(--color-accent-light-a-3);
 			--border-color-accent-disabled: var(--color-accent-light-a-2);
@@ -805,7 +805,7 @@
 			--background-color-accent-elevation-page: var(--color-accent-dark-1);
 			--background-color-accent-elevation-popover: var(--color-accent-dark-3);
 			--background-color-accent-elevation-sheet: var(--color-accent-dark-2);
-			--background-color-accent: var(--color-accent-dark-9);
+			--background-color-accent: var(--color-accent-dark-12);
 			--background-color-accent-soft: var(--color-accent-dark-a-3);
 			--background-color-accent-softest: var(--color-accent-dark-a-2);
 			--background-color-accent-intense: var(--color-accent-dark-12);
@@ -814,10 +814,10 @@
 			--text-color-accent-soft: var(--color-accent-dark-10);
 			--text-color-accent-softest: var(--color-accent-dark-a-8);
 			--text-color-accent-disabled: var(--color-accent-dark-a-6);
-			--text-color-accent-on-solid: white;
+			--text-color-accent-on-solid: var(--color-accent-dark-1);
 			--text-color-accent-on-intense: var(--color-accent-dark-1);
 			--border-color-accent-intense: var(--color-accent-dark-12);
-			--border-color-accent: var(--color-accent-dark-9);
+			--border-color-accent: var(--color-accent-dark-12);
 			--border-color-accent-soft: var(--color-accent-dark-a-4);
 			--border-color-accent-softest: var(--color-accent-dark-a-2);
 			--border-color-accent-disabled: var(--color-accent-dark-a-2);

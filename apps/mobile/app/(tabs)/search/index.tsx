@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { TextInput } from 'react-native';
+import type { LayoutChangeEvent, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
+  Extrapolation,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +17,7 @@ import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
 import { Input } from '../../../src/components/input';
+import { PressableScale } from '../../../src/components/pressable-scale';
 import { useVinylSearch } from '../../../src/api/hooks';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
@@ -27,9 +29,8 @@ import { searchFocusRequest$ } from '../../../src/search/focus-signal';
 const LIST_BOTTOM_PADDING = 140;
 
 // Height of the "Search" title row, collapsed to 0 when the field is focused so the search bar
-// rises to the top. Width reserved for the Cancel button that slides in to the field's right.
+// rises to the top.
 const TITLE_HEIGHT = 48;
-const CANCEL_WIDTH = 76;
 // Drives both the title collapse and the Cancel reveal. Short and eased so it feels snappy.
 const FOCUS_TIMING = { duration: 220, easing: Easing.out(Easing.cubic) } as const;
 
@@ -42,20 +43,37 @@ export default function SearchScreen() {
   // entirely on the UI thread from the field's focus/blur, so no per-frame React state.
   const focusProgress = useSharedValue(0);
 
-  // The title row slides up and fades while its height collapses, reclaiming the space so the
-  // search bar (and the results below it) rise to the top.
-  const titleStyle = useAnimatedStyle(() => ({
-    height: interpolate(focusProgress.value, [0, 1], [TITLE_HEIGHT, 0]),
-    opacity: interpolate(focusProgress.value, [0, 1], [1, 0]),
+  // The whole header + results block slides up by the title's height so the field rises to the top;
+  // the title fades as it slips above the clipped top edge. This is a single translateY on the UI
+  // thread, so the results list never relayouts during the transition (animating the title's height
+  // instead would reflow every list row on every frame).
+  const riseStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: interpolate(focusProgress.value, [0, 1], [0, -TITLE_HEIGHT]) }],
   }));
-
-  // Cancel grows in from zero width on the field's right; overflow-hidden clips its text while it
-  // expands, and the flex-1 field shrinks to make room.
-  const cancelStyle = useAnimatedStyle(() => ({
-    width: interpolate(focusProgress.value, [0, 1], [0, CANCEL_WIDTH]),
-    opacity: focusProgress.value,
+  // Fade across the first half of the motion (and back in over the second half when returning) so
+  // the title clearly fades out/in rather than just sliding behind the clip edge.
+  const titleFadeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(focusProgress.value, [0, 0.5], [1, 0], Extrapolation.CLAMP),
   }));
+
+  // Cancel reveals on the field's right: the wrapper animates from 0 to the label's width while the
+  // flex-1 field shrinks to make room. The width comes from an invisible, out-of-flow copy of the
+  // label (onCancelLayout) rather than the visible one: measuring the visible label would feed back
+  // on itself (the wrapper clamps it to ~0 at rest, which would report ~0 and oscillate). The
+  // off-flow copy is never clamped, so it reports the true width even after the custom font loads or
+  // the label is translated. Opacity is 0 at rest so the unmeasured frame is invisible.
+  const [cancelWidth, setCancelWidth] = useState(0);
+  const onCancelLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    setCancelWidth((prev) => (prev === w ? prev : w));
+  }, []);
+  const cancelStyle = useAnimatedStyle(
+    () => ({
+      width: cancelWidth === 0 ? 0 : interpolate(focusProgress.value, [0, 1], [0, cancelWidth]),
+      opacity: focusProgress.value,
+    }),
+    [cancelWidth],
+  );
 
   const onFocus = useCallback(() => {
     focusProgress.value = withTiming(1, FOCUS_TIMING);
@@ -117,87 +135,112 @@ export default function SearchScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <View style={{ paddingTop: insets.top }} className="bg-bg px-4 pb-2">
-        <Animated.View style={[{ overflow: 'hidden' }, titleStyle]}>
-          <View className="h-12 justify-center">
-            <Text numberOfLines={1} size="2xl" weight="bold">
-              Search
-            </Text>
+      {/* Status-bar inset, fixed. The block below clips the title as it slides up past this edge. */}
+      <View style={{ height: insets.top }} className="bg-bg" />
+      <View className="flex-1 overflow-hidden">
+        {/* Header + results ride one transform up; bottom 48px it exposes is the same bg-bg. */}
+        <Animated.View style={[{ flex: 1 }, riseStyle]}>
+          <View className="px-4 pb-2">
+            <Animated.View pointerEvents="none" style={titleFadeStyle}>
+              <View className="h-12 justify-center">
+                <Text numberOfLines={1} size="2xl" weight="bold">
+                  Search
+                </Text>
+              </View>
+            </Animated.View>
+            <View className="flex-row items-center">
+              <View className="flex-1">
+                <Input
+                  ref={inputRef}
+                  value={text}
+                  onChangeText={setText}
+                  onFocus={onFocus}
+                  onBlur={onBlur}
+                  placeholder="Title, artist, label…"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  startSlot={<Search size={18} />}
+                  endSlot={
+                    text.length > 0 ? (
+                      <Pressable onPress={() => setText('')} hitSlop={8}>
+                        <X size={18} color={colors.muted} />
+                      </Pressable>
+                    ) : undefined
+                  }
+                />
+              </View>
+              {/* Off-flow copy used only to measure the label's true width (see onCancelLayout). */}
+              <View
+                pointerEvents="none"
+                onLayout={onCancelLayout}
+                style={{ position: 'absolute', opacity: 0 }}
+                className="pl-3"
+              >
+                <Text numberOfLines={1} weight="medium">
+                  Cancel
+                </Text>
+              </View>
+              <Animated.View
+                style={[
+                  { overflow: 'hidden', justifyContent: 'center', alignItems: 'flex-start' },
+                  cancelStyle,
+                ]}
+              >
+                <PressableScale
+                  onPress={handleCancel}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel search"
+                  style={cancelWidth > 0 ? { width: cancelWidth } : undefined}
+                  className="pl-3"
+                >
+                  <Text numberOfLines={1} color="accent" weight="medium">
+                    Cancel
+                  </Text>
+                </PressableScale>
+              </Animated.View>
+            </View>
+          </View>
+
+          <View className="flex-1">
+            {!hasQuery ? null : isLoading ? (
+              <View className="flex-1 items-center justify-center">
+                <ActivityIndicator />
+              </View>
+            ) : isError ? (
+              <View className="flex-1 items-center justify-center gap-2 px-8">
+                <Text align="center">Search is unavailable.</Text>
+                <Text size="sm" color="neutral-soft" align="center">
+                  Please try again in a moment.
+                </Text>
+              </View>
+            ) : results.length === 0 ? (
+              <View className="flex-1 items-center justify-center px-8">
+                <Text size="sm" color="neutral-soft" align="center">
+                  No records match “{query}”.
+                </Text>
+              </View>
+            ) : (
+              <LegendList
+                data={results}
+                keyExtractor={(item) => item.id}
+                renderItem={renderItem}
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+                recycleItems
+                estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
+                extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
+                keyboardDismissMode="on-drag"
+                keyboardShouldPersistTaps="handled"
+                onEndReached={onEndReached}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
+                contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
+              />
+            )}
           </View>
         </Animated.View>
-        <View className="flex-row items-center">
-          <View className="flex-1">
-            <Input
-              ref={inputRef}
-              value={text}
-              onChangeText={setText}
-              onFocus={onFocus}
-              onBlur={onBlur}
-              placeholder="Title, artist, label…"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="search"
-              startSlot={<Search size={18} />}
-              endSlot={
-                text.length > 0 ? (
-                  <Pressable onPress={() => setText('')} hitSlop={8}>
-                    <X size={18} color={colors.muted} />
-                  </Pressable>
-                ) : undefined
-              }
-            />
-          </View>
-          <Animated.View style={[{ overflow: 'hidden', justifyContent: 'center' }, cancelStyle]}>
-            <Pressable
-              onPress={handleCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Cancel search"
-              style={{ width: CANCEL_WIDTH }}
-              className="pl-3"
-            >
-              <Text numberOfLines={1} color="accent" weight="medium">
-                Cancel
-              </Text>
-            </Pressable>
-          </Animated.View>
-        </View>
       </View>
-
-      {!hasQuery ? null : isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
-      ) : isError ? (
-        <View className="flex-1 items-center justify-center gap-2 px-8">
-          <Text align="center">Search is unavailable.</Text>
-          <Text size="sm" color="neutral-soft" align="center">
-            Please try again in a moment.
-          </Text>
-        </View>
-      ) : results.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Text size="sm" color="neutral-soft" align="center">
-            No records match “{query}”.
-          </Text>
-        </View>
-      ) : (
-        <LegendList
-          data={results}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          recycleItems
-          estimatedItemSize={VINYL_ROW_ESTIMATED_HEIGHT}
-          extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          onEndReached={onEndReached}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
-          contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
-        />
-      )}
     </View>
   );
 }

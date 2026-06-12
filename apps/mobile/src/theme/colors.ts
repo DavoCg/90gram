@@ -20,10 +20,11 @@ export const lightColors: ThemeColors = {
   surface: '#f9f9f8',
   surface2: '#f1f0ef',
   text: '#21201c',
-  muted: '#63635e',
+  // Soft text: neutral-10 (slate-10). Used for the inactive tab tint.
+  muted: '#80838d',
   border: '#dad9d6',
-  // Accent now follows the reference design system: sky-9.
-  accent: '#7ce2fe',
+  // Accent is neutral and high-contrast: neutral-12 (slate-12). Darkish in light mode.
+  accent: '#1c2024',
 };
 
 // Radix sand scale (dark): 1, 2, 3, 12, 11, 6.
@@ -32,9 +33,11 @@ export const darkColors: ThemeColors = {
   surface: '#191918',
   surface2: '#222221',
   text: '#eeeeec',
-  muted: '#b5b3ad',
+  // Soft text: neutral-10 (slate-10). Used for the inactive tab tint.
+  muted: '#777b84',
   border: '#3b3a37',
-  accent: '#7ce2fe',
+  // neutral-12 (slate-12). Whiteish in dark mode.
+  accent: '#edeef0',
 };
 
 export function useThemeColors(): ThemeColors {
