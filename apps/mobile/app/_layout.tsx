@@ -1,12 +1,13 @@
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import BootSplash from 'react-native-bootsplash';
 import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
@@ -23,6 +24,15 @@ export default function RootLayout() {
   // Backdrop behind the navigator and the bootsplash fade. Use the theme bg so it matches the
   // splash background and the screens, rather than a hardcoded black that would flash through.
   const colors = useThemeColors();
+
+  // Paint the NATIVE root view (the OS window behind the React tree and the bootsplash) with the
+  // themed background. Without this the window defaults to white, so BootSplash.hide({ fade: true })
+  // cross-dissolves to white for a frame before React paints colors.bg, a white flash even in dark
+  // mode. The native splash follows the SYSTEM scheme; the app's dark preference is JS-only, so the
+  // window has no themed color of its own until we set it here. Keyed on bg so it tracks the toggle.
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(colors.bg);
+  }, [colors.bg]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -50,13 +60,13 @@ export default function RootLayout() {
 }
 
 // Auth gate. Lives under the providers so it can read the better-auth session. The app is fully
-// gated: without a session the user is redirected into the (auth) group, and the tab navigator
-// only mounts once signed in. The tab shell owns the mini-player, so root-level screens like
-// settings push cleanly OVER the tabs and the player without any z-index juggling.
+// gated with Expo Router's declarative guards (Stack.Protected): the (auth) group is only navigable
+// while signed out and the (tabs) + settings group only while signed in, and the router redirects to
+// the first available screen whenever a guard flips, no hand-rolled router.replace needed. The tab
+// shell owns the mini-player, so root-level screens like settings push cleanly OVER the tabs and the
+// player without any z-index juggling.
 function RootNavigator() {
   const { data: session, isPending } = authClient.useSession();
-  const segments = useSegments();
-  const router = useRouter();
 
   // Configure the audio session and lock-screen handlers once for the whole app.
   // Tear everything down (remove all subscriptions) on unmount.
@@ -67,29 +77,31 @@ function RootNavigator() {
     };
   }, []);
 
-  // Redirect on auth state: out to the onboarding landing when signed out, back into the app once
-  // signed in.
+  // Whether the auth state has resolved at least once. better-auth's useSession flips isPending back
+  // to true on its background refetches (the expo client reads the cached session, then re-fetches),
+  // so we must NOT gate rendering on isPending directly: doing so unmounts the navigator on every
+  // refetch and momentarily reveals the splash-colored backdrop, which reads as the splash flashing
+  // back after the first screen. We only hold for the FIRST resolution; after that the guards below
+  // keep the right group mounted across any later session change.
+  const [authResolved, setAuthResolved] = useState(false);
   useEffect(() => {
-    if (isPending) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
-      router.replace('/welcome');
-    } else if (session && inAuthGroup) {
-      router.replace('/');
-    }
-  }, [session, isPending, segments, router]);
-
-  // Keep the native bootsplash (react-native-bootsplash) on screen until we know the auth state,
-  // then fade it out to reveal the first real screen. This is the "do not know if logged in yet"
-  // wait: holding the splash means we never flash the sign-in screen for an already-authenticated
-  // user (or the tabs for a signed-out one) before the redirect above settles.
-  useEffect(() => {
-    if (isPending) return;
-    void BootSplash.hide({ fade: true });
+    if (!isPending) setAuthResolved(true);
   }, [isPending]);
 
-  // Render nothing underneath while pending; the native bootsplash still covers the screen.
-  if (isPending) {
+  // Fade the native bootsplash (react-native-bootsplash) out exactly ONCE, as soon as auth first
+  // resolves (a ref guard so a later isPending refetch can never re-run it). Stack.Protected resolves
+  // the correct group during render, so by the time we hide the splash we are already on the right
+  // screen, with no async redirect frame to flash through.
+  const splashHidden = useRef(false);
+  useEffect(() => {
+    if (splashHidden.current || !authResolved) return;
+    splashHidden.current = true;
+    void BootSplash.hide({ fade: true });
+  }, [authResolved]);
+
+  // Render nothing underneath until auth first resolves; the native bootsplash still covers the
+  // screen. After that the navigator stays mounted (never blanks on a refetch).
+  if (!authResolved) {
     return null;
   }
 
@@ -101,13 +113,17 @@ function RootNavigator() {
         animationDuration: STACK_ANIMATION_DURATION,
       }}
     >
-      <Stack.Screen name="(tabs)" />
-      {/* Signing out navigates here; fade in rather than slide so leaving the app feels like a
-          dissolve, not a sideways push back to a previous screen. */}
-      <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-      {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
-          screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
-      <Stack.Screen name="settings" />
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(tabs)" />
+        {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
+            screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
+        <Stack.Screen name="settings" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        {/* Signing out flips this guard on; fade in rather than slide so leaving the app feels like a
+            dissolve, not a sideways push back to a previous screen. */}
+        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+      </Stack.Protected>
     </Stack>
   );
 }
