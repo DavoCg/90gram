@@ -107,21 +107,21 @@
 @layer theme {
   :root {
     @variant light {
-      --color-bg: #faf7f2;
-      --color-surface: #ffffff;
-      --color-surface-2: #f1ece3;
-      --color-text: #18181b;
-      --color-muted: #6b7280;
-      --color-border: #e7e2d8;
+      --color-bg: var(--color-sand-light-1);
+      --color-surface: var(--color-sand-light-2);
+      --color-surface-2: var(--color-sand-light-3);
+      --color-text: var(--color-sand-light-12);
+      --color-muted: var(--color-sand-light-11);
+      --color-border: var(--color-sand-light-6);
     }
 
     @variant dark {
-      --color-bg: #1c1714;
-      --color-surface: #251e19;
-      --color-surface-2: #312922;
-      --color-text: #f1ebe3;
-      --color-muted: #aa9d90;
-      --color-border: #3a312a;
+      --color-bg: var(--color-sand-dark-1);
+      --color-surface: var(--color-sand-dark-2);
+      --color-surface-2: var(--color-sand-dark-3);
+      --color-text: var(--color-sand-dark-12);
+      --color-muted: var(--color-sand-dark-11);
+      --color-border: var(--color-sand-dark-6);
     }
   }
 }

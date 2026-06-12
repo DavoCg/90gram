@@ -63,8 +63,8 @@ export function SeekBar({
   const seek = (seconds: number) => onSeekRef.current(seconds);
 
   // Accent fill for the active (played) portion, on the dimmer surface-2 track.
-  const accent = useCSSVariable('--color-accent');
-  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#46a758';
+  const accent = useCSSVariable('--background-color-accent');
+  const accentColor = typeof accent === 'string' && accent.length > 0 ? accent : '#7ce2fe';
   const muted = useCSSVariable('--color-muted');
   const mutedColor = typeof muted === 'string' && muted.length > 0 ? muted : '#9ca3af';
 

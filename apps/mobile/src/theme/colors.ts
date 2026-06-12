@@ -14,25 +14,27 @@ export interface ThemeColors {
   accent: string;
 }
 
+// Radix sand scale (light): 1, 2, 3, 12, 11, 6.
 export const lightColors: ThemeColors = {
-  bg: '#faf7f2',
-  surface: '#ffffff',
-  surface2: '#f1ece3',
-  text: '#18181b',
-  muted: '#6b7280',
-  border: '#e7e2d8',
-  // Accent now follows the reference design system: grass-9 (green).
-  accent: '#46a758',
+  bg: '#fdfdfc',
+  surface: '#f9f9f8',
+  surface2: '#f1f0ef',
+  text: '#21201c',
+  muted: '#63635e',
+  border: '#dad9d6',
+  // Accent now follows the reference design system: sky-9.
+  accent: '#7ce2fe',
 };
 
+// Radix sand scale (dark): 1, 2, 3, 12, 11, 6.
 export const darkColors: ThemeColors = {
-  bg: '#1c1714',
-  surface: '#251e19',
-  surface2: '#312922',
-  text: '#f1ebe3',
-  muted: '#aa9d90',
-  border: '#3a312a',
-  accent: '#46a758',
+  bg: '#111110',
+  surface: '#191918',
+  surface2: '#222221',
+  text: '#eeeeec',
+  muted: '#b5b3ad',
+  border: '#3b3a37',
+  accent: '#7ce2fe',
 };
 
 export function useThemeColors(): ThemeColors {
