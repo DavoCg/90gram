@@ -31,6 +31,9 @@ const LIST_BOTTOM_PADDING = 140;
 // Height of the "Search" title row, collapsed to 0 when the field is focused so the search bar
 // rises to the top.
 const TITLE_HEIGHT = 48;
+// Fallback width for the Cancel reveal before/if the label measures itself (see cancelWidth). Sized
+// for the English label; a measurement refines it for the real (possibly translated) label.
+const CANCEL_WIDTH = 76;
 // Drives both the title collapse and the Cancel reveal. Short and eased so it feels snappy.
 const FOCUS_TIMING = { duration: 220, easing: Easing.out(Easing.cubic) } as const;
 
@@ -56,20 +59,21 @@ export default function SearchScreen() {
     opacity: interpolate(focusProgress.value, [0, 0.5], [1, 0], Extrapolation.CLAMP),
   }));
 
-  // Cancel reveals on the field's right: the wrapper animates from 0 to the label's width while the
-  // flex-1 field shrinks to make room. The width comes from an invisible, out-of-flow copy of the
-  // label (onCancelLayout) rather than the visible one: measuring the visible label would feed back
-  // on itself (the wrapper clamps it to ~0 at rest, which would report ~0 and oscillate). The
-  // off-flow copy is never clamped, so it reports the true width even after the custom font loads or
-  // the label is translated. Opacity is 0 at rest so the unmeasured frame is invisible.
-  const [cancelWidth, setCancelWidth] = useState(0);
+  // Cancel reveals on the field's right: the wrapper animates from 0 to the label width while the
+  // flex-1 field shrinks to make room. cancelWidth starts at a sane default (so it always shows,
+  // exactly like the original fixed-width version) and is refined by measuring an invisible,
+  // out-of-flow copy of the label (onCancelLayout). We measure that copy, never the visible label:
+  // the visible one lives inside the wrapper that clamps it to ~0 at rest, so measuring it would
+  // oscillate. The off-flow copy is never clamped, so it stays correct after the custom font loads
+  // or the label is translated.
+  const [cancelWidth, setCancelWidth] = useState(CANCEL_WIDTH);
   const onCancelLayout = useCallback((e: LayoutChangeEvent) => {
     const w = e.nativeEvent.layout.width;
-    setCancelWidth((prev) => (prev === w ? prev : w));
+    if (w > 0) setCancelWidth((prev) => (prev === w ? prev : w));
   }, []);
   const cancelStyle = useAnimatedStyle(
     () => ({
-      width: cancelWidth === 0 ? 0 : interpolate(focusProgress.value, [0, 1], [0, cancelWidth]),
+      width: interpolate(focusProgress.value, [0, 1], [0, cancelWidth]),
       opacity: focusProgress.value,
     }),
     [cancelWidth],
@@ -191,7 +195,7 @@ export default function SearchScreen() {
                   onPress={handleCancel}
                   accessibilityRole="button"
                   accessibilityLabel="Cancel search"
-                  style={cancelWidth > 0 ? { width: cancelWidth } : undefined}
+                  style={{ width: cancelWidth }}
                   className="pl-3"
                 >
                   <Text numberOfLines={1} color="accent" weight="medium">
