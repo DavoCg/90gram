@@ -19,14 +19,20 @@ import { initializeTheme } from '../src/theme/theme';
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
 initializeTheme();
 
-// Shared options for screens presented as native formSheets. `fitToContents` sizes the sheet to its
-// content (and re-animates when the content changes); `contentStyle` paints the sheet surface with the
-// themed background so it matches the rest of the app behind the safe areas.
+// Shared options for screens presented as native formSheets. `contentStyle` paints the sheet surface
+// with the themed background so it matches the rest of the app behind the safe areas. `detents` defaults
+// to `fitToContents` (the sheet is sized to, and re-animates with, its content), which is right for
+// short, scroll-free content. Sheets that contain a ScrollView MUST pass fixed fractional detents
+// instead: react-native-screens cannot measure a scroll container, so `fitToContents` mis-sizes it and
+// the content overflows. Those sheets give the scroll view a known height to fill via a fixed detent.
 type ScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
-function sheetScreenOptions(background: string): ScreenOptions {
+function sheetScreenOptions(
+  background: string,
+  detents: ScreenOptions['sheetAllowedDetents'] = 'fitToContents',
+): ScreenOptions {
   return {
     presentation: 'formSheet',
-    sheetAllowedDetents: 'fitToContents',
+    sheetAllowedDetents: detents,
     sheetGrabberVisible: true,
     sheetCornerRadius: 24,
     contentStyle: { backgroundColor: background },
@@ -129,11 +135,13 @@ function RootNavigator() {
         {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
             screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
         <Stack.Screen name="settings" />
-        {/* Native formSheets (UISheetPresentationController on iOS). `fitToContents` sizes the sheet
-            to whatever its content measures and re-animates on change, so dynamic content (the demo's
-            add/remove lines, the currency list) just works without a JS-driven sheet library. */}
+        {/* Native formSheets (UISheetPresentationController on iOS). The demo uses `fitToContents`, so
+            the sheet is sized to whatever its content measures and re-animates as the add/remove lines
+            change, without a JS-driven sheet library. */}
         <Stack.Screen name="sheet-demo" options={sheetScreenOptions(colors.surface)} />
-        <Stack.Screen name="currency" options={sheetScreenOptions(colors.surface)} />
+        {/* Currency holds a scrollable list, so it takes a fixed detent (not fitToContents) and fills
+            it; see sheetScreenOptions. */}
+        <Stack.Screen name="currency" options={sheetScreenOptions(colors.surface, [0.9])} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         {/* Signing out flips this guard on; fade in rather than slide so leaving the app feels like a

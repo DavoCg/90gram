@@ -10,8 +10,9 @@ import { CURRENCY_META, useDisplayCurrency, useSupportedCurrencies } from '../sr
 
 // Display-currency picker, presented as a native formSheet (see app/_layout.tsx). Reads and writes
 // the global currency store directly, so it needs no params: choosing a row persists it (re-converting
-// every price in the app) and dismisses the sheet. The list is capped and scrolls so a long list does
-// not grow past the screen. Replaces the old shared PickerSheet (@swmansion bottom sheet).
+// every price in the app) and dismisses the sheet. The sheet opens at a fixed detent (a ScrollView
+// cannot be measured by `fitToContents`), so the container fills that height and the list scrolls
+// within it. Replaces the old shared PickerSheet (@swmansion bottom sheet).
 export default function CurrencyScreen() {
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
@@ -19,16 +20,15 @@ export default function CurrencyScreen() {
   const currencies = useSupportedCurrencies();
 
   return (
-    <View className="bg-surface px-4 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
+    <View className="flex-1 bg-surface px-4 pt-4">
       <Text size="lg" weight="semibold" className="mb-1 px-1">
         Currency
       </Text>
-      {/* Cap the list height so a long list scrolls instead of growing past the screen. */}
+      {/* Fill the fixed-height sheet and scroll within it; pad the last row clear of the home indicator. */}
       <RNScrollView
-        style={{ maxHeight: 440 }}
-        contentContainerStyle={{ paddingVertical: 4 }}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 4, paddingBottom: insets.bottom + 12 }}
         showsVerticalScrollIndicator={false}
-        bounces={false}
       >
         {currencies.map((code) => {
           const isSelected = code === currency;
