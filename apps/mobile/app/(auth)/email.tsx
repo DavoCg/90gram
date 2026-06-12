@@ -46,11 +46,6 @@ export default function EmailScreen() {
 			{/* Override the landing's light status bar; these screens have a light background. */}
 			<StatusBar style="auto" />
 			<AppHeader showBack />
-			{/* behavior="padding" pushes the docked footer above the keyboard via layout (robust here,
-          unlike KeyboardStickyView's transform). keyboardVerticalOffset cancels the footer's
-          bottom safe-area inset once the keyboard covers that area, so the button lands ~16px above
-          the keyboard when open and insets.bottom + 16 above the home indicator when closed. */}
-
 			<form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
 				{([canSubmit, isSubmitting]) => (
 					<View
