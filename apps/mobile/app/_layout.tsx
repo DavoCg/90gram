@@ -67,12 +67,13 @@ function RootNavigator() {
     };
   }, []);
 
-  // Redirect on auth state: out to sign-in when signed out, back into the app once signed in.
+  // Redirect on auth state: out to the onboarding landing when signed out, back into the app once
+  // signed in.
   useEffect(() => {
     if (isPending) return;
     const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
-      router.replace('/sign-in');
+      router.replace('/welcome');
     } else if (session && inAuthGroup) {
       router.replace('/');
     }

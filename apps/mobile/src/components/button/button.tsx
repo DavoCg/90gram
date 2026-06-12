@@ -20,6 +20,7 @@ export function Button({
   disabled,
   onPress,
   size,
+  shape,
   variant = 'intense',
   color,
   layout,
@@ -44,6 +45,7 @@ export function Button({
 
   const classes = buttonRecipe({
     size,
+    shape,
     variant,
     color: resolvedColor,
     layout: computedLayout,

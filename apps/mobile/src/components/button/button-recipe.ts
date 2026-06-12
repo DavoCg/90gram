@@ -39,6 +39,13 @@ export const buttonRecipe = tv({
 				label: "text-xl",
 			},
 		},
+		// Corner shape. `pill` (default) keeps the size variant's `rounded-full`; `squircle` swaps it
+		// for a moderate continuous-curve radius (the content slot already carries `curve-continuous`).
+		// Declared after `size` so tailwind-merge lets the squircle radius win over `rounded-full`.
+		shape: {
+			pill: {},
+			squircle: { content: "rounded-2xl" },
+		},
 		layout: {
 			square: {},
 			auto: {},
@@ -5209,6 +5216,7 @@ export const buttonRecipe = tv({
 	],
 	defaultVariants: {
 		size: "md",
+		shape: "pill",
 		variant: "intense",
 		color: "neutral",
 		status: "enabled",
