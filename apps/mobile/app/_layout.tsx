@@ -7,6 +7,7 @@ import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import BootSplash from 'react-native-bootsplash';
 import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
@@ -23,6 +24,15 @@ export default function RootLayout() {
   // Backdrop behind the navigator and the bootsplash fade. Use the theme bg so it matches the
   // splash background and the screens, rather than a hardcoded black that would flash through.
   const colors = useThemeColors();
+
+  // Paint the NATIVE root view (the OS window behind the React tree and the bootsplash) with the
+  // themed background. Without this the window defaults to white, so BootSplash.hide({ fade: true })
+  // cross-dissolves to white for a frame before React paints colors.bg, a white flash even in dark
+  // mode. The native splash follows the SYSTEM scheme; the app's dark preference is JS-only, so the
+  // window has no themed color of its own until we set it here. Keyed on bg so it tracks the toggle.
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(colors.bg);
+  }, [colors.bg]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
