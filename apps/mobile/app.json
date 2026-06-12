@@ -58,7 +58,16 @@
           ]
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "react-native-bootsplash",
+        {
+          "assetsDir": "assets/bootsplash",
+          "android": {
+            "parentTheme": "EdgeToEdge"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

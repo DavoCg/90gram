@@ -7,10 +7,10 @@ import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import BootSplash from 'react-native-bootsplash';
 import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
-import { SplashScreen } from '../src/components/splash-screen';
 import { AppToaster } from '../src/components/toast';
 import { STACK_ANIMATION_DURATION } from '../src/theme/motion';
 import { initializeTheme } from '../src/theme/theme';
@@ -73,10 +73,18 @@ function RootNavigator() {
     }
   }, [session, isPending, segments, router]);
 
-  // While the persisted session is restored from SecureStore, show a neutral splash so we never
-  // flash the sign-in screen for an already-authenticated user (or vice versa).
+  // Keep the native bootsplash (react-native-bootsplash) on screen until we know the auth state,
+  // then fade it out to reveal the first real screen. This is the "do not know if logged in yet"
+  // wait: holding the splash means we never flash the sign-in screen for an already-authenticated
+  // user (or the tabs for a signed-out one) before the redirect above settles.
+  useEffect(() => {
+    if (isPending) return;
+    void BootSplash.hide({ fade: true });
+  }, [isPending]);
+
+  // Render nothing underneath while pending; the native bootsplash still covers the screen.
   if (isPending) {
-    return <SplashScreen />;
+    return null;
   }
 
   return (
