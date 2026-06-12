@@ -1,10 +1,12 @@
-import { useWindowDimensions, View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
 	useAnimatedStyle,
 	useSharedValue,
 } from "react-native-reanimated";
+import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
+import { useUniwind } from "uniwind";
 import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
 import { NowPlaying } from "../../src/components/NowPlaying";
 import { requestSearchFocus } from "../../src/search/focus-signal";
@@ -26,6 +28,11 @@ const TAB_BAR_TOP_PADDING = 4;
 
 export default function TabsLayout() {
 	const colors = useThemeColors();
+	// BlurView tint follows the active Uniwind theme (same source the nav chrome colors use, so it
+	// flips synchronously with them). The blur reads the scrolled-under list content as a frosted
+	// backdrop; the lists already pad 140pt at the bottom so nothing is clipped by the now-floating
+	// (position: absolute) bar.
+	const isDark = useUniwind().theme === "dark";
 
 	// Shared motion values for the Now Playing surface. `expand` is the open/close morph
 	// (0 = mini-bar, 1 = full player); `drag` is the rigid pixel offset while the open sheet is
@@ -67,8 +74,18 @@ export default function TabsLayout() {
 						headerShown: false,
 						tabBarActiveTintColor: colors.accent,
 						tabBarInactiveTintColor: colors.muted,
+						// Frosted bar: a BlurView fills the background and the bar itself is transparent
+						// and absolutely positioned so screen content scrolls underneath and shows through.
+						tabBarBackground: () => (
+							<BlurView
+								tint={isDark ? "dark" : "light"}
+								intensity={40}
+								style={StyleSheet.absoluteFill}
+							/>
+						),
 						tabBarStyle: {
-							backgroundColor: colors.surface,
+							position: "absolute",
+							backgroundColor: "transparent",
 							borderTopColor: colors.border,
 							paddingTop: TAB_BAR_TOP_PADDING,
 						},

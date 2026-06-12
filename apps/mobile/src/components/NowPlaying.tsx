@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Platform, StyleSheet, useWindowDimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Image } from 'expo-image';
+import { useUniwind } from 'uniwind';
 import {
   Airplay,
   ListMusic,
@@ -84,6 +86,9 @@ export function NowPlaying({
   const insets = useSafeAreaInsets();
   const { width: W, height: H } = useWindowDimensions();
   const colors = useThemeColors();
+  // Tint for the mini-bar's frosted fill; follows the active Uniwind theme so it flips in sync
+  // with the tab bar blur and the rest of the nav chrome.
+  const isDark = useUniwind().theme === 'dark';
 
   // Mirrors the open/closed state for pointerEvents and the spring-finished callback; never
   // updates per animation frame.
@@ -248,7 +253,7 @@ export function NowPlaying({
             height: MINI_HEIGHT,
             borderRadius: 14,
             borderCurve: 'continuous',
-            backgroundColor: colors.surface,
+            backgroundColor: 'transparent',
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: colors.border,
             flexDirection: 'row',
@@ -257,6 +262,13 @@ export function NowPlaying({
             overflow: 'hidden',
           }}
       >
+        {/* Frosted fill, clipped to the bar's rounded corners by overflow: 'hidden'. First child so
+            it sits behind the title/buttons; matches the tab bar blur for one cohesive bottom stack. */}
+        <BlurView
+          tint={isDark ? 'dark' : 'light'}
+          intensity={40}
+          style={StyleSheet.absoluteFill}
+        />
         {/* Tap the bar (outside the buttons) to expand. The artwork floats over this left slot. */}
         <Pressable onPress={openPlayer} style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ width: MINI_ART + 16 }} />
