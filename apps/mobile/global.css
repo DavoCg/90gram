@@ -113,6 +113,8 @@
       --color-text: var(--color-sand-light-12);
       --color-muted: var(--color-sand-light-11);
       --color-border: var(--color-sand-light-6);
+      /* Subtle in-card divider (row/track separators); fainter than --color-border. */
+      --color-separator: var(--color-sand-light-4);
     }
 
     @variant dark {
@@ -122,6 +124,8 @@
       --color-text: var(--color-sand-dark-12);
       --color-muted: var(--color-sand-dark-11);
       --color-border: var(--color-sand-dark-6);
+      /* Subtle in-card divider (row/track separators); fainter than --color-border. */
+      --color-separator: var(--color-sand-dark-4);
     }
   }
 }

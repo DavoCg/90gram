@@ -7,6 +7,7 @@ import Animated, {
 import { Tabs } from "expo-router";
 import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
 import { NowPlaying } from "../../src/components/NowPlaying";
+import { requestSearchFocus } from "../../src/search/focus-signal";
 import { useThemeColors } from "../../src/theme/colors";
 
 // Bottom tab navigator: Home, Hot, Radio, Favorites, Search. Icons are lucide-react-native
@@ -118,6 +119,16 @@ export default function TabsLayout() {
 								<Search color={color} size={TAB_ICON_SIZE} />
 							),
 						}}
+						listeners={({ navigation }) => ({
+							// Tapping the Search tab again while it is already the active tab focuses the
+							// search field (first tap navigates here, second tap opens the keyboard). The
+							// screen does the focusing; we just signal it. See src/search/focus-signal.ts.
+							tabPress: () => {
+								if (navigation.isFocused()) {
+									requestSearchFocus();
+								}
+							},
+						})}
 					/>
 				</Tabs>
 			</Animated.View>

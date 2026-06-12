@@ -220,7 +220,7 @@ export default function VinylDetailScreen() {
                 key={track.id}
                 onPress={() => onPressTrack(track)}
                 disabled={!playable}
-                className="flex-row items-center gap-3 border-b border-border px-4 py-3"
+                className="flex-row items-center gap-3 border-b border-separator px-4 py-3"
               >
                 <View className="w-7 items-center">
                   {isCurrent ? (
@@ -274,7 +274,7 @@ export default function VinylDetailScreen() {
                 <Pressable
                   key={offer.id}
                   onPress={() => onPressOffer(offer)}
-                  className="flex-row items-center gap-3 border-b border-border px-4 py-3"
+                  className="flex-row items-center gap-3 border-b border-separator px-4 py-3"
                 >
                   <View className="flex-1">
                     <Text numberOfLines={1} weight="semibold">

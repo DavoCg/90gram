@@ -26,6 +26,7 @@ export function Input({
   style,
   placeholderTextColor,
   selectionColor,
+  ref,
   ...rest
 }: InputProps) {
   const colors = useThemeColors();
@@ -52,6 +53,7 @@ export function Input({
         {tintSlot(startSlot)}
         <TextInput
           {...rest}
+          ref={ref}
           className={inputTextRecipe({ size, className: inputClassName })}
           editable={!disabled}
           style={[

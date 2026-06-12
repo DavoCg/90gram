@@ -1,12 +1,10 @@
-import { Flame } from "lucide-react-native";
-import { Placeholder } from "../../src/components/Placeholder";
+import { View } from "../../src/theme/uniwind";
+import { AppHeader } from "../../src/components/AppHeader";
 
 export default function HotScreen() {
 	return (
-		<Placeholder
-			icon={Flame}
-			title="Hot"
-			subtitle="Trending vinyl releases, reissues, and label updates will land here."
-		/>
+		<View className="flex-1 bg-bg">
+			<AppHeader title="Hot" showBack={false} />
+		</View>
 	);
 }

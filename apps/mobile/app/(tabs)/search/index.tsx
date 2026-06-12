@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -13,6 +14,7 @@ import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useThemeColors } from '../../../src/theme/colors';
 import { player$ } from '../../../src/audio/store';
+import { searchFocusRequest$ } from '../../../src/search/focus-signal';
 
 // Leaves room at the bottom of the list for the floating mini-player + the tab bar.
 const LIST_BOTTOM_PADDING = 140;
@@ -26,6 +28,12 @@ export default function SearchScreen() {
   // to an earlier term is served from cache. Trimmed so " " never triggers a search.
   const [text, setText] = useState('');
   const query = text.trim();
+
+  // Focus the field when the Search tab is tapped while it is already active (the tab listener in
+  // app/(tabs)/_layout.tsx bumps searchFocusRequest$). onChange fires only on re-press, so the
+  // field is never auto-focused on first arrival or initial mount.
+  const inputRef = useRef<TextInput>(null);
+  useEffect(() => searchFocusRequest$.onChange(() => inputRef.current?.focus()), []);
 
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useVinylSearch(query);
@@ -64,6 +72,7 @@ export default function SearchScreen() {
       <AppHeader title="Search" showBack={false} />
       <View className="px-4 pb-2">
         <Input
+          ref={inputRef}
           value={text}
           onChangeText={setText}
           placeholder="Title, artist, label…"
@@ -81,14 +90,7 @@ export default function SearchScreen() {
         />
       </View>
 
-      {!hasQuery ? (
-        <View className="flex-1 items-center justify-center gap-3 px-8">
-          <Search color={colors.muted} size={48} strokeWidth={1.5} />
-          <Text size="sm" color="neutral-soft" align="center">
-            Find records by title, artist, or label.
-          </Text>
-        </View>
-      ) : isLoading ? (
+      {!hasQuery ? null : isLoading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>

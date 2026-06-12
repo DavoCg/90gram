@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import type { TextInputProps } from 'react-native';
+import type { ReactNode, Ref } from 'react';
+import type { TextInput, TextInputProps } from 'react-native';
 import type { VariantProps } from 'tailwind-variants';
 
 import type { inputContainerRecipe } from './input-recipe';
@@ -19,4 +19,6 @@ export interface InputProps extends TextInputProps, InputVariants {
   containerClassName?: string;
   /** Extra classes for the inner text input itself (e.g. "text-center tracking-[8px]"). */
   inputClassName?: string;
+  /** Ref forwarded to the underlying TextInput, e.g. to focus the field programmatically. */
+  ref?: Ref<TextInput>;
 }

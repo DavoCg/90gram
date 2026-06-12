@@ -64,7 +64,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
       >
         {title}
       </Text>
-      <View className="overflow-hidden rounded-2xl curve-continuous border-hairline border-border bg-surface-2">
+      <View className="overflow-hidden rounded-2xl curve-continuous bg-surface">
         {children}
       </View>
     </View>
@@ -76,7 +76,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 function AccountRow() {
   const { data: session } = authClient.useSession();
   return (
-    <View className="border-b border-border px-4 py-3.5">
+    <View className="border-b border-separator px-4 py-3.5">
       <Text size="sm" color="neutral-soft">
         Signed in as
       </Text>

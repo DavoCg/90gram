@@ -1,12 +1,10 @@
-import { Radio } from 'lucide-react-native';
-import { Placeholder } from '../../src/components/Placeholder';
+import { View } from '../../src/theme/uniwind';
+import { AppHeader } from '../../src/components/AppHeader';
 
 export default function RadioScreen() {
   return (
-    <Placeholder
-      icon={Radio}
-      title="Radio"
-      subtitle="Continuous, curated playback is coming soon."
-    />
+    <View className="flex-1 bg-bg">
+      <AppHeader title="Radio" showBack={false} />
+    </View>
   );
 }

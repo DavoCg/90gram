@@ -3,7 +3,6 @@ import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
-import { Heart } from 'lucide-react-native';
 import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
@@ -13,7 +12,6 @@ import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { FavoriteButton } from '../../../src/components/favorite-button';
 import { EqualizerBars } from '../../../src/components/equalizer-bars';
 import { AppHeader } from '../../../src/components/AppHeader';
-import { Placeholder } from '../../../src/components/Placeholder';
 import { useFavoriteTracks, useFavoriteVinyls } from '../../../src/api/hooks';
 import { audioEngine } from '../../../src/audio/engine';
 import { player$ } from '../../../src/audio/store';
@@ -164,12 +162,6 @@ export default function FavoritesScreen() {
 
   const favoriteVinyls = vinyls ?? [];
   const favoriteTracks = tracks ?? [];
-
-  if (favoriteVinyls.length === 0 && favoriteTracks.length === 0) {
-    return (
-      <Placeholder icon={Heart} title="Favorites" subtitle="Records you save will show up here." />
-    );
-  }
 
   // The favorited vinyls (Records) drive the infinite list; the favorited tracks render in the
   // footer so the existing Records-then-Tracks order is preserved on one scroll surface.
