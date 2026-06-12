@@ -1,5 +1,5 @@
 import '../global.css';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -67,28 +67,44 @@ function RootNavigator() {
     };
   }, []);
 
-  // Redirect on auth state: out to sign-in when signed out, back into the app once signed in.
+  // Whether the auth state has resolved at least once. better-auth's useSession flips isPending back
+  // to true on its background refetches (the expo client reads the cached session, then re-fetches),
+  // so we must NOT gate rendering on isPending directly: doing so unmounts the navigator on every
+  // refetch and momentarily reveals the splash-colored backdrop, which reads as the splash flashing
+  // back after the first screen. We only hold for the FIRST resolution; once auth is known, the
+  // redirect effect below keeps the right screen mounted across any later session change.
+  const [authResolved, setAuthResolved] = useState(false);
   useEffect(() => {
-    if (isPending) return;
-    const inAuthGroup = segments[0] === '(auth)';
+    if (!isPending) setAuthResolved(true);
+  }, [isPending]);
+
+  // Redirect on auth state: out to sign-in when signed out, back into the app once signed in.
+  const inAuthGroup = segments[0] === '(auth)';
+  useEffect(() => {
+    if (!authResolved) return;
     if (!session && !inAuthGroup) {
       router.replace('/sign-in');
     } else if (session && inAuthGroup) {
       router.replace('/');
     }
-  }, [session, isPending, segments, router]);
+  }, [session, authResolved, inAuthGroup, router]);
 
-  // Keep the native bootsplash (react-native-bootsplash) on screen until we know the auth state,
-  // then fade it out to reveal the first real screen. This is the "do not know if logged in yet"
-  // wait: holding the splash means we never flash the sign-in screen for an already-authenticated
-  // user (or the tabs for a signed-out one) before the redirect above settles.
+  // Keep the native bootsplash (react-native-bootsplash) on screen until auth has resolved AND the
+  // redirect above has landed us on the correct group, then fade it out exactly ONCE (a ref guard so
+  // a later isPending refetch can never re-run this). Gating on "on the correct screen" means the
+  // splash also covers the brief signed-out (tabs) -> sign-in redirect, so we never flash the wrong
+  // screen for an already-authenticated user nor the tabs for a signed-out one.
+  const splashHidden = useRef(false);
+  const onCorrectScreen = session ? !inAuthGroup : inAuthGroup;
   useEffect(() => {
-    if (isPending) return;
+    if (splashHidden.current || !authResolved || !onCorrectScreen) return;
+    splashHidden.current = true;
     void BootSplash.hide({ fade: true });
-  }, [isPending]);
+  }, [authResolved, onCorrectScreen]);
 
-  // Render nothing underneath while pending; the native bootsplash still covers the screen.
-  if (isPending) {
+  // Render nothing underneath until auth first resolves; the native bootsplash still covers the
+  // screen. After that we always render the navigator (never blank on a refetch).
+  if (!authResolved) {
     return null;
   }
 
