@@ -1,13 +1,13 @@
+import { BlurView } from "expo-blur";
+import { Tabs } from "expo-router";
+import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
 	useAnimatedStyle,
 	useSharedValue,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
 import { useUniwind } from "uniwind";
-import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
 import { NowPlaying } from "../../src/components/NowPlaying";
 import { requestSearchFocus } from "../../src/search/focus-signal";
 import { useThemeColors } from "../../src/theme/colors";
@@ -79,7 +79,7 @@ export default function TabsLayout() {
 						tabBarBackground: () => (
 							<BlurView
 								tint={isDark ? "dark" : "light"}
-								intensity={40}
+								intensity={100}
 								style={StyleSheet.absoluteFill}
 							/>
 						),
