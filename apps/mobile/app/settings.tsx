@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Pressable, ScrollView, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
 import { Button } from '../src/components/button';
 import { AppHeader } from '../src/components/AppHeader';
-import { BottomSheetDemoRow } from '../src/components/bottom-sheet-demo-row';
 import { CheckForUpdatesRow } from '../src/components/check-for-updates-row';
 import { CurrencySettingRow } from '../src/components/currency-setting-row';
 import { toast } from '../src/components/toast';
@@ -44,7 +44,7 @@ export default function SettingsScreen() {
         </SettingsSection>
         <SettingsSection title="Developer">
           <ToastDemoRow />
-          <BottomSheetDemoRow />
+          <SheetDemoRow />
         </SettingsSection>
       </ScrollView>
     </View>
@@ -129,6 +129,28 @@ function ToastDemoRow() {
             action: { label: 'Undo', onClick: () => toast('Removed again') },
           })
         }
+      />
+    </View>
+  );
+}
+
+// Opens the native formSheet demo (app/sheet-demo.tsx): a content-sized sheet whose add/remove-line
+// controls grow and shrink it so the OS re-measures and animates the height. Living reference for the
+// `presentation: 'formSheet'` + `sheetAllowedDetents: 'fitToContents'` pattern.
+function SheetDemoRow() {
+  return (
+    <View className="px-4 py-3.5">
+      <Text weight="semibold">Bottom sheet</Text>
+      <Text size="sm" color="neutral-soft" className="mt-0.5 mb-3">
+        Open a content-sized sheet, then add or remove lines to watch it resize
+      </Text>
+      <Button
+        label="Open sheet"
+        variant="soft"
+        color="accent"
+        layout="flex"
+        size="sm"
+        onPress={() => router.push('/sheet-demo')}
       />
     </View>
   );

@@ -1,9 +1,8 @@
 import '../global.css';
-import { useEffect, useRef, useState } from 'react';
+import { type ComponentProps, useEffect, useRef, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -19,6 +18,21 @@ import { initializeTheme } from '../src/theme/theme';
 
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
 initializeTheme();
+
+// Shared options for screens presented as native formSheets. `fitToContents` sizes the sheet to its
+// content (and re-animates when the content changes); `contentStyle` paints the sheet surface with the
+// themed background so it matches the rest of the app behind the safe areas.
+type ScreenOptions = NonNullable<ComponentProps<typeof Stack.Screen>['options']>;
+function sheetScreenOptions(background: string): ScreenOptions {
+  return {
+    presentation: 'formSheet',
+    sheetAllowedDetents: 'fitToContents',
+    sheetGrabberVisible: true,
+    sheetCornerRadius: 24,
+    contentStyle: { backgroundColor: background },
+    headerShown: false,
+  };
+}
 
 export default function RootLayout() {
   // Backdrop behind the navigator and the bootsplash fade. Use the theme bg so it matches the
@@ -41,18 +55,14 @@ export default function RootLayout() {
           app high up so any screen can opt in. */}
       <KeyboardProvider>
         <SafeAreaProvider>
-          {/* BottomSheetProvider owns the portal that ModalBottomSheet renders through, so it wraps
-              the whole app (high enough that modal sheets float over the navigator and the toasts). */}
-          <BottomSheetProvider>
-            <QueryClientProvider client={queryClient}>
-              <StatusBar style="auto" />
-              <RootNavigator />
-              {/* Global toast host: mounted above the navigator so toasts float over every screen.
-                  Lives inside the gesture-handler + safe-area providers, which the toasts need for
-                  swipe-to-dismiss and top-inset positioning. */}
-              <AppToaster />
-            </QueryClientProvider>
-          </BottomSheetProvider>
+          <QueryClientProvider client={queryClient}>
+            <StatusBar style="auto" />
+            <RootNavigator />
+            {/* Global toast host: mounted above the navigator so toasts float over every screen.
+                Lives inside the gesture-handler + safe-area providers, which the toasts need for
+                swipe-to-dismiss and top-inset positioning. */}
+            <AppToaster />
+          </QueryClientProvider>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
@@ -67,6 +77,7 @@ export default function RootLayout() {
 // player without any z-index juggling.
 function RootNavigator() {
   const { data: session, isPending } = authClient.useSession();
+  const colors = useThemeColors();
 
   // Configure the audio session and lock-screen handlers once for the whole app.
   // Tear everything down (remove all subscriptions) on unmount.
@@ -118,6 +129,11 @@ function RootNavigator() {
         {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
             screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
         <Stack.Screen name="settings" />
+        {/* Native formSheets (UISheetPresentationController on iOS). `fitToContents` sizes the sheet
+            to whatever its content measures and re-animates on change, so dynamic content (the demo's
+            add/remove lines, the currency list) just works without a JS-driven sheet library. */}
+        <Stack.Screen name="sheet-demo" options={sheetScreenOptions(colors.surface)} />
+        <Stack.Screen name="currency" options={sheetScreenOptions(colors.surface)} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         {/* Signing out flips this guard on; fade in rather than slide so leaving the app feels like a
