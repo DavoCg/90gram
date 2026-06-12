@@ -7,20 +7,25 @@ import { BottomSheetProvider } from '@swmansion/react-native-bottom-sheet';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import BootSplash from 'react-native-bootsplash';
 import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
 import { AppToaster } from '../src/components/toast';
+import { useThemeColors } from '../src/theme/colors';
 import { STACK_ANIMATION_DURATION } from '../src/theme/motion';
-import { ActivityIndicator, View } from '../src/theme/uniwind';
 import { initializeTheme } from '../src/theme/theme';
 
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
 initializeTheme();
 
 export default function RootLayout() {
+  // Backdrop behind the navigator and the bootsplash fade. Use the theme bg so it matches the
+  // splash background and the screens, rather than a hardcoded black that would flash through.
+  const colors = useThemeColors();
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       {/* KeyboardProvider feeds the native keyboard frame to react-native-keyboard-controller so
           screens can track the keyboard smoothly on the UI thread (used by sign-in). It wraps the
           app high up so any screen can opt in. */}
@@ -73,14 +78,18 @@ function RootNavigator() {
     }
   }, [session, isPending, segments, router]);
 
-  // While the persisted session is restored from SecureStore, show a neutral splash so we never
-  // flash the sign-in screen for an already-authenticated user (or vice versa).
+  // Keep the native bootsplash (react-native-bootsplash) on screen until we know the auth state,
+  // then fade it out to reveal the first real screen. This is the "do not know if logged in yet"
+  // wait: holding the splash means we never flash the sign-in screen for an already-authenticated
+  // user (or the tabs for a signed-out one) before the redirect above settles.
+  useEffect(() => {
+    if (isPending) return;
+    void BootSplash.hide({ fade: true });
+  }, [isPending]);
+
+  // Render nothing underneath while pending; the native bootsplash still covers the screen.
   if (isPending) {
-    return (
-      <View className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator />
-      </View>
-    );
+    return null;
   }
 
   return (
@@ -92,7 +101,9 @@ function RootNavigator() {
       }}
     >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(auth)" />
+      {/* Signing out navigates here; fade in rather than slide so leaving the app feels like a
+          dissolve, not a sideways push back to a previous screen. */}
+      <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
       {/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
           screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
       <Stack.Screen name="settings" />

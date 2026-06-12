@@ -58,7 +58,17 @@
           ]
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "react-native-bootsplash",
+        {
+          "logo": "./assets/bootsplash/logo.png",
+          "logoWidth": 100,
+          "background": "#faf7f2",
+          "darkBackground": "#1c1714",
+          "assetsOutput": "assets/bootsplash"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
