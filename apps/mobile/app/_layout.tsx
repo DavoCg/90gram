@@ -10,9 +10,9 @@ import { StatusBar } from 'expo-status-bar';
 import { queryClient } from '../src/api/queryClient';
 import { authClient } from '../src/auth/client';
 import { audioEngine } from '../src/audio/engine';
+import { SplashScreen } from '../src/components/splash-screen';
 import { AppToaster } from '../src/components/toast';
 import { STACK_ANIMATION_DURATION } from '../src/theme/motion';
-import { ActivityIndicator, View } from '../src/theme/uniwind';
 import { initializeTheme } from '../src/theme/theme';
 
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
@@ -76,11 +76,7 @@ function RootNavigator() {
   // While the persisted session is restored from SecureStore, show a neutral splash so we never
   // flash the sign-in screen for an already-authenticated user (or vice versa).
   if (isPending) {
-    return (
-      <View className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator />
-      </View>
-    );
+    return <SplashScreen />;
   }
 
   return (
