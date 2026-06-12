@@ -1,11 +1,10 @@
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { Easing, FadeInDown } from 'react-native-reanimated';
 import { View } from '../../src/theme/uniwind';
 import { Button } from '../../src/components/button';
-import { AuthMethodSheet, OnboardingCarousel } from '../../src/components/onboarding';
+import { OnboardingCarousel } from '../../src/components/onboarding';
 
 // className only flows through a uniwind-wrapped animated component, not raw Animated.View.
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -17,7 +16,6 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 export default function WelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
     <View className="flex-1 bg-black">
@@ -36,7 +34,7 @@ export default function WelcomeScreen() {
             variant="intense"
             shape="squircle"
             layout="flex"
-            onPress={() => setSheetOpen(true)}
+            onPress={() => router.push('/auth-method')}
           />
         </Animated.View>
         <AnimatedView
@@ -57,12 +55,6 @@ export default function WelcomeScreen() {
           />
         </AnimatedView>
       </View>
-
-      <AuthMethodSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onSelectEmail={() => router.push({ pathname: '/email', params: { intent: 'signup' } })}
-      />
     </View>
   );
 }
