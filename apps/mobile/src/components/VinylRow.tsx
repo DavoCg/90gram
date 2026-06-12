@@ -1,8 +1,9 @@
 import type { VinylSummaryDto } from "@getvinyls/api-client";
 import { memo } from "react";
 import { formatPrice } from "../currency";
-import { Pressable, View } from "../theme/uniwind";
+import { View } from "../theme/uniwind";
 import { CoverArt } from "./cover-art";
+import { PressableScale } from "./pressable-scale";
 import { Text } from "./text";
 
 export interface VinylRowProps {
@@ -14,15 +15,15 @@ export interface VinylRowProps {
 function VinylRowBase({ vinyl, onPress }: VinylRowProps) {
 	// Cheapest offer across shops, converted to the display currency; null when no priced offer.
 	const price = formatPrice(vinyl.lowestPrice, vinyl.currency);
-	const genre = vinyl.genres[0]?.name ?? null;
 	const shops = vinyl.shopCount === 1 ? "1 shop" : `${vinyl.shopCount} shops`;
+
 	return (
-		<Pressable
+		<PressableScale
 			onPress={() => onPress(vinyl)}
 			className={`flex-row items-start gap-3 px-4 py-2 bg-bg`}
 		>
-			<CoverArt uri={vinyl.coverArtUrl} size={64} radius={8} />
-			<View className="flex-1 gap-0.5">
+			<CoverArt uri={vinyl.coverArtUrl} size={54} radius={8} />
+			<View className="flex-1 gap-1">
 				<Text numberOfLines={1} size="md" weight="semibold">
 					{vinyl.title}
 				</Text>
@@ -30,15 +31,8 @@ function VinylRowBase({ vinyl, onPress }: VinylRowProps) {
 					{vinyl.artist}
 					{vinyl.year ? ` · ${vinyl.year}` : ""}
 				</Text>
-				{genre ? (
-					<View className="mt-1 self-start rounded-full curve-continuous bg-surface-2 px-2 py-0.5">
-						<Text size="xs" color="neutral-soft">
-							{genre}
-						</Text>
-					</View>
-				) : null}
 			</View>
-			<View className="items-end gap-0.5">
+			<View className="items-end gap-1">
 				{price ? <Text size="md">{price}</Text> : null}
 				{vinyl.shopCount > 0 ? (
 					<Text size="sm" color="neutral-soft">
@@ -46,7 +40,7 @@ function VinylRowBase({ vinyl, onPress }: VinylRowProps) {
 					</Text>
 				) : null}
 			</View>
-		</Pressable>
+		</PressableScale>
 	);
 }
 
