@@ -71,8 +71,17 @@ settles: `ActiveTrackChanged` passes through `index: undefined` (would null `rec
 engine records the id of the track it asked for (`pendingStartId`, set in `playQueue`) and the
 `ActiveTrackChanged` handler ignores every change until that track is active. Combined with reading
 intent (`playWhenReady`) for the button, this is what keeps a track switch flash-free.
-- Position: a ~250ms `setInterval` polls `TrackPlayer.getProgress()` while playing and writes
-  `positionSec` / `durationSec` / `canSeek`, keeping the SeekBar smooth.
+- Position: a ~250ms `setInterval` polls `TrackPlayer.getProgress()` while playing. Position is
+  deliberately NOT in `player$`: it ticks ~4x/second, and a `use$(player$.positionSec)` subscriber
+  re-renders on every tick (NowPlaying, and through it the whole player surface, dropping JS FPS).
+  Instead the poll writes the live position to a Reanimated shared value, `positionSignal` in
+  `src/audio/position-signal.ts`, which the SeekBar / mini-bar consume on the UI thread via
+  `useSmoothPosition` (frame-rate extrapolation between polls), so a position tick triggers ZERO
+  React renders. The poll still writes `durationSec` / `canSeek` to `player$` (they change only at
+  track boundaries, so the assign is a no-op once they settle). Anything on the JS thread that needs
+  the current position non-reactively (e.g. `engine.prev()` restart-vs-skip) reads
+  `positionSignal.value`. The engine is the sole writer of `positionSignal`, and resets it to 0 on
+  track change / queue end / new queue / teardown.
 
 Components read narrow slices with `use$(player$.x)` from `@legendapp/state/react`. Server/data
 state stays in TanStack Query.

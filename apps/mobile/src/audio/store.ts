@@ -32,7 +32,8 @@ export interface PlayerState {
   // `status` through Ready/None/Buffering, but intent does not change), so the button does not
   // flash to the play icon while the new track buffers. `status` still reflects raw playback.
   playWhenReady: boolean;
-  positionSec: number;
+  // Position is intentionally NOT held here: it ticks ~4x/second and would re-render every
+  // subscriber. It lives in a Reanimated shared value instead (see ./position-signal).
   durationSec: number;
   gain: number;
   // True when the active source supports seeking (the file source). The streamer
@@ -49,7 +50,6 @@ export const player$ = observable<PlayerState>({
   track: null,
   status: 'idle',
   playWhenReady: false,
-  positionSec: 0,
   durationSec: 0,
   gain: 1,
   canSeek: false,
