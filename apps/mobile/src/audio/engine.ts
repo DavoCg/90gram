@@ -27,6 +27,7 @@ import TrackPlayer, {
   type Track,
 } from 'react-native-track-player';
 import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
+import { positionSignal } from './position-signal';
 import { player$, type PlayableTrack, type PlayerStatus } from './store';
 
 // How far the lock-screen / notification jump buttons move, and how often we poll position.
@@ -177,17 +178,24 @@ function ensureSetup(): Promise<void> {
 // progress event, but a fixed tick keeps the SeekBar as smooth as the old engine's 250ms timer.
 function startPositionTimer(): void {
   stopPositionTimer();
-  positionTimer = setInterval(() => {
+  const timer = setInterval(() => {
     void TrackPlayer.getProgress().then((progress) => {
-      player$.assign({
-        positionSec: progress.position,
-        // Once RNTP measures the source it owns the duration; until then keep the seeded known
-        // length so the SeekBar's right label does not flash back from the real total to "0:00".
-        ...(progress.duration > 0 ? { durationSec: progress.duration } : {}),
-        canSeek: progress.duration > 0,
-      });
+      // A getProgress() already in flight when the timer is stopped or replaced (e.g. on pause)
+      // must not write: that late, stale position would snap the SeekBar back a few pixels after
+      // the predictor has already frozen at the true paused position.
+      if (positionTimer !== timer) return;
+      // Position ticks ~4x/second: publish it to the UI-thread signal only, never to the store,
+      // so the SeekBar / mini-bar glide on the UI thread without re-rendering NowPlaying.
+      positionSignal.value = progress.position;
+      // Duration / canSeek change only when RNTP first measures the source. assign is a no-op
+      // (no notify) once they settle, so this does not re-render per tick. Until measured, keep
+      // the seeded known length so the SeekBar's right label does not flash back to "0:00".
+      if (progress.duration > 0) {
+        player$.assign({ durationSec: progress.duration, canSeek: true });
+      }
     });
   }, POSITION_TICK_MS);
+  positionTimer = timer;
 }
 
 function stopPositionTimer(): void {
@@ -208,8 +216,10 @@ function onActiveTrackChanged(index: number | undefined, track: Track | undefine
     if (track?.mediaId !== pendingStartId) return;
     pendingStartId = null;
   }
+  // New active track: snap the position bar back to the start (UI thread).
+  positionSignal.value = 0;
   if (index === undefined) {
-    player$.assign({ track: null, queueIndex: -1, positionSec: 0, durationSec: 0, canSeek: false });
+    player$.assign({ track: null, queueIndex: -1, durationSec: 0, canSeek: false });
     return;
   }
   const queue = player$.queue.get();
@@ -221,7 +231,6 @@ function onActiveTrackChanged(index: number | undefined, track: Track | undefine
   player$.assign({
     queueIndex: index,
     track: current,
-    positionSec: 0,
     durationSec: duration,
     canSeek: reported > 0,
   });
@@ -260,7 +269,8 @@ export const audioEngine = {
       }),
       TrackPlayer.addEventListener(Event.PlaybackQueueEnded, () => {
         stopPositionTimer();
-        player$.assign({ status: 'paused', playWhenReady: false, positionSec: 0 });
+        positionSignal.value = 0;
+        player$.assign({ status: 'paused', playWhenReady: false });
       }),
     );
   },
@@ -321,13 +331,13 @@ export const audioEngine = {
     // button shows pause immediately (and stays there) instead of flashing the play icon. Seed
     // durationSec from the track's known length so the SeekBar shows the real total at its right
     // edge while loading; canSeek stays false until RNTP reports a real (seekable) duration.
+    positionSignal.value = 0;
     player$.assign({
       track: startTrack,
       queue: tracks,
       queueIndex: index,
       status: 'loading',
       playWhenReady: true,
-      positionSec: 0,
       durationSec: startTrack.durationSec,
       canSeek: false,
     });
@@ -359,7 +369,7 @@ export const audioEngine = {
    */
   prev(): void {
     const index = player$.queueIndex.get();
-    if (index <= 0 || player$.positionSec.get() > PREV_RESTART_THRESHOLD_SEC) {
+    if (index <= 0 || positionSignal.value > PREV_RESTART_THRESHOLD_SEC) {
       this.seek(0);
       return;
     }
@@ -378,6 +388,9 @@ export const audioEngine = {
   pause(): void {
     // Reflect intent immediately so the button flips without waiting on the native event.
     player$.playWhenReady.set(false);
+    // Stop polling now, not when the native Paused event lands, so no in-flight poll writes a
+    // stale position after the predictor has frozen (which would step the SeekBar back on pause).
+    stopPositionTimer();
     void TrackPlayer.pause();
   },
 
@@ -390,7 +403,7 @@ export const audioEngine = {
   seek(toSec: number): void {
     const clamped = Math.max(0, toSec);
     // Reflect the new position immediately so the bar does not flash the old timestamp.
-    player$.positionSec.set(clamped);
+    positionSignal.value = clamped;
     void TrackPlayer.seekTo(clamped);
   },
 
@@ -412,11 +425,11 @@ export const audioEngine = {
     setupPromise = null;
     pendingStartId = null;
     await TrackPlayer.reset();
+    positionSignal.value = 0;
     player$.assign({
       track: null,
       status: 'idle',
       playWhenReady: false,
-      positionSec: 0,
       durationSec: 0,
       canSeek: false,
       queue: [],

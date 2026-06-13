@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { TextInput } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
 } from 'react-native-reanimated';
 import { useCSSVariable } from 'uniwind';
 import type { LayoutChangeEvent } from 'react-native';
+import { positionSignal } from '../audio/position-signal';
 import { useSmoothPosition } from '../hooks/use-smooth-position';
 import { View } from '../theme/uniwind';
 import { Text } from './text';
@@ -38,14 +40,12 @@ function formatRemaining(seconds: number): string {
 // We only call onSeek once, on release, which matches the engine (a fresh source starts at the
 // new offset).
 export function SeekBar({
-  positionSec,
   durationSec,
   canSeek = true,
   isPlaying = false,
   showRemaining = false,
   onSeek,
 }: {
-  positionSec: number;
   durationSec: number;
   // False while streaming a non-seekable source: the bar becomes a read-only indicator.
   canSeek?: boolean;
@@ -80,7 +80,7 @@ export function SeekBar({
   // The displayed position, extrapolated on the UI thread between the engine's 250ms polls so the
   // fill and labels glide at frame rate. `liveFraction` is position/duration clamped to 0..1.
   const { livePosition, fraction: liveFraction } = useSmoothPosition(
-    positionSec,
+    positionSignal,
     durationSec,
     isPlaying,
   );
@@ -92,18 +92,21 @@ export function SeekBar({
     durationShared.value = durationSec;
   }, [durationSec, durationShared]);
 
-  // The committed seek target, held until the engine position reaches it. This is the only
-  // React state here, and it updates once per release, never during the drag.
-  const [pendingSec, setPendingSec] = useState<number | null>(null);
+  // The committed seek target, held until the engine position reaches it. A shared value (-1 = no
+  // pending seek), set on the UI thread at release so a seek never triggers a React render.
+  const pendingSec = useSharedValue(-1);
 
-  // Drop the visual hold once the live position lands on (or passes) the seek target.
-  useEffect(() => {
-    if (pendingSec === null) return;
-    if (Math.abs(positionSec - pendingSec) < 0.5) {
-      setPendingSec(null);
-      holding.value = false;
-    }
-  }, [positionSec, pendingSec, holding]);
+  // Drop the visual hold once the live position lands on (or passes) the seek target. Runs in a
+  // UI-thread reaction off the position signal, so the hold release costs no React render.
+  useAnimatedReaction(
+    () => positionSignal.value,
+    (pos) => {
+      if (pendingSec.value >= 0 && Math.abs(pos - pendingSec.value) < 0.5) {
+        pendingSec.value = -1;
+        holding.value = false;
+      }
+    },
+  );
 
   const updateFromX = (x: number) => {
     'worklet';
@@ -127,8 +130,8 @@ export function SeekBar({
       // Freeze the bar at the released position until the engine catches up.
       holdFraction.value = scrubFraction.value;
       holding.value = true;
+      pendingSec.value = target;
       runOnJS(seek)(target);
-      runOnJS(setPendingSec)(target);
     })
     .onFinalize(() => {
       scrubbing.value = false;
@@ -146,8 +149,8 @@ export function SeekBar({
       // Freeze the bar at the tapped position until the engine catches up.
       holdFraction.value = f;
       holding.value = true;
+      pendingSec.value = target;
       runOnJS(seek)(target);
-      runOnJS(setPendingSec)(target);
     });
 
   // A real tap (no movement) activates `tap`; any drag activates `pan`. They are mutually
@@ -210,7 +213,7 @@ export function SeekBar({
         <AnimatedTextInput
           editable={false}
           underlineColorAndroid="transparent"
-          defaultValue={formatTime(positionSec)}
+          defaultValue={formatTime(0)}
           animatedProps={elapsedProps}
           style={{
             width: 48,
@@ -229,7 +232,7 @@ export function SeekBar({
           <AnimatedTextInput
             editable={false}
             underlineColorAndroid="transparent"
-            defaultValue={formatRemaining(Math.max(0, durationSec - positionSec))}
+            defaultValue={formatRemaining(Math.max(0, durationSec))}
             animatedProps={remainingProps}
             style={{
               width: 48,

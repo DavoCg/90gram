@@ -28,6 +28,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUniwind } from "uniwind";
 import { audioEngine } from "../audio/engine";
+import { positionSignal } from "../audio/position-signal";
 import { player$ } from "../audio/store";
 import { useSmoothPosition } from "../hooks/use-smooth-position";
 import { useThemeColors } from "../theme/colors";
@@ -77,7 +78,9 @@ export function NowPlaying({
 	const track = use$(player$.track);
 	const playWhenReady = use$(player$.playWhenReady);
 	const status = use$(player$.status);
-	const positionSec = use$(player$.positionSec);
+	// Position is read from a UI-thread shared value (positionSignal), NOT use$, so its ~4Hz tick
+	// while playing never re-renders this component. durationSec/canSeek change only at track
+	// boundaries, so subscribing to those is cheap.
 	const durationSec = use$(player$.durationSec);
 	const canSeek = use$(player$.canSeek);
 	const queueIndex = use$(player$.queueIndex);
@@ -107,15 +110,21 @@ export function NowPlaying({
 	// loads/buffers, so the position bar must key off the real playing state instead, otherwise it
 	// glides forward (and shows a "live" label) while no sound is coming out.
 	const isAdvancing = status === "playing";
+	// Drives the position predictor. ANDing in intent freezes it the instant pause is tapped:
+	// `status` lags pause by a native round-trip, so keying off it alone lets the predictor creep
+	// past the true position during that latency and freeze a few pixels ahead. Intent flips to
+	// false immediately, so the bar stops exactly where it is. (Track-switch buffering is already
+	// excluded by isAdvancing being false there.)
+	const isPositionLive = isAdvancing && playWhenReady;
 	const hasNext = queueIndex >= 0 && queueIndex < queue.length - 1;
 
 	// Frame-rate extrapolated progress for the mini-bar fill, so it glides between the engine's
-	// 250ms position polls instead of stepping. Driven entirely on the UI thread. Keyed off actual
-	// playback (isAdvancing) so the fill holds at 0 until the track really starts.
+	// 250ms position polls instead of stepping. Driven entirely on the UI thread. Keyed off live
+	// playback so the fill holds at 0 until the track really starts and freezes cleanly on pause.
 	const { fraction: progressFraction } = useSmoothPosition(
-		positionSec,
+		positionSignal,
 		durationSec,
-		isAdvancing,
+		isPositionLive,
 	);
 	const miniProgressStyle = useAnimatedStyle(() => ({
 		transform: [{ scaleX: progressFraction.value }],
@@ -458,10 +467,9 @@ export function NowPlaying({
 						</View>
 
 						<SeekBar
-							positionSec={positionSec}
 							durationSec={durationSec}
 							canSeek={canSeek}
-							isPlaying={isAdvancing}
+							isPlaying={isPositionLive}
 							showRemaining
 							onSeek={(seconds) => audioEngine.seek(seconds)}
 						/>
