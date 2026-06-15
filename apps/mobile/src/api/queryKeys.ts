@@ -1,8 +1,13 @@
 // Stable, centralized query keys so cache reads/writes line up across the app.
 export const queryKeys = {
   vinyls: {
-    // The home feed, cursor-paginated (an infinite query).
-    list: ['vinyls', 'list'] as const,
+    // The home feed, cursor-paginated (an infinite query). Keyed by the active genre filter (sorted
+    // slugs) so each filter combination caches independently; no filter == the base ['vinyls','list'].
+    list: (genreSlugs: readonly string[] = []) =>
+      ['vinyls', 'list', ...[...genreSlugs].sort()] as const,
+    // Prefix matching every home-feed cache regardless of filter (e.g. to seed the detail sheet from
+    // whichever filtered feed the vinyl was opened from).
+    listAll: ['vinyls', 'list'] as const,
     detail: (id: string) => ['vinyls', id] as const,
     // Full-text search results for a query, cursor-paginated (an infinite query).
     search: (query: string) => ['vinyls', 'search', query] as const,
@@ -23,6 +28,8 @@ export const queryKeys = {
     // The favorited tracks (not paginated: tracks are not a vinyls list).
     tracks: ['favorites', 'tracks'] as const,
   },
+  // The validated genres (drives the home filter sheet; rarely changes).
+  genres: ['genres'] as const,
   // The signed-in user's settings (display currency today).
   settings: ['settings'] as const,
   // The supported display currencies (drives the picker; rarely changes).

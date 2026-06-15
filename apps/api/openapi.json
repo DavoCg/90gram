@@ -657,6 +657,15 @@
           },
           {
             "schema": {
+              "type": "string",
+              "example": "disco,funk"
+            },
+            "required": false,
+            "name": "genres",
+            "in": "query"
+          },
+          {
+            "schema": {
               "$ref": "#/components/schemas/SupportedCurrency"
             },
             "required": false,
@@ -666,7 +675,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A paginated page of vinyls with their tracks, genres, and a cheapest-price summary. Vinyls listed by more shops come first (so records available in multiple shops lead), then newest first. The cursor is an offset into this ranking.",
+            "description": "A paginated page of vinyls with their tracks, genres, and a cheapest-price summary. Vinyls listed by more shops come first (so records available in multiple shops lead), then newest first. The cursor is an offset into this ranking. Optionally filtered to vinyls carrying any of the genres in `genres` (comma-separated slugs).",
             "content": {
               "application/json": {
                 "schema": {

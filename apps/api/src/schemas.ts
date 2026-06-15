@@ -250,6 +250,28 @@ export const PaginationQuerySchema = z.object({
 
 export type PaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
+// Optional genre filter for the vinyls list: a comma-separated list of genre slugs (e.g.
+// `?genres=disco,funk`). Comma-separated (rather than a repeated query param) keeps the value a
+// plain string, which both `@hono/zod-openapi` query parsing and the generated client handle
+// cleanly. Matching is OR: a vinyl shows if it carries ANY of the selected genres. Parse the raw
+// value with `parseGenreSlugs`.
+export const GenreFilterQuerySchema = z.object({
+  genres: z
+    .string()
+    .optional()
+    .openapi({ param: { name: 'genres', in: 'query' }, example: 'disco,funk' }),
+});
+
+// Split the raw `genres` query value into clean slugs (trimmed, empties dropped, deduped).
+export function parseGenreSlugs(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const slugs = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return [...new Set(slugs)];
+}
+
 // Query for full-text search (GET /vinyls/search). `q` is the search text. Results are relevance
 // ranked (not keyset friendly), so this list pages by offset carried in `cursor`, like GET /vinyls;
 // the response reuses VinylListSchema so the client and react-query machinery are shared.

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
@@ -7,10 +7,12 @@ import { User } from 'lucide-react-native';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
 import { Text } from '../../../src/components/text';
-import { useVinyls } from '../../../src/api/hooks';
+import { useGenres, useVinyls } from '../../../src/api/hooks';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
+import { FilterButton } from '../../../src/components/filters/filter-button';
+import { FilterSheet } from '../../../src/components/filters/filter-sheet';
 import { useThemeColors } from '../../../src/theme/colors';
 import { useScreenRefresh } from '../../../src/hooks/use-screen-refresh';
 import { player$ } from '../../../src/audio/store';
@@ -36,8 +38,13 @@ const LIST_BOTTOM_PADDING = 140;
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useThemeColors();
+  // Applied genre filter (slugs). Local to this screen: an ephemeral UI selection that only the home
+  // feed reads. Toggled in the FilterSheet's draft, committed here on "Show results".
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useVinyls();
+    useVinyls(selectedGenres);
+  const genresQuery = useGenres();
   const { refreshing, handleRefresh } = useScreenRefresh(refetch);
   // The current vinyl is whichever vinyl the playing track belongs to.
   const currentVinylId = use$(player$.track)?.vinylId;
@@ -65,16 +72,41 @@ export default function HomeScreen() {
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const hasFilters = selectedGenres.length > 0;
+
+  // Header right: the filter button (with active-count badge) and the existing user button.
+  const headerRight = (
+    <View className="-mr-2 flex-row items-center gap-1">
+      <FilterButton onPress={() => setFilterOpen(true)} activeCount={selectedGenres.length} />
+      <HeaderUserButton />
+    </View>
+  );
+
+  // Mounted in every state so the filter affordance is always available (and the sheet can animate
+  // closed). Switching filters fetches a fresh query key, which routes through the loading return,
+  // so keeping this here keeps the sheet reachable while a filtered feed loads.
+  const filterSheet = (
+    <FilterSheet
+      open={filterOpen}
+      onClose={() => setFilterOpen(false)}
+      genres={genresQuery.data ?? []}
+      loading={genresQuery.isLoading}
+      selected={selectedGenres}
+      onApply={setSelectedGenres}
+    />
+  );
+
   if (isLoading) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} right={<HeaderUserButton />} />
+        <AppHeader title="Home" showBack={false} right={headerRight} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
           <Text color="neutral-soft" className="mt-3">
             Loading records…
           </Text>
         </View>
+        {filterSheet}
       </View>
     );
   }
@@ -82,7 +114,7 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} right={<HeaderUserButton />} />
+        <AppHeader title="Home" showBack={false} right={headerRight} />
         <View className="flex-1 items-center justify-center gap-3 px-6">
           <Text align="center">Could not reach the API.</Text>
           <Text size="sm" color="neutral-soft" align="center">
@@ -95,13 +127,14 @@ export default function HomeScreen() {
             <Text color="white">Retry</Text>
           </Pressable>
         </View>
+        {filterSheet}
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Home" showBack={false} right={<HeaderUserButton />} />
+      <AppHeader title="Home" showBack={false} right={headerRight} />
       <LegendList
         data={data ?? []}
         keyExtractor={(item) => item.id}
@@ -113,6 +146,19 @@ export default function HomeScreen() {
         extraData={`${currentVinylId ?? ''}:${String(playWhenReady)}`}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
+        ListEmptyComponent={
+          hasFilters ? (
+            <View className="flex-1 items-center justify-center gap-3 px-6 pt-24">
+              <Text align="center">No records match these filters.</Text>
+              <Pressable
+                onPress={() => setSelectedGenres([])}
+                className="rounded-full curve-continuous bg-accent px-5 py-2"
+              >
+                <Text color="white">Clear filters</Text>
+              </Pressable>
+            </View>
+          ) : null
+        }
         ListFooterComponent={<ListFooterLoader loading={isFetchingNextPage} />}
         contentContainerStyle={{ paddingBottom: LIST_BOTTOM_PADDING }}
         refreshControl={
@@ -124,6 +170,7 @@ export default function HomeScreen() {
           />
         }
       />
+      {filterSheet}
     </View>
   );
 }

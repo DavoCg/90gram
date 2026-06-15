@@ -12,6 +12,7 @@ import {
 import type {
   FavoriteIdsDto,
   FavoriteTrackDto,
+  GenreDto,
   ShopDetailDto,
   VinylDto,
   VinylListDto,
@@ -52,12 +53,21 @@ function flattenUniqueVinyls(data: InfiniteData<VinylListDto>): VinylSummaryDto[
 // id: /vinyls pages by offset over a shop-count ranking that the scraper mutates, so a vinyl can slip
 // across the page boundary and repeat. A duplicate id is a duplicate list key, which a recycling list
 // must never see (it misroutes taps to the wrong detail), so we collapse repeats here.
-export function useVinyls(): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
+//
+// `genreSlugs` optionally filters the feed to vinyls carrying ANY of the given genres (OR). Each
+// filter combination caches under its own key, so switching filters is instant once warmed and the
+// unfiltered feed is never evicted.
+export function useVinyls(
+  genreSlugs: readonly string[] = [],
+): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
+  // Comma-separated slugs is the wire shape (GET /vinyls?genres=disco,funk); omit when empty so the
+  // request is the plain unfiltered feed.
+  const genres = genreSlugs.length > 0 ? [...genreSlugs].sort().join(',') : undefined;
   return useInfiniteQuery({
-    queryKey: queryKeys.vinyls.list,
+    queryKey: queryKeys.vinyls.list(genreSlugs),
     queryFn: async ({ pageParam }): Promise<VinylListDto> => {
       const { data, error } = await apiClient.GET('/vinyls', {
-        params: { query: { limit: PAGE_SIZE, cursor: pageParam } },
+        params: { query: { limit: PAGE_SIZE, cursor: pageParam, genres } },
       });
       if (error || !data) {
         throw new Error('Failed to load vinyls');
@@ -67,6 +77,21 @@ export function useVinyls(): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     select: flattenUniqueVinyls,
+  });
+}
+
+// The validated genres, for the home filter sheet. Rarely changes, so it is cached generously by the
+// default query config; the list is short (no pagination).
+export function useGenres(): UseQueryResult<GenreDto[]> {
+  return useQuery({
+    queryKey: queryKeys.genres,
+    queryFn: async (): Promise<GenreDto[]> => {
+      const { data, error } = await apiClient.GET('/genres');
+      if (error || !data) {
+        throw new Error('Failed to load genres');
+      }
+      return data.genres;
+    },
   });
 }
 
@@ -123,8 +148,12 @@ export function useVinyl(id: string): UseQueryResult<VinylDto> {
     // Seed from a cached list so the detail sheet renders instantly. A summary has everything the
     // detail needs except offers; the query then fills those in. Vinyl = VinylSummary + offers.
     placeholderData: (): VinylDto | undefined => {
-      const fromFeed = findCachedSummary(
-        queryClient.getQueryData<InfiniteData<VinylListDto>>(queryKeys.vinyls.list),
+      // The home feed caches per genre filter (queryKeys.vinyls.list(slugs)), so scan every loaded
+      // home-feed cache rather than a single key, the way search is scanned below.
+      const fromFeed = findCachedSummaryAcross(
+        queryClient.getQueriesData<InfiniteData<VinylListDto>>({
+          queryKey: queryKeys.vinyls.listAll,
+        }),
         id,
       );
       const fromFavorites = findCachedSummary(
