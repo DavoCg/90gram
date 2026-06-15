@@ -151,7 +151,7 @@ export default function FavoritesScreen() {
               void refetchVinyls();
               void refetchTracks();
             }}
-            className="rounded-full curve-continuous bg-accent px-5 py-2"
+            className="rounded-2xl curve-continuous bg-accent px-5 py-2"
           >
             <Text color="white">Retry</Text>
           </Pressable>

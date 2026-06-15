@@ -11,7 +11,7 @@ interface FilterBarProps {
 
 // The home filter bar. It sits directly under the app header and above the record list (rendered
 // as a sticky bar there, not as a header icon), hosting the affordance that opens the filter sheet.
-// The pill reflects how many filters are active so the state reads at a glance.
+// The button reflects how many filters are active so the state reads at a glance.
 export function FilterBar({ onPress, activeCount }: FilterBarProps) {
   const colors = useThemeColors();
   const active = activeCount > 0;
@@ -22,7 +22,7 @@ export function FilterBar({ onPress, activeCount }: FilterBarProps) {
         hitSlop={8}
         accessibilityRole="button"
         accessibilityLabel="Filters"
-        className={`flex-row items-center gap-2 self-start rounded-full curve-continuous border-hairline px-3.5 py-2 ${
+        className={`flex-row items-center gap-2 self-start rounded-2xl curve-continuous border-hairline px-3.5 py-2 ${
           active ? 'border-accent bg-surface-2' : 'border-border bg-surface'
         }`}
       >

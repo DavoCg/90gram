@@ -113,7 +113,6 @@ export default function EmailScreen() {
 						>
 							<Button
 								label="Send code"
-								shape="squircle"
 								layout="flex"
 								loading={isSubmitting}
 								disabled={isSubmitting || !canSubmit}
