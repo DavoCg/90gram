@@ -127,7 +127,7 @@ export function FilterSheet({
                   // Cap the list height so a long list scrolls instead of growing past the screen.
                   <RNScrollView
                     style={{ maxHeight: 380 }}
-                    contentContainerStyle={{ paddingVertical: 4 }}
+                    contentContainerStyle={{ paddingVertical: 4, gap: 4 }}
                     showsVerticalScrollIndicator={false}
                     bounces={false}
                   >

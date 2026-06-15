@@ -11,7 +11,7 @@ import { useGenres, useVinyls } from '../../../src/api/hooks';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
 import { AppHeader } from '../../../src/components/AppHeader';
-import { FilterButton } from '../../../src/components/filters/filter-button';
+import { FilterBar } from '../../../src/components/filters/filter-bar';
 import { FilterSheet } from '../../../src/components/filters/filter-sheet';
 import { useThemeColors } from '../../../src/theme/colors';
 import { useScreenRefresh } from '../../../src/hooks/use-screen-refresh';
@@ -74,12 +74,14 @@ export default function HomeScreen() {
 
   const hasFilters = selectedGenres.length > 0;
 
-  // Header right: the filter button (with active-count badge) and the existing user button.
-  const headerRight = (
-    <View className="-mr-2 flex-row items-center gap-1">
-      <FilterButton onPress={() => setFilterOpen(true)} activeCount={selectedGenres.length} />
-      <HeaderUserButton />
-    </View>
+  // Header right: just the user button now. The filter affordance moved out of the header into the
+  // sticky FilterBar below it.
+  const headerRight = <HeaderUserButton />;
+
+  // The sticky filter bar, pinned directly under the app header and above the list. Rendered in
+  // every state so the filter affordance is always reachable, including while a filtered feed loads.
+  const filterBar = (
+    <FilterBar onPress={() => setFilterOpen(true)} activeCount={selectedGenres.length} />
   );
 
   // Mounted in every state so the filter affordance is always available (and the sheet can animate
@@ -100,6 +102,7 @@ export default function HomeScreen() {
     return (
       <View className="flex-1 bg-bg">
         <AppHeader title="Home" showBack={false} right={headerRight} />
+        {filterBar}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
           <Text color="neutral-soft" className="mt-3">
@@ -115,6 +118,7 @@ export default function HomeScreen() {
     return (
       <View className="flex-1 bg-bg">
         <AppHeader title="Home" showBack={false} right={headerRight} />
+        {filterBar}
         <View className="flex-1 items-center justify-center gap-3 px-6">
           <Text align="center">Could not reach the API.</Text>
           <Text size="sm" color="neutral-soft" align="center">
@@ -135,6 +139,7 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader title="Home" showBack={false} right={headerRight} />
+      {filterBar}
       <LegendList
         data={data ?? []}
         keyExtractor={(item) => item.id}
