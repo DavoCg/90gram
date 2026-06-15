@@ -37,14 +37,23 @@ model Shop {
 /// A canonical vinyl release, the unit of discovery. Shop-agnostic: it carries NO source or
 /// shop identity, only the release itself (title, artist, tracks, genres). Many `ShopVinyl`s
 /// (one per shop that lists this record) point at one `Vinyl`, which is what makes cross-shop
-/// price comparison possible. Identity is `matchKey`, the normalized catalog number and nothing else,
-/// which the scraper upserts on, so the same catalog scraped from several shops collapses into one row.
+/// price comparison possible. Identity is a match rule, NOT a single unique key: a listing matches
+/// an existing Vinyl when the catalog matches AND (artist OR label) matches, because a bare catalog
+/// number is only unique within a label (many labels reuse "001", "DR004", ...). The OR tolerates a
+/// shop spelling the artist or the label differently. The scraper match-or-creates on this rule.
 /// (Listings with no catalog number cannot be matched and are dropped by the scraper.)
+/// See docs/match-key-design.md.
 model Vinyl {
   id String @id @default(cuid())
 
-  // Canonical identity: a normalized match key. NOT a shop/source id. Match-or-create upserts here.
-  matchKey String @unique @map("match_key")
+  // Normalized match keys, set by the scraper (NOT shop/source ids). `catalogKey` is the normalized
+  // catalog number (column kept as `match_key` for stability; no longer unique). `artistKey` and
+  // `labelKey` are the normalized artist and label (label type-words like "Records"/"Recordings"
+  // stripped so "Dabeull Records" and "Dabeull" collapse). Matching: catalogKey == AND (artistKey ==
+  // OR labelKey ==). The composite indexes below back that lookup.
+  catalogKey String  @map("match_key")
+  artistKey  String? @map("artist_key")
+  labelKey   String? @map("label_key")
 
   title         String
   artist        String
@@ -65,6 +74,9 @@ model Vinyl {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([artist])
+  // Back the match-or-create lookup: catalogKey AND (artistKey OR labelKey).
+  @@index([catalogKey, artistKey])
+  @@index([catalogKey, labelKey])
   @@map("vinyls")
 }
 
@@ -152,10 +164,11 @@ model ShopVinyl {
   sourceUrl   String? @map("source_url")
   coverArtUrl String? @map("cover_art_url") // this shop's own cover image for the record
 
-  // What the shop reported, retained for transparency and re-matching against `Vinyl.matchKey`.
+  // What the shop reported, retained for transparency and re-matching against the Vinyl match keys.
   rawTitle         String? @map("raw_title")
   rawArtist        String? @map("raw_artist")
   rawCatalogNumber String? @map("raw_catalog_number")
+  rawLabel         String? @map("raw_label")
 
   tracks Track[]
   offers Offer[]

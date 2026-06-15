@@ -7,12 +7,16 @@ Design (see the scraper skill):
   offer, prices), written in a single transaction that wires the foreign keys from RETURNING ids.
   Tracks belong to the shop_vinyl (so it is written first); every step upserts idempotently, so
   re-running a crawl updates rows instead of duplicating them.
-- ``Vinyl`` is the canonical, shop-agnostic release: we upsert it on a normalized ``match_key`` that
-  is the catalog number and nothing else (see ``_match_key``), so the same catalog from many shops
-  collapses onto one row ("match-or-create" is just this upsert). A listing with no catalog number
-  cannot be matched and is dropped in ``process_item``. ``ShopVinyl`` is the per-shop record that
-  links a shop to that ``Vinyl``; ``Offer`` is its price/stock. Tracks/genres hang off the Vinyl.
-- Idempotency keys: ``shops.slug``, ``vinyls.match_key``, ``tracks (vinyl_id, position)``,
+- ``Vinyl`` is the canonical, shop-agnostic release. We "match-or-create" it on a rule, not a single
+  unique key: a listing matches an existing Vinyl when the catalog matches AND (artist OR label)
+  matches (see ``_match_key`` / ``_artist_key`` / ``_label_key`` and ``_upsert_vinyl``). A bare
+  catalog number is only unique within a label, so catalog-only merged unrelated releases; the
+  artist/label corroboration splits them while still tolerating a shop that spells one of the two
+  differently. Match-or-create is a find-then-insert, so a per-catalog advisory lock serializes it
+  to stay race-safe. A listing with no catalog number cannot be matched and is dropped in
+  ``process_item``. ``ShopVinyl`` is the per-shop record that links a shop to that ``Vinyl``;
+  ``Offer`` is its price/stock. Tracks/genres hang off the Vinyl. See docs/match-key-design.md.
+- Idempotency keys: ``shops.slug``, the Vinyl match rule above, ``tracks (vinyl_id, position)``,
   ``genres.slug``, ``vinyl_genres (vinyl_id, genre_id)``, ``shop_vinyls (source, external_id)``,
   ``offers (source, external_id)``. ``prices`` is append-only: a row is inserted only when the
   offer's price actually changed, giving a clean price history.
@@ -33,8 +37,20 @@ from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 from scrapy.exceptions import DropItem
-from sqlalchemy import Connection, Engine, MetaData, Table, create_engine, func, select, update
+from sqlalchemy import (
+    Connection,
+    Engine,
+    MetaData,
+    Table,
+    create_engine,
+    func,
+    insert,
+    or_,
+    select,
+    update,
+)
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.sql.elements import ColumnElement
 
 from .genres import sanitize_genres, slugify
 from .items import ListingItem, TrackItem
@@ -53,11 +69,36 @@ def _normalize_key_part(value: str) -> str:
 
 
 def _match_key(catalog_number: str | None) -> str | None:
-    """Canonical, shop-agnostic identity for a release: the normalized catalog number, and nothing
-    else. It is the only cross-shop match signal, so the same catalog from several shops collapses
-    onto one Vinyl regardless of artist/title formatting. Returns None when there is no usable
-    catalog number: such a listing cannot be matched and is dropped (see ``process_item``)."""
+    """The catalog key: the normalized catalog number. It is the required half of a Vinyl's
+    identity (a match needs the catalog AND an artist-or-label corroborator). Returns None when
+    there is no usable catalog number: such a listing cannot be matched and is dropped (see
+    ``process_item``)."""
     return _normalize_key_part(catalog_number or "") or None
+
+
+def _artist_key(artist: str | None) -> str | None:
+    """Normalized artist, one of the two corroborators that disambiguate a shared catalog number."""
+    return _normalize_key_part(artist or "") or None
+
+
+# Label "type" words and legal suffixes that vary across shops; dropped so "Dabeull Records",
+# "Dabeull" and the like collapse to one key.
+_LABEL_NOISE_RE = re.compile(
+    r"\b(?:RECORDS?|RECORDINGS?|RECORDING|MUSIC|MUSIK|RECS?|LABEL|"
+    r"PRODUCTIONS?|ENTERTAINMENT|ENT|LTD|LIMITED|INC|GMBH)\b"
+)
+
+
+def _label_key(label: str | None) -> str | None:
+    """Normalized label, the other corroborator. Type words ("Records", "Recordings", "Music", ...)
+    and any sub-label after the first comma are stripped first, so "Dabeull Records", "Dabeull" and
+    "Dabeull Records,N/A" all collapse to one key. Returns None when there is no usable label."""
+    if not label:
+        return None
+    decomposed = unicodedata.normalize("NFKD", label)
+    upper = "".join(c for c in decomposed if not unicodedata.combining(c)).upper()
+    upper = upper.split(",", 1)[0]
+    return _NON_ALNUM_RE.sub("", _LABEL_NOISE_RE.sub(" ", upper)) or None
 
 
 def _to_sqlalchemy_url(database_url: str) -> str:
@@ -124,23 +165,24 @@ class PostgresPipeline:
 
     def process_item(self, item: Any) -> Any:
         listing = item if isinstance(item, ListingItem) else ListingItem.model_validate(item)
-        # Catalog-only matching: a listing with no catalog number cannot be identified, so drop it.
-        match_key = _match_key(listing.catalog_number)
-        if match_key is None:
+        # The catalog number is the required half of a Vinyl's identity. A listing with none cannot
+        # be matched (artist/label corroborators only disambiguate within a catalog), so drop it.
+        catalog_key = _match_key(listing.catalog_number)
+        if catalog_key is None:
             raise DropItem(f"no catalog number: {listing.source}/{listing.external_id}")
         if self._engine is None:
             return item
         with self._engine.begin() as conn:
-            self._write_listing(conn, listing, match_key)
+            self._write_listing(conn, listing, catalog_key)
         return item
 
     # --- one transaction per listing ---------------------------------------------------------
 
-    def _write_listing(self, conn: Connection, listing: ListingItem, match_key: str) -> None:
+    def _write_listing(self, conn: Connection, listing: ListingItem, catalog_key: str) -> None:
         now = datetime.now(UTC)
         shop_id = self._upsert_shop(conn, listing, now)
         # Match-or-create the canonical Vinyl, then attach its genres.
-        vinyl_id = self._upsert_vinyl(conn, listing, match_key, now)
+        vinyl_id = self._upsert_vinyl(conn, listing, catalog_key, now)
         self._upsert_genres(conn, vinyl_id, listing.genres, now)
         # The per-shop record linking this shop to that Vinyl. Tracks belong to it (each shop keeps
         # its own tracklist), then we adopt the single best shop's tracklist as the reference.
@@ -176,10 +218,22 @@ class PostgresPipeline:
         return str(conn.execute(statement).scalar_one())
 
     def _upsert_vinyl(
-        self, conn: Connection, listing: ListingItem, match_key: str, now: datetime
+        self, conn: Connection, listing: ListingItem, catalog_key: str, now: datetime
     ) -> str:
+        """Match-or-create on the rule: catalog matches AND (artist OR label) matches.
+
+        This is a find-then-insert, not an atomic upsert, so two concurrent crawls could each insert
+        a Vinyl for the same new release. A transaction-scoped advisory lock keyed on the catalog
+        serializes all listings that share a catalog number (the only ones that can collide); the
+        lock releases at COMMIT. The match keys are written once on create and never overwritten on
+        update, so a later listing's differently-spelled artist/label cannot shift an existing
+        Vinyl's keys and break matching for the next shop."""
         table = self._tables["vinyls"]
-        mutable = {
+        artist_key = _artist_key(listing.artist)
+        label_key = _label_key(listing.label)
+        conn.execute(select(func.pg_advisory_xact_lock(func.hashtext(catalog_key))))
+
+        display = {
             "title": listing.title,
             "artist": listing.artist,
             "year": listing.year,
@@ -189,17 +243,35 @@ class PostgresPipeline:
             "format": listing.format,
             "updated_at": now,
         }
-        statement = (
-            pg_insert(table)
-            .values(
-                id=uuid4().hex,
-                match_key=match_key,
-                **mutable,
+        corroborators: list[ColumnElement[bool]] = []
+        if artist_key is not None:
+            corroborators.append(table.c.artist_key == artist_key)
+        if label_key is not None:
+            corroborators.append(table.c.label_key == label_key)
+        if corroborators:
+            match = (
+                select(table.c.id)
+                .where(table.c.match_key == catalog_key, or_(*corroborators))
+                # Deterministic pick of the oldest matching Vinyl when more than one matches.
+                .order_by(table.c.created_at.asc(), table.c.id.asc())
+                .limit(1)
             )
-            .on_conflict_do_update(index_elements=["match_key"], set_=mutable)
-            .returning(table.c.id)
+            existing = conn.execute(match).scalar_one_or_none()
+            if existing is not None:
+                conn.execute(update(table).where(table.c.id == existing).values(**display))
+                return str(existing)
+
+        new_id = uuid4().hex
+        conn.execute(
+            insert(table).values(
+                id=new_id,
+                match_key=catalog_key,
+                artist_key=artist_key,
+                label_key=label_key,
+                **display,
+            )
         )
-        return str(conn.execute(statement).scalar_one())
+        return new_id
 
     def _upsert_tracks(
         self, conn: Connection, shop_vinyl_id: str, tracks: list[TrackItem], now: datetime
@@ -310,6 +382,7 @@ class PostgresPipeline:
             "raw_title": listing.title,
             "raw_artist": listing.artist,
             "raw_catalog_number": listing.catalog_number,
+            "raw_label": listing.label,
             "updated_at": now,
         }
         statement = (
