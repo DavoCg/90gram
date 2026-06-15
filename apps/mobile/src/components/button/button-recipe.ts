@@ -39,12 +39,14 @@ export const buttonRecipe = tv({
 				label: "text-xl",
 			},
 		},
-		// Corner shape. `pill` (default) keeps the size variant's `rounded-full`; `squircle` swaps it
-		// for a moderate continuous-curve radius (the content slot already carries `curve-continuous`).
-		// Declared after `size` so tailwind-merge lets the squircle radius win over `rounded-full`.
+		// Corner shape. `squircle` (default) swaps the size variant's `rounded-full` for a moderate
+		// continuous-curve radius (the content slot already carries `curve-continuous`); `pill` keeps
+		// the fully rounded `rounded-full` and is reserved for circular icon buttons, not text buttons.
+		// The squircle radius scales with `size` via compoundVariants below (compound classes are
+		// applied after the size variant so tailwind-merge lets the squircle radius win over `rounded-full`).
 		shape: {
 			pill: {},
-			squircle: { content: "rounded-2xl" },
+			squircle: {},
 		},
 		layout: {
 			square: {},
@@ -2780,6 +2782,16 @@ export const buttonRecipe = tv({
 		},
 	],
 	compoundVariants: [
+		// Squircle corner radius scales with the button height so small buttons do not look
+		// over-rounded and large buttons keep a proportionate curve. `md` stays at rounded-2xl
+		// (the historical flat value) so the default button shape is unchanged.
+		{ shape: "squircle", size: "3xs", className: { content: "rounded-lg" } },
+		{ shape: "squircle", size: "2xs", className: { content: "rounded-xl" } },
+		{ shape: "squircle", size: "xs", className: { content: "rounded-xl" } },
+		{ shape: "squircle", size: "sm", className: { content: "rounded-2xl" } },
+		{ shape: "squircle", size: "md", className: { content: "rounded-2xl" } },
+		{ shape: "squircle", size: "lg", className: { content: "rounded-3xl" } },
+		{ shape: "squircle", size: "xl", className: { content: "rounded-3xl" } },
 		{
 			size: "3xs",
 			layout: "square",
@@ -5222,7 +5234,7 @@ export const buttonRecipe = tv({
 	],
 	defaultVariants: {
 		size: "md",
-		shape: "pill",
+		shape: "squircle",
 		variant: "intense",
 		color: "neutral",
 		status: "enabled",

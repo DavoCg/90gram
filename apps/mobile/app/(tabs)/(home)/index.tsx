@@ -126,7 +126,7 @@ export default function HomeScreen() {
           </Text>
           <Pressable
             onPress={() => void refetch()}
-            className="rounded-full curve-continuous bg-accent px-5 py-2"
+            className="rounded-2xl curve-continuous bg-accent px-5 py-2"
           >
             <Text color="white">Retry</Text>
           </Pressable>
@@ -157,7 +157,7 @@ export default function HomeScreen() {
               <Text align="center">No records match these filters.</Text>
               <Pressable
                 onPress={() => setSelectedGenres([])}
-                className="rounded-full curve-continuous bg-accent px-5 py-2"
+                className="rounded-2xl curve-continuous bg-accent px-5 py-2"
               >
                 <Text color="white">Clear filters</Text>
               </Pressable>

@@ -34,7 +34,6 @@ export default function WelcomeScreen() {
             label="Create account"
             color="white"
             variant="intense"
-            shape="squircle"
             layout="flex"
             onPress={() => setSheetOpen(true)}
           />
@@ -50,7 +49,6 @@ export default function WelcomeScreen() {
             label="Log in"
             color="white"
             variant="soft"
-            shape="squircle"
             layout="flex"
             blur
             onPress={() => router.push({ pathname: '/email', params: { intent: 'signin' } })}
