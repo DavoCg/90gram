@@ -9,6 +9,8 @@ import {
   ErrorSchema,
   IdParamSchema,
   PaginationQuerySchema,
+  GenreFilterQuerySchema,
+  parseGenreSlugs,
   SearchQuerySchema,
   CurrencyQuerySchema,
   cursorArgs,
@@ -48,22 +50,34 @@ const listVinylsRoute = createRoute({
   path: '/vinyls',
   tags: ['vinyls'],
   summary: 'List vinyls',
-  request: { query: PaginationQuerySchema.extend(CurrencyQuerySchema.shape) },
+  request: {
+    query: PaginationQuerySchema.extend(GenreFilterQuerySchema.shape).extend(
+      CurrencyQuerySchema.shape,
+    ),
+  },
   responses: {
     200: {
       description:
         'A paginated page of vinyls with their tracks, genres, and a cheapest-price summary. Vinyls ' +
         'listed by more shops come first (so records available in multiple shops lead), then newest ' +
-        'first. The cursor is an offset into this ranking.',
+        'first. The cursor is an offset into this ranking. Optionally filtered to vinyls carrying any ' +
+        'of the genres in `genres` (comma-separated slugs).',
       content: { 'application/json': { schema: VinylListSchema } },
     },
   },
 });
 
 vinylsRouter.openapi(listVinylsRoute, async (c) => {
-  const { limit, cursor } = c.req.valid('query');
+  const { limit, cursor, genres } = c.req.valid('query');
   const offset = parseOffset(cursor);
+  const genreSlugs = parseGenreSlugs(genres);
   const rows = await prisma.vinyl.findMany({
+    // Optional genre filter: keep vinyls carrying ANY selected genre (OR). The validated gate stays
+    // so unreviewed genres never widen the results.
+    where:
+      genreSlugs.length > 0
+        ? { genres: { some: { genre: { slug: { in: genreSlugs }, validated: true } } } }
+        : undefined,
     // Most shops first (records sold in multiple shops lead), then newest, id as a stable tiebreaker.
     orderBy: [{ shopVinyls: { _count: 'desc' } }, { createdAt: 'desc' }, { id: 'desc' }],
     skip: offset,
