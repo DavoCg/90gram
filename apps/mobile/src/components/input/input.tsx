@@ -1,5 +1,5 @@
-import { cloneElement, isValidElement, type ReactElement } from 'react';
-import { Platform } from 'react-native';
+import { cloneElement, isValidElement, useEffect, useRef, type ReactElement } from 'react';
+import { Platform, type TextInput as RNTextInput } from 'react-native';
 import { TextInput, View } from '../../theme/uniwind';
 import { useThemeColors } from '../../theme/colors';
 import { Text } from '../text';
@@ -26,11 +26,28 @@ export function Input({
   style,
   placeholderTextColor,
   selectionColor,
+  autoFocus,
   ref,
   ...rest
 }: InputProps) {
   const colors = useThemeColors();
   const isError = variant === 'error';
+
+  // Defer autoFocus rather than handing it to the native TextInput: native autoFocus raises the
+  // keyboard while the screen is still sliding in. Waiting ~300ms (one stack transition) lets the
+  // navigation finish first, so the keyboard animates up over a settled screen.
+  const innerRef = useRef<RNTextInput | null>(null);
+  const setRef = (node: RNTextInput | null) => {
+    innerRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  };
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    const timer = setTimeout(() => innerRef.current?.focus(), 300);
+    return () => clearTimeout(timer);
+  }, [autoFocus]);
 
   const tintSlot = (slot: typeof startSlot) => {
     if (
@@ -53,7 +70,7 @@ export function Input({
         {tintSlot(startSlot)}
         <TextInput
           {...rest}
-          ref={ref}
+          ref={setRef}
           className={inputTextRecipe({ size, className: inputClassName })}
           editable={!disabled}
           style={[
