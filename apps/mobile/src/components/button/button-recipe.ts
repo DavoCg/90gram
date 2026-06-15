@@ -5213,6 +5213,12 @@ export const buttonRecipe = tv({
 			status: "enabled",
 			className: { label: "text-white" },
 		},
+		{
+			color: "accent",
+			variant: "solid",
+			status: "enabled",
+			className: { label: "text-accent-on-solid" },
+		},
 	],
 	defaultVariants: {
 		size: "md",
