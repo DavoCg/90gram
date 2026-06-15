@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
@@ -82,35 +82,59 @@ export default function HomeScreen() {
     </View>
   );
 
-  // Body switches between loading / error / list; the header and filter sheet stay mounted across
-  // all three so the filter affordance is always available (and the sheet can animate closed).
-  let body: ReactNode;
+  // Mounted in every state so the filter affordance is always available (and the sheet can animate
+  // closed). Switching filters fetches a fresh query key, which routes through the loading return,
+  // so keeping this here keeps the sheet reachable while a filtered feed loads.
+  const filterSheet = (
+    <FilterSheet
+      open={filterOpen}
+      onClose={() => setFilterOpen(false)}
+      genres={genresQuery.data ?? []}
+      loading={genresQuery.isLoading}
+      selected={selectedGenres}
+      onApply={setSelectedGenres}
+    />
+  );
+
   if (isLoading) {
-    body = (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator />
-        <Text color="neutral-soft" className="mt-3">
-          Loading records…
-        </Text>
+    return (
+      <View className="flex-1 bg-bg">
+        <AppHeader title="Home" showBack={false} right={headerRight} />
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
+          <Text color="neutral-soft" className="mt-3">
+            Loading records…
+          </Text>
+        </View>
+        {filterSheet}
       </View>
     );
-  } else if (isError) {
-    body = (
-      <View className="flex-1 items-center justify-center gap-3 px-6">
-        <Text align="center">Could not reach the API.</Text>
-        <Text size="sm" color="neutral-soft" align="center">
-          Is it running? Check EXPO_PUBLIC_API_BASE_URL.
-        </Text>
-        <Pressable
-          onPress={() => void refetch()}
-          className="rounded-full curve-continuous bg-accent px-5 py-2"
-        >
-          <Text color="white">Retry</Text>
-        </Pressable>
+  }
+
+  if (isError) {
+    return (
+      <View className="flex-1 bg-bg">
+        <AppHeader title="Home" showBack={false} right={headerRight} />
+        <View className="flex-1 items-center justify-center gap-3 px-6">
+          <Text align="center">Could not reach the API.</Text>
+          <Text size="sm" color="neutral-soft" align="center">
+            Is it running? Check EXPO_PUBLIC_API_BASE_URL.
+          </Text>
+          <Pressable
+            onPress={() => void refetch()}
+            className="rounded-full curve-continuous bg-accent px-5 py-2"
+          >
+            <Text color="white">Retry</Text>
+          </Pressable>
+        </View>
+        {filterSheet}
       </View>
     );
-  } else {
-    body = (
+  }
+
+  return (
+    <View className="flex-1 bg-bg">
+      <AppHeader title="Home" showBack={false} right={headerRight} />
       <LegendList
         data={data ?? []}
         keyExtractor={(item) => item.id}
@@ -146,21 +170,7 @@ export default function HomeScreen() {
           />
         }
       />
-    );
-  }
-
-  return (
-    <View className="flex-1 bg-bg">
-      <AppHeader title="Home" showBack={false} right={headerRight} />
-      {body}
-      <FilterSheet
-        open={filterOpen}
-        onClose={() => setFilterOpen(false)}
-        genres={genresQuery.data ?? []}
-        loading={genresQuery.isLoading}
-        selected={selectedGenres}
-        onApply={setSelectedGenres}
-      />
+      {filterSheet}
     </View>
   );
 }
