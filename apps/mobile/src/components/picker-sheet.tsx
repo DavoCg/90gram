@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { ScrollView as RNScrollView, StyleSheet, View as RNView } from 'react-native';
+import { ScrollView as RNScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ModalBottomSheet } from '@swmansion/react-native-bottom-sheet';
 import { Check } from 'lucide-react-native';
 import { Pressable, View } from '../theme/uniwind';
 import { useThemeColors } from '../theme/colors';
+import { BottomSheet } from './bottom-sheet';
 import { Text } from './text';
 
 // One option in a PickerSheet. `value` is the stable key that is persisted on select; `label` is the
@@ -50,78 +50,53 @@ export function PickerSheet<T extends string>({
   const colors = useThemeColors();
 
   return (
-    <ModalBottomSheet
-      index={open ? 1 : 0}
-      // Only fires on a user-driven snap; index 0 means the user dragged the sheet closed.
-      onIndexChange={(i) => {
-        if (i === 0) onClose();
-      }}
-      detents={[0, 'content']}
-      scrimColor="rgba(0, 0, 0, 0.5)"
-      surface={
-        <RNView
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: colors.surface,
-              borderTopLeftRadius: 24,
-              borderTopRightRadius: 24,
-              borderCurve: 'continuous',
-            },
-          ]}
-        />
+    // Scrollable sheet (TrueSheet best practice): the list is the native-scrolled body, the title is
+    // pinned in the native header, and fractional detents open it at ~60% with drag/scroll to full.
+    // 'auto' is not usable here because it is incompatible with `scrollable`.
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      detents={[0.6, 1]}
+      scrollable
+      header={
+        <View className="px-5 pt-1 pb-1">
+          <Text size="lg" weight="semibold">
+            {title}
+          </Text>
+        </View>
       }
     >
-      <View className="px-4 pt-2.5" style={{ paddingBottom: insets.bottom + 12 }}>
-        {/* Grab handle */}
-        <RNView
-          style={{
-            alignSelf: 'center',
-            width: 36,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: colors.border,
-            marginBottom: 8,
-          }}
-        />
-        <Text size="lg" weight="semibold" className="mb-1 px-1">
-          {title}
-        </Text>
-        {/* Cap the list height so a long list scrolls instead of growing past the screen. */}
-        <RNScrollView
-          style={{ maxHeight: 440 }}
-          contentContainerStyle={{ paddingVertical: 4 }}
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
-          {options.map((option) => {
-            const isSelected = option.value === selected;
-            return (
-              <Pressable
-                key={option.value}
-                onPress={() => {
-                  onSelect(option.value);
-                  onClose();
-                }}
-                className={`flex-row items-center gap-3 rounded-2xl curve-continuous px-3 py-2.5 ${
-                  isSelected ? 'border-hairline border-border bg-surface-2' : ''
-                }`}
-              >
-                {option.leading}
-                <View className="flex-1">
-                  <Text weight="semibold">{option.label}</Text>
-                  {option.description ? (
-                    <Text size="sm" color="neutral-soft" className="mt-0.5">
-                      {option.description}
-                    </Text>
-                  ) : null}
-                </View>
-                {isSelected ? <Check color={colors.accent} size={20} /> : null}
-              </Pressable>
-            );
-          })}
-        </RNScrollView>
-      </View>
-    </ModalBottomSheet>
+      <RNScrollView
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {options.map((option) => {
+          const isSelected = option.value === selected;
+          return (
+            <Pressable
+              key={option.value}
+              onPress={() => {
+                onSelect(option.value);
+                onClose();
+              }}
+              className={`flex-row items-center gap-3 rounded-2xl curve-continuous px-3 py-2.5 ${
+                isSelected ? 'border-hairline border-border bg-surface-2' : ''
+              }`}
+            >
+              {option.leading}
+              <View className="flex-1">
+                <Text weight="semibold">{option.label}</Text>
+                {option.description ? (
+                  <Text size="sm" color="neutral-soft" className="mt-0.5">
+                    {option.description}
+                  </Text>
+                ) : null}
+              </View>
+              {isSelected ? <Check color={colors.accent} size={20} /> : null}
+            </Pressable>
+          );
+        })}
+      </RNScrollView>
+    </BottomSheet>
   );
 }

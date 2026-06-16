@@ -151,6 +151,12 @@
       "skillPath": "skills/engineering/triage/SKILL.md",
       "computedHash": "2b6efb6da12d92551772fcc04acf331f4e0e6f7bd9d4cb23ce0b301e0b128feb"
     },
+    "truesheet-usage": {
+      "source": "lodev09/react-native-true-sheet",
+      "sourceType": "github",
+      "skillPath": "skills/truesheet-usage/SKILL.md",
+      "computedHash": "5d0fc9b85cd59c2440da89cc529ed99c201266fc9101598d8fbd3e9c7e7c4002"
+    },
     "upgrading-expo": {
       "source": "expo/skills",
       "sourceType": "github",
