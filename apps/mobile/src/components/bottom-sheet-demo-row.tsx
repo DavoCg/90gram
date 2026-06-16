@@ -1,25 +1,21 @@
 import { useState } from 'react';
-import { StyleSheet, View as RNView } from 'react-native';
+import { View as RNView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ModalBottomSheet } from '@swmansion/react-native-bottom-sheet';
 import { View } from '../theme/uniwind';
-import { useThemeColors } from '../theme/colors';
+import { BottomSheet } from './bottom-sheet';
 import { Text } from './text';
 import { Button } from './button';
 
-// Living demo for @swmansion/react-native-bottom-sheet. Shows a content-sized (dynamic height)
-// modal sheet: the detents are [0, 'content'], so index 0 is the closed state and index 1 sizes
-// the sheet to whatever its content measures. The in-sheet "Add line"/"Remove line" controls grow
-// and shrink that content, so the sheet re-measures and the native sheet animates to the new height.
-// This is a native sheet (Swift/Kotlin), so the open and resize animations are driven by the OS and
-// match the platform; there is no JS-side duration/easing knob (only `animateIn` to toggle the very
-// first appearance). Drag the sheet down (or hit Close) to dismiss.
+// Living demo for the shared BottomSheet (built on @lodev09/react-native-true-sheet). Shows a
+// content-sized (dynamic height) sheet: the detent is 'auto', so the sheet sizes to whatever its
+// content measures. The in-sheet "Add line"/"Remove line" controls grow and shrink that content, so
+// the sheet re-measures and the native sheet animates to the new height. This is a native sheet
+// (Swift/Kotlin), so the open and resize animations are driven by the OS and match the platform.
+// Drag the sheet down (or hit Close) to dismiss.
 export function BottomSheetDemoRow() {
-  // 0 = closed, 1 = open at content height.
-  const [index, setIndex] = useState(0);
+  const [open, setOpen] = useState(false);
   const [lines, setLines] = useState(1);
   const insets = useSafeAreaInsets();
-  const colors = useThemeColors();
 
   return (
     <View className="px-4 py-3.5">
@@ -33,39 +29,11 @@ export function BottomSheetDemoRow() {
         color="accent"
         layout="flex"
         size="sm"
-        onPress={() => setIndex(1)}
+        onPress={() => setOpen(true)}
       />
 
-      <ModalBottomSheet
-        index={index}
-        onIndexChange={setIndex}
-        detents={[0, 'content']}
-        scrimColor="rgba(0, 0, 0, 0.5)"
-        surface={
-          <RNView
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-              },
-            ]}
-          />
-        }
-      >
+      <BottomSheet open={open} onClose={() => setOpen(false)}>
         <RNView style={{ padding: 20, paddingBottom: insets.bottom + 20, gap: 12 }}>
-          {/* Grab handle */}
-          <RNView
-            style={{
-              alignSelf: 'center',
-              width: 36,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: colors.border,
-              marginBottom: 4,
-            }}
-          />
           <Text size="lg" weight="semibold">
             Dynamic content
           </Text>
@@ -93,9 +61,15 @@ export function BottomSheetDemoRow() {
               onPress={() => setLines((n) => Math.max(1, n - 1))}
             />
           </RNView>
-          <Button label="Close" variant="ghost" layout="flex" size="sm" onPress={() => setIndex(0)} />
+          <Button
+            label="Close"
+            variant="ghost"
+            layout="flex"
+            size="sm"
+            onPress={() => setOpen(false)}
+          />
         </RNView>
-      </ModalBottomSheet>
+      </BottomSheet>
     </View>
   );
 }
