@@ -6,6 +6,7 @@ import {
 	useRef,
 } from "react";
 import { Platform, type TextInput as RNTextInput } from "react-native";
+import { useNavigation } from "expo-router";
 import { useThemeColors } from "../../theme/colors";
 import { TextInput, View } from "../../theme/uniwind";
 import { Text } from "../text";
@@ -40,9 +41,12 @@ export function Input({
 	const isError = variant === "error";
 
 	// Defer autoFocus rather than handing it to the native TextInput: native autoFocus raises the
-	// keyboard while the screen is still sliding in. Waiting ~300ms (one stack transition) lets the
-	// navigation finish first, so the keyboard animates up over a settled screen.
+	// keyboard while the screen is still sliding in, so the keyboard rides in horizontally with the
+	// push transition instead of sliding up. We focus on the stack's `transitionEnd` event so the
+	// keyboard always animates up over a settled screen, with a timer as a fallback for cases where
+	// no transition fires (already-mounted screen, or not inside a native stack).
 	const innerRef = useRef<RNTextInput | null>(null);
+	const navigation = useNavigation();
 	const setRef = (node: RNTextInput | null) => {
 		innerRef.current = node;
 		if (typeof ref === "function") ref(node);
@@ -51,9 +55,36 @@ export function Input({
 
 	useEffect(() => {
 		if (!autoFocus) return;
-		const timer = setTimeout(() => innerRef.current?.focus(), 600);
-		return () => clearTimeout(timer);
-	}, [autoFocus]);
+		let done = false;
+		let pending: ReturnType<typeof setTimeout> | undefined;
+		// Focus a hair AFTER the screen settles, never on the transition's final frame: on iOS, a
+		// focus() that lands while the push is still (barely) animating makes the keyboard slide in
+		// horizontally with the screen instead of sliding up.
+		const focusSoon = (delay: number) => {
+			if (done) return;
+			done = true;
+			pending = setTimeout(() => innerRef.current?.focus(), delay);
+		};
+		// `transitionEnd` is a native-stack event that expo-router's generic navigation type omits,
+		// so narrow to just the listener shape we use rather than reaching for `any`. Optional chaining
+		// keeps a malformed event from throwing (which would silently leave us on the racing fallback).
+		const nav = navigation as unknown as {
+			addListener: (
+				type: "transitionEnd",
+				cb: (e?: { data?: { closing?: boolean } }) => void,
+			) => () => void;
+		};
+		const unsubscribe = nav.addListener("transitionEnd", (e) => {
+			if (!e?.data?.closing) focusSoon(50);
+		});
+		// Fallback for paths with no push transition (already-mounted screen, not in a native stack).
+		const fallback = setTimeout(() => focusSoon(0), 700);
+		return () => {
+			unsubscribe();
+			clearTimeout(fallback);
+			if (pending) clearTimeout(pending);
+		};
+	}, [autoFocus, navigation]);
 
 	const tintSlot = (slot: typeof startSlot) => {
 		if (

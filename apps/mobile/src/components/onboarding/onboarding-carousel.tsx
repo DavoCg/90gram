@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   cancelAnimation,
   Easing,
+  FadeIn,
+  FadeInUp,
+  FadeOut,
   interpolate,
   runOnJS,
   type SharedValue,
-  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,9 +31,7 @@ const AnimatedView = Animated.createAnimatedComponent(View);
 const AUTO_PLAY_INTERVAL_MS = 4500;
 const SLIDE_FADE_DURATION_MS = 260;
 const TEXT_ENTER_DURATION_MS = 340;
-const TEXT_EXIT_DURATION_MS = 120;
 const SUBTITLE_ENTER_DELAY_MS = 90;
-const TEXT_ENTER_TRANSLATE_Y = 22;
 const KEN_BURNS_ZOOM = 0.08;
 const PROGRESS_BAR_HEIGHT = 2.5;
 const PROGRESS_BAR_GAP = 6;
@@ -47,46 +46,20 @@ const styles = StyleSheet.create({
   rightTapZone: { position: 'absolute', top: 0, bottom: 0, left: '50%', right: 0 },
 });
 
-interface SlideTextProps {
-  slide: OnboardingSlide;
-  index: number;
-  activeIndex: SharedValue<number>;
-}
-
-// Title + subtitle for one slide, staggered in when the slide becomes active and out when it leaves.
-function SlideText({ slide, index, activeIndex }: SlideTextProps) {
-  const titleStyle = useAnimatedStyle(() => {
-    const isActive = activeIndex.value === index;
-    const duration = isActive ? TEXT_ENTER_DURATION_MS : TEXT_EXIT_DURATION_MS;
-    const config = { duration, easing: Easing.out(Easing.cubic) };
-    return {
-      opacity: withTiming(isActive ? 1 : 0, config),
-      transform: [{ translateY: withTiming(isActive ? 0 : TEXT_ENTER_TRANSLATE_Y, config) }],
-    };
-  }, [activeIndex, index]);
-
-  const subtitleStyle = useAnimatedStyle(() => {
-    const isActive = activeIndex.value === index;
-    const duration = isActive ? TEXT_ENTER_DURATION_MS : TEXT_EXIT_DURATION_MS;
-    const config = { duration, easing: Easing.out(Easing.cubic) };
-    const delay = isActive ? SUBTITLE_ENTER_DELAY_MS : 0;
-    return {
-      opacity: withDelay(delay, withTiming(isActive ? 1 : 0, config)),
-      transform: [
-        { translateY: withDelay(delay, withTiming(isActive ? 0 : TEXT_ENTER_TRANSLATE_Y, config)) },
-      ],
-    };
-  }, [activeIndex, index]);
-
+// Title + subtitle for one slide. Only the active slide is mounted, so the staggered entrance is a
+// mount animation (the whole layer fades out together when the slide leaves, see SlideLayer).
+function SlideText({ slide }: { slide: OnboardingSlide }) {
   return (
     <View className="gap-3">
-      <Animated.View style={titleStyle}>
+      <Animated.View entering={FadeInUp.duration(TEXT_ENTER_DURATION_MS)}>
         {/* Tighten the display line height (multiline 5xl defaults to 56px on a 48px font). */}
         <Text size="5xl" weight="bold" color="white" multiline style={{ lineHeight: 50 }}>
           {slide.title}
         </Text>
       </Animated.View>
-      <Animated.View style={subtitleStyle}>
+      <Animated.View
+        entering={FadeInUp.duration(TEXT_ENTER_DURATION_MS).delay(SUBTITLE_ENTER_DELAY_MS)}
+      >
         <Text size="lg" weight="medium" color="white" multiline className="opacity-80">
           {slide.subtitle}
         </Text>
@@ -98,31 +71,17 @@ function SlideText({ slide, index, activeIndex }: SlideTextProps) {
 interface SlideLayerProps {
   slide: OnboardingSlide;
   index: number;
-  activeIndex: SharedValue<number>;
   isPaused: SharedValue<boolean>;
   topInset: number;
   bottomPadding: number;
 }
 
-// A single full-screen slide: gradient + Ken Burns watermark + bottom scrim + text. Only the active
-// layer is visible (opacity cross-fade); the watermark slowly zooms while the slide is on screen.
-function SlideLayer({
-  slide,
-  index,
-  activeIndex,
-  isPaused,
-  topInset,
-  bottomPadding,
-}: SlideLayerProps) {
+// A single full-screen slide: gradient + Ken Burns watermark + bottom scrim + text. Only the ACTIVE
+// slide is mounted (one gradient stack on screen, not five), so this layer fades in on mount and out
+// on unmount; the watermark slowly zooms while it is on screen.
+function SlideLayer({ slide, index, isPaused, topInset, bottomPadding }: SlideLayerProps) {
   const zoom = useSharedValue(0);
   const Icon = slide.Icon;
-
-  const layerStyle = useAnimatedStyle(
-    () => ({
-      opacity: withTiming(activeIndex.value === index ? 1 : 0, { duration: SLIDE_FADE_DURATION_MS }),
-    }),
-    [activeIndex, index],
-  );
 
   const watermarkStyle = useAnimatedStyle(() => {
     // Alternate zoom-in / zoom-out so adjacent slides do not feel identical.
@@ -132,26 +91,21 @@ function SlideLayer({
     return { transform: [{ scale: interpolate(zoom.value, [0, 1], [from, to]) }] };
   }, [zoom, index]);
 
-  // Restart the zoom whenever this slide becomes active; cancel it when it leaves.
-  useAnimatedReaction(
-    () => activeIndex.value === index,
-    (isActive, wasActive) => {
-      if (isActive && wasActive !== true) {
-        zoom.value = 0;
-        if (!isPaused.value) {
-          zoom.value = withTiming(1, { duration: AUTO_PLAY_INTERVAL_MS, easing: Easing.linear });
-        }
-      } else if (!isActive && wasActive === true) {
-        cancelAnimation(zoom);
-      }
-    },
-    [activeIndex, index, isPaused, zoom],
-  );
-
-  useEffect(() => () => cancelAnimation(zoom), [zoom]);
+  // Run the zoom for as long as this slide is mounted (i.e. active). Skip it while paused.
+  useEffect(() => {
+    if (!isPaused.value) {
+      zoom.value = withTiming(1, { duration: AUTO_PLAY_INTERVAL_MS, easing: Easing.linear });
+    }
+    return () => cancelAnimation(zoom);
+  }, [isPaused, zoom]);
 
   return (
-    <Animated.View style={[styles.fill, layerStyle]} pointerEvents="none">
+    <Animated.View
+      style={styles.fill}
+      pointerEvents="none"
+      entering={FadeIn.duration(SLIDE_FADE_DURATION_MS)}
+      exiting={FadeOut.duration(SLIDE_FADE_DURATION_MS)}
+    >
       <Animated.View style={[styles.fill, watermarkStyle]}>
         <LinearGradient
           colors={slide.colors}
@@ -175,7 +129,7 @@ function SlideLayer({
         className="absolute inset-0 justify-end px-6"
         style={{ paddingTop: topInset, paddingBottom: bottomPadding }}
       >
-        <SlideText slide={slide} index={index} activeIndex={activeIndex} />
+        <SlideText slide={slide} />
       </View>
     </Animated.View>
   );
@@ -214,7 +168,6 @@ export function OnboardingCarousel() {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
-  const animatedActiveIndex = useSharedValue(0);
   const progress = useSharedValue(0);
   const isPaused = useSharedValue(false);
   const didLongPressRef = useRef(false);
@@ -229,10 +182,9 @@ export function OnboardingCarousel() {
       cancelAnimation(progress);
       progress.value = 0;
       activeIndexRef.current = normalized;
-      animatedActiveIndex.value = normalized;
       setActiveIndex(normalized);
     },
-    [animatedActiveIndex, progress, slides.length],
+    [progress, slides.length],
   );
 
   const advance = useCallback(() => goTo(activeIndexRef.current + 1), [goTo]);
@@ -312,17 +264,20 @@ export function OnboardingCarousel() {
 
   return (
     <View className="flex-1">
-      {slides.map((slide, index) => (
-        <SlideLayer
-          key={slide.key}
-          slide={slide}
-          index={index}
-          activeIndex={animatedActiveIndex}
-          isPaused={isPaused}
-          topInset={topInset}
-          bottomPadding={bottomPadding}
-        />
-      ))}
+      {/* Only the active slide is mounted: one gradient + watermark on screen instead of all five,
+          so there is no stack of full-screen layers to composite while a sheet slides over this. */}
+      {slides.map((slide, index) =>
+        index === activeIndex ? (
+          <SlideLayer
+            key={slide.key}
+            slide={slide}
+            index={index}
+            isPaused={isPaused}
+            topInset={topInset}
+            bottomPadding={bottomPadding}
+          />
+        ) : null,
+      )}
 
       {/* Fixed top overlay: progress bars + brand label, above every slide layer. */}
       <View
