@@ -1,11 +1,9 @@
-import { ScrollView as RNScrollView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
-import { Check } from 'lucide-react-native';
 import type { SupportedCurrency } from '@getvinyls/api-client';
-import { Pressable, View } from '../src/theme/uniwind';
-import { useThemeColors } from '../src/theme/colors';
+import { View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
 import { FormSheetHeader } from '../src/components/form-sheet-header';
+import { SheetScrollView, SheetSelectableRow } from '../src/components/sheet';
 import { useSheetBottomPadding } from '../src/components/use-sheet-bottom-padding';
 import { CurrencySymbol } from '../src/components/currency-symbol';
 import { CURRENCY_META, useDisplayCurrency, useSupportedCurrencies } from '../src/currency';
@@ -17,7 +15,6 @@ import { CURRENCY_META, useDisplayCurrency, useSupportedCurrencies } from '../sr
 export default function CurrencySheet() {
   const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
-  const colors = useThemeColors();
   const { currency, setCurrency } = useDisplayCurrency();
   const currencies = useSupportedCurrencies();
 
@@ -27,23 +24,17 @@ export default function CurrencySheet() {
     // a background on that wrapper, or extra subviews make the list overlap the header.
     <>
       <FormSheetHeader title="Currency" />
-      <RNScrollView
-        style={{ backgroundColor: colors.surface }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bottomPadding }}
-        showsVerticalScrollIndicator={false}
-      >
+      <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
         {currencies.map((code) => {
           const isSelected = code === currency;
           return (
-            <Pressable
+            <SheetSelectableRow
               key={code}
+              selected={isSelected}
               onPress={() => {
                 setCurrency(code as SupportedCurrency);
                 router.back();
               }}
-              className={`flex-row items-center gap-3 rounded-2xl curve-continuous px-3 py-2.5 ${
-                isSelected ? 'border-hairline border-border bg-surface-2' : ''
-              }`}
             >
               <CurrencySymbol code={code} />
               <View className="flex-1">
@@ -54,11 +45,10 @@ export default function CurrencySheet() {
                   </Text>
                 ) : null}
               </View>
-              {isSelected ? <Check color={colors.accent} size={20} /> : null}
-            </Pressable>
+            </SheetSelectableRow>
           );
         })}
-      </RNScrollView>
+      </SheetScrollView>
     </>
   );
 }

@@ -1,5 +1,6 @@
 import { View } from '../theme/uniwind';
 import { Text } from './text';
+import { SHEET_PADDING_X } from './sheet';
 
 interface FormSheetHeaderProps {
   // The sheet's title (bold, primary line).
@@ -14,7 +15,11 @@ interface FormSheetHeaderProps {
 // the native grabber, and the surface background matches the sheet so the rounded corners read clean.
 export function FormSheetHeader({ title, subtitle }: FormSheetHeaderProps) {
   return (
-    <View collapsable={false} className="bg-surface px-5 pb-1 pt-8">
+    <View
+      collapsable={false}
+      className="bg-surface pb-3 pt-8"
+      style={{ paddingHorizontal: SHEET_PADDING_X }}
+    >
       <Text size="xl" weight="bold">
         {title}
       </Text>

@@ -7,8 +7,8 @@ export const inputContainerRecipe = tv({
   base: 'flex-row items-center gap-2 rounded-2xl curve-continuous bg-surface-2 px-4',
   variants: {
     variant: {
-      default: 'border-hairline border-border',
-      error: 'border-hairline border-critical',
+      default: '',
+      error: 'border border-critical',
     },
     size: {
       sm: 'h-10',

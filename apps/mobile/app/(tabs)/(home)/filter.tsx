@@ -1,14 +1,16 @@
 import { ActivityIndicator } from 'react-native';
-import { ScrollView as RNScrollView } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { useForm } from '@tanstack/react-form';
-import { Check } from 'lucide-react-native';
-import { Pressable, View } from '../../../src/theme/uniwind';
-import { useThemeColors } from '../../../src/theme/colors';
+import { View } from '../../../src/theme/uniwind';
 import { useGenres } from '../../../src/api/hooks';
 import { Button } from '../../../src/components/button';
 import { Text } from '../../../src/components/text';
 import { FormSheetHeader } from '../../../src/components/form-sheet-header';
+import {
+  SHEET_PADDING_X,
+  SheetScrollView,
+  SheetSelectableRow,
+} from '../../../src/components/sheet';
 import { useSheetBottomPadding } from '../../../src/components/use-sheet-bottom-padding';
 import { filters$ } from '../../../src/components/filters/filters-store';
 
@@ -26,7 +28,6 @@ const FOOTER_CLEARANCE = 64;
 export default function FilterSheet() {
   const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
-  const colors = useThemeColors();
   const genresQuery = useGenres();
   const genres = genresQuery.data ?? [];
 
@@ -59,15 +60,12 @@ export default function FilterSheet() {
           };
           return (
             <>
-              <RNScrollView
-                style={{ flex: 1, backgroundColor: colors.surface }}
+              <SheetScrollView
+                style={{ flex: 1 }}
                 contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingTop: 4,
                   paddingBottom: bottomPadding + FOOTER_CLEARANCE,
                   gap: 4,
                 }}
-                showsVerticalScrollIndicator={false}
               >
                 {genresQuery.isLoading ? (
                   <View className="items-center py-10">
@@ -83,28 +81,23 @@ export default function FilterSheet() {
                   genres.map((genre) => {
                     const isSelected = value.includes(genre.slug);
                     return (
-                      <Pressable
+                      <SheetSelectableRow
                         key={genre.slug}
+                        selected={isSelected}
                         onPress={() => toggle(genre.slug)}
-                        className={`flex-row items-center gap-3 rounded-2xl curve-continuous px-3 py-2.5 ${
-                          isSelected ? 'border-hairline border-border bg-surface-2' : ''
-                        }`}
                       >
-                        <Text weight="semibold" className="flex-1">
-                          {genre.name}
-                        </Text>
-                        {isSelected ? <Check color={colors.accent} size={20} /> : null}
-                      </Pressable>
+                        <Text weight="semibold">{genre.name}</Text>
+                      </SheetSelectableRow>
                     );
                   })
                 )}
-              </RNScrollView>
+              </SheetScrollView>
 
               {/* Pinned footer: clear the draft, or submit it (apply + close). */}
               <View
                 collapsable={false}
-                className="bg-surface flex-row gap-3 px-4 pt-2"
-                style={{ paddingBottom: bottomPadding }}
+                className="bg-surface flex-row gap-3 pt-2"
+                style={{ paddingBottom: bottomPadding, paddingHorizontal: SHEET_PADDING_X }}
               >
                 <View className="flex-1">
                   <Button

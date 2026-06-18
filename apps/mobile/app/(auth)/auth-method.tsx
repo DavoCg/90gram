@@ -6,6 +6,7 @@ import { useThemeColors } from '../../src/theme/colors';
 import { toast } from '../../src/components/toast';
 import { Text } from '../../src/components/text';
 import { FormSheetHeader } from '../../src/components/form-sheet-header';
+import { SHEET_CONTENT_TOP, SHEET_PADDING_X } from '../../src/components/sheet';
 import { useSheetBottomPadding } from '../../src/components/use-sheet-bottom-padding';
 import { SHEET_DISMISS_DURATION } from '../../src/theme/motion';
 
@@ -50,7 +51,14 @@ export default function AuthMethodSheet() {
         title="Create your account"
         subtitle="Choose how you want to get started."
       />
-      <View className="bg-surface px-4 pt-3" style={{ paddingBottom: bottomPadding }}>
+      <View
+        className="bg-surface"
+        style={{
+          paddingTop: SHEET_CONTENT_TOP,
+          paddingBottom: bottomPadding,
+          paddingHorizontal: SHEET_PADDING_X,
+        }}
+      >
         <View className="gap-2.5">
           <MethodRow
             icon={<Mail color={colors.text} size={20} />}
@@ -81,7 +89,7 @@ export default function AuthMethodSheet() {
           />
         </View>
 
-        <Text size="xs" color="neutral-soft" align="center" className="mt-4 px-4" multiline>
+        <Text size="xs" color="neutral-soft" align="center" className="mt-4" multiline>
           By creating an account you agree to our Terms and Privacy Policy.
         </Text>
       </View>

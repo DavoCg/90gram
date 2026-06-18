@@ -53,16 +53,6 @@
   color: var(--text-color-info-softest);
 }
 
-@layer utilities {
-  .border-hairline {
-    border-width: hairlineWidth();
-  }
-
-  .outline-hairline {
-    outline-width: hairlineWidth();
-  }
-}
-
 @theme static {
   --background-color-white: white;
   --text-color-white: white;
@@ -94,9 +84,6 @@
   --aspect-bank-card: 86 / 54;
   --spacing-gutter: 20px;
   --spacing-tray-gutter: 28px;
-
-  --outline-length-hairline: hairlineWidth();
-  --border-length-hairline: hairlineWidth();
 }
 
 /*

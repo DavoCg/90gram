@@ -22,8 +22,8 @@ export function FilterBar({ onPress, activeCount }: FilterBarProps) {
         hitSlop={8}
         accessibilityRole="button"
         accessibilityLabel="Filters"
-        className={`flex-row items-center gap-2 self-start rounded-2xl curve-continuous border-hairline px-3.5 py-2 ${
-          active ? 'border-accent bg-surface-2' : 'border-border bg-surface'
+        className={`flex-row items-center gap-2 self-start rounded-2xl curve-continuous px-3.5 py-2 ${
+          active ? 'bg-surface-2' : 'bg-surface'
         }`}
       >
         <SlidersHorizontal color={active ? colors.accent : colors.text} size={18} />

@@ -6,6 +6,7 @@ import { use$ } from '@legendapp/state/react';
 import { User } from 'lucide-react-native';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
+import { IconButton } from '../../../src/components/button';
 import { Text } from '../../../src/components/text';
 import { useVinyls } from '../../../src/api/hooks';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
@@ -22,13 +23,12 @@ function HeaderUserButton() {
   const router = useRouter();
   const colors = useThemeColors();
   return (
-    <Pressable
+    <IconButton
       onPress={() => router.push('/settings')}
       hitSlop={8}
-      className="-mr-2 h-9 w-9 items-center justify-center"
-    >
-      <User color={colors.text} size={24} />
-    </Pressable>
+      accessibilityLabel="Open settings"
+      icon={<User color={colors.text} size={22} />}
+    />
   );
 }
 

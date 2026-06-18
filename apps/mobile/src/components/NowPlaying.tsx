@@ -34,7 +34,7 @@ import { useSmoothPosition } from "../hooks/use-smooth-position";
 import { useThemeColors } from "../theme/colors";
 import { BIG_COVER_MAX, BIG_COVER_RADIUS } from "../theme/sizes";
 import { Pressable, View } from "../theme/uniwind";
-import { Button } from "./button/button";
+import { IconButton } from "./button";
 import { MarqueeText } from "./marquee-text";
 import { SeekBar } from "./SeekBar";
 import { Text } from "./text";
@@ -286,8 +286,6 @@ export function NowPlaying({
 					borderRadius: 14,
 					borderCurve: "continuous",
 					backgroundColor: "transparent",
-					borderWidth: StyleSheet.hairlineWidth,
-					borderColor: colors.border,
 					flexDirection: "row",
 					alignItems: "center",
 					paddingRight: 6,
@@ -316,13 +314,12 @@ export function NowPlaying({
 						</Text>
 					</View>
 				</Pressable>
-				<Button
+				<IconButton
 					onPress={() => void audioEngine.toggle()}
 					variant="ghost"
 					size="xs"
-					layout="square"
 					accessibilityLabel={isPlaying ? "Pause" : "Play"}
-					startSlot={
+					icon={
 						isPlaying ? (
 							<Pause color={colors.text} size={22} fill={colors.text} />
 						) : (
@@ -330,16 +327,15 @@ export function NowPlaying({
 						)
 					}
 				/>
-				<Button
+				<IconButton
 					onPress={() => audioEngine.next()}
 					disabled={!hasNext}
 					preserveDisabledStyle
 					variant="ghost"
 					size="xs"
-					layout="square"
 					accessibilityLabel="Next track"
 					style={{ opacity: hasNext ? 1 : 0.35 }}
-					startSlot={
+					icon={
 						<SkipForward color={colors.text} size={22} fill={colors.text} />
 					}
 				/>
@@ -445,23 +441,17 @@ export function NowPlaying({
 							</View>
 							{/* Decorative for now (no favorites / menu backing yet). */}
 							<View className="ml-2">
-								<Button
-									variant="soft"
-									color="neutral"
+								<IconButton
 									size="2xs"
-									layout="square"
 									accessibilityLabel="Favorite"
-									startSlot={<Star color={colors.text} size={18} />}
+									icon={<Star color={colors.text} size={18} />}
 								/>
 							</View>
 							<View className="ml-2">
-								<Button
-									variant="soft"
-									color="neutral"
+								<IconButton
 									size="2xs"
-									layout="square"
 									accessibilityLabel="More"
-									startSlot={<MoreHorizontal color={colors.text} size={18} />}
+									icon={<MoreHorizontal color={colors.text} size={18} />}
 								/>
 							</View>
 						</View>
@@ -487,23 +477,21 @@ export function NowPlaying({
 								gap: 22,
 							}}
 						>
-							<Button
+							<IconButton
 								onPress={() => audioEngine.prev()}
 								variant="ghost"
 								size="md"
-								layout="square"
 								accessibilityLabel="Previous track"
-								startSlot={
+								icon={
 									<SkipBack color={colors.text} size={32} fill={colors.text} />
 								}
 							/>
-							<Button
+							<IconButton
 								onPress={() => void audioEngine.toggle()}
 								variant="ghost"
 								size="lg"
-								layout="square"
 								accessibilityLabel={isPlaying ? "Pause" : "Play"}
-								startSlot={
+								icon={
 									isPlaying ? (
 										<Pause color={colors.text} size={44} fill={colors.text} />
 									) : (
@@ -511,16 +499,15 @@ export function NowPlaying({
 									)
 								}
 							/>
-							<Button
+							<IconButton
 								onPress={() => audioEngine.next()}
 								disabled={!hasNext}
 								preserveDisabledStyle
 								variant="ghost"
 								size="md"
-								layout="square"
 								accessibilityLabel="Next track"
 								style={{ opacity: hasNext ? 1 : 0.35 }}
-								startSlot={
+								icon={
 									<SkipForward
 										color={colors.text}
 										size={32}

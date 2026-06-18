@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { View } from '../theme/uniwind';
-import { Button } from './button/button';
+import { IconButton } from './button';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 
@@ -31,14 +31,13 @@ export function AppHeader({ title, showBack, right }: AppHeaderProps) {
       <View className="h-12 flex-row items-center gap-1 px-4">
         {canGoBack ? (
           <View className="-ml-2">
-            <Button
+            <IconButton
               onPress={() => router.back()}
               variant="ghost"
               size="xs"
-              layout="square"
               hitSlop={8}
               accessibilityLabel="Go back"
-              startSlot={<ChevronLeft color={colors.text} size={28} />}
+              icon={<ChevronLeft color={colors.text} size={28} />}
             />
           </View>
         ) : null}

@@ -173,7 +173,7 @@ export function ToastItem({ data, onRemove }: ToastItemProps) {
         onLayout={onLayout}
         style={animatedStyle}
         layout={LinearTransition.duration(220)}
-        className="flex-row items-center gap-3 rounded-2xl curve-continuous border-hairline border-border bg-surface px-4 py-3"
+        className="flex-row items-center gap-3 rounded-2xl curve-continuous bg-surface px-4 py-3"
       >
         {Icon ? <Icon color={iconColor} size={22} /> : null}
         <View className="flex-1">
