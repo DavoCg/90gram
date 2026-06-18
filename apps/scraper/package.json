@@ -9,10 +9,11 @@
     "format": "uv run ruff format .",
     "typecheck": "uv run pyright",
     "test": "uv run pytest",
-    "scrape": "uv run scrapy crawl discogs && uv run scrapy crawl coldcutshotwax && uv run scrapy crawl deejay && uv run scrapy crawl dancingvinyl",
+    "scrape": "uv run scrapy crawl discogs && uv run scrapy crawl coldcutshotwax && uv run scrapy crawl deejay && uv run scrapy crawl dancingvinyl && uv run scrapy crawl selectedwax",
     "scrape:discogs": "uv run scrapy crawl discogs",
     "scrape:coldcutshotwax": "uv run scrapy crawl coldcutshotwax",
     "scrape:deejay": "uv run scrapy crawl deejay",
-    "scrape:dancingvinyl": "uv run scrapy crawl dancingvinyl"
+    "scrape:dancingvinyl": "uv run scrapy crawl dancingvinyl",
+    "scrape:selectedwax": "uv run scrapy crawl selectedwax"
   }
 }

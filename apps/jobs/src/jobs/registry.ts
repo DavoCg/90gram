@@ -49,6 +49,7 @@ export const jobs: readonly Job[] = [
   spiderJob('coldcutshotwax', 'ColdCuts // HotWax', env.SCRAPE_COLDCUTSHOTWAX_CRON),
   spiderJob('deejay', 'deejay.de', env.SCRAPE_DEEJAY_CRON),
   spiderJob('dancingvinyl', 'Dancing Vinyl', env.SCRAPE_DANCINGVINYL_CRON),
+  spiderJob('selectedwax', 'Selected Wax', env.SCRAPE_SELECTEDWAX_CRON),
 ];
 
 export function findJob(name: string): Job | undefined {

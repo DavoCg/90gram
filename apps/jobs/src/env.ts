@@ -60,6 +60,7 @@ const EnvSchema = z.object({
 	SCRAPE_COLDCUTSHOTWAX_CRON: z.string().min(1).default("*/30 * * * *"),
 	SCRAPE_DEEJAY_CRON: z.string().min(1).default("*/30 * * * *"),
 	SCRAPE_DANCINGVINYL_CRON: z.string().min(1).default("*/30 * * * *"),
+	SCRAPE_SELECTEDWAX_CRON: z.string().min(1).default("*/30 * * * *"),
 
 	// How often to poll Scrapyd's listjobs.json while waiting for a crawl to finish, and the longest a
 	// single crawl may run before the job gives up waiting (the crawl is not killed, the wait just ends
