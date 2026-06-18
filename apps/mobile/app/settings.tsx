@@ -74,7 +74,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 function AccountRow() {
   const { data: session } = authClient.useSession();
   return (
-    <View className="px-4 py-3.5">
+    <View className="border-b border-separator px-4 py-3.5">
       <Text size="sm" color="neutral-soft">
         Signed in as
       </Text>
