@@ -23,9 +23,11 @@ Adding a reseller is adding a spider, nothing else.
 
 ## Politeness (Scrapy settings, not custom code)
 
-`ROBOTSTXT_OBEY = True`, AutoThrottle enabled, a sane `DOWNLOAD_DELAY` and per-domain concurrency cap,
-the built-in retry middleware for 429/5xx, and a real identifying `USER_AGENT`. Where a source offers an
-official API, request its JSON instead of parsing HTML. Review the target's robots.txt and terms before crawling.
+`ROBOTSTXT_OBEY = False` (project rule: robots.txt is deliberately not obeyed, for every spider),
+AutoThrottle enabled, a sane `DOWNLOAD_DELAY` and per-domain concurrency cap, the built-in retry
+middleware for 429/5xx, and a real identifying `USER_AGENT`. Where a source offers an official API,
+request its JSON instead of parsing HTML. Politeness comes from the throttle/delay/backoff, not from
+a source's robots policy.
 
 ## Pipelines (genre sanitizing, then DB write)
 

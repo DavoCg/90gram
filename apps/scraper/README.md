@@ -34,11 +34,13 @@ getvinyls_scraper/
     coldcutshotwax.py   ColdCuts // HotWax spider (Shopify catalog JSON)
     deejay.py           deejay.de spider (paginated listing HTML)
     dancingvinyl.py     Dancing Vinyl spider (Common-Ground GraphQL API)
+    selectedwax.py      Selected Wax spider (Supabase PostgREST API)
 fixtures/
   discogs_sample.json        offline sample data (Discogs)
   coldcutshotwax_sample.json offline sample data (raw Shopify products)
   deejay_sample.json         offline sample data (deejay product pages)
   dancingvinyl_sample.json   offline sample data (raw inventory items)
+  selectedwax_sample.json    offline sample data (raw PostgREST releases rows)
 ```
 
 Adding a reseller is adding a spider in `spiders/`, nothing else.
@@ -111,6 +113,36 @@ non-vinyl `format` is a backstop guard. The free-text `duration` field is mapped
   page size; `-a max_pages=N` / `-a max_items=N` cap the crawl (handy for a quick test run).
 - **Fixture mode:** set `DANCINGVINYL_FIXTURE` to a local JSON file (a list of raw `inventory.items`
   objects) to read via `file://` instead of crawling.
+
+### `selectedwax` (Selected Wax)
+
+`uv run scrapy crawl selectedwax`. Selected Wax (EUR, Barcelona) is an electronic-music vinyl store on
+a Next.js storefront backed by Supabase, reverse-proxied at the same origin. So the catalog is a
+PostgREST collection at `/rest/v1/releases`: one paginated query returns fully-formed rows (catalog,
+label, format, genre, price, stock, and the tracklist with per-track MP3 previews). That is the whole
+catalog (~25k releases) in ~26 requests instead of fetching every album page, so the crawl is both
+faster and far politer. We query that structured data straight rather than scraping rendered markup:
+
+- **Paginate + emit (phase A):** walk `/rest/v1/releases` 1000 rows at a time (PostgREST's page cap),
+  ordered by `item_id` for stable paging, filtered server-side to vinyl formats with no second-hand
+  grading. Each row is mapped to a listing and emitted immediately, so rows stream as pages arrive.
+
+The request carries the storefront's **public Supabase anon key** (the same one the site ships to
+every browser in its JS bundle; gated by row-level security to the read-only `releases` view).
+Override it with `-a api_key=...` or `SELECTEDWAX_API_KEY` if Selected Wax rotates it.
+
+New vinyl only: Selected Wax also lists cassettes, merch and a handful of graded second-hand copies.
+Both are excluded server-side (`format` must be a vinyl, `vinyl_condition` must be null, since a
+Goldmine grade like "VG+" means a used copy); the `format` / condition guards in the mapper are a
+backstop for fixture rows. Track previews are the deejay.de `/streamit` MP3 at each track's `audioUrl`
+(deejay is the upstream that fulfils the catalog), and the tracklist carries real sleeve positions
+("A1", "B2"). The numeric `item_id` is the offer's stable `external_id`.
+
+- **Live mode (default):** no credentials beyond the public anon key; the catalog is public.
+- **`-a max_products=N`:** cap how many releases are emitted; `-a page_size=N` sets the PostgREST page
+  size (default 1000, its maximum). Handy for a quick test run.
+- **Fixture mode:** set `SELECTEDWAX_FIXTURE` to a local JSON file (a list of raw `releases` rows) to
+  read via `file://` instead of crawling.
 
 Re-running a crawl updates rows instead of duplicating them (unique on `source` + `external_id`).
 

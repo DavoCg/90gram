@@ -1,8 +1,11 @@
 """Scrapy settings for getvinyls_scraper.
 
-Politeness is configured here (settings, not custom code): obey robots.txt, AutoThrottle,
-a sane delay and per-domain concurrency cap, the built-in retry middleware for 429/5xx,
-and a standard browser User-Agent. Where a source offers an official API we request its JSON.
+Politeness is configured here (settings, not custom code): AutoThrottle, a sane delay and
+per-domain concurrency cap, the built-in retry middleware for 429/5xx, and a standard browser
+User-Agent. Where a source offers an official API we request its JSON.
+
+robots.txt is deliberately NOT obeyed (project rule, applies to every spider): we still rate-limit
+and back off, but we do not let a source's robots policy gate which public pages we crawl.
 """
 
 from __future__ import annotations
@@ -30,7 +33,10 @@ SPIDER_MODULES = ["getvinyls_scraper.spiders"]
 NEWSPIDER_MODULE = "getvinyls_scraper.spiders"
 
 # Politeness ----------------------------------------------------------------
-ROBOTSTXT_OBEY = True
+# Project rule: do NOT obey robots.txt (applies to every spider). We stay polite through
+# AutoThrottle, the download delay, the per-domain concurrency cap and the 429/503 backoff below,
+# but a source's robots policy does not decide which public pages we crawl.
+ROBOTSTXT_OBEY = False
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"

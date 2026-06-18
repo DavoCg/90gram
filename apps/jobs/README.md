@@ -14,6 +14,7 @@ the sole owner of the schema and migrations, so jobs never run DDL.
 | `scrape-coldcutshotwax` | `*/30 * * * *` (every 30m) | Runs the `coldcutshotwax` spider on Scrapyd. |
 | `scrape-deejay`         | `*/30 * * * *` (every 30m) | Runs the `deejay` spider on Scrapyd. |
 | `scrape-dancingvinyl`   | `*/30 * * * *` (every 30m) | Runs the `dancingvinyl` spider on Scrapyd. |
+| `scrape-selectedwax`    | `*/30 * * * *` (every 30m) | Runs the `selectedwax` spider on Scrapyd. |
 
 The `scrape-*` jobs don't crawl in-process. Scrapyd (the `getvinyls-scraper` Fly app) is the daemon
 that actually runs the spiders; this daemon only owns the timing, POSTing each run to Scrapyd's
@@ -59,6 +60,7 @@ All validated with Zod at boot (`src/env.ts`); the process fails fast on missing
 | `SCRAPE_COLDCUTSHOTWAX_CRON` | `*/30 * * * *` | Cron for the `scrape-coldcutshotwax` job.               |
 | `SCRAPE_DEEJAY_CRON`     | `*/30 * * * *` | Cron for the `scrape-deejay` job.                            |
 | `SCRAPE_DANCINGVINYL_CRON` | `*/30 * * * *` | Cron for the `scrape-dancingvinyl` job.                    |
+| `SCRAPE_SELECTEDWAX_CRON` | `*/30 * * * *` | Cron for the `scrape-selectedwax` job.                      |
 | `SCRAPE_POLL_INTERVAL_MS` | `15000`      | How often a scrape job polls Scrapyd for completion.          |
 | `SCRAPE_MAX_WAIT_MS`     | `1800000`     | Longest a scrape job waits for a crawl before giving up (30m). |
 
