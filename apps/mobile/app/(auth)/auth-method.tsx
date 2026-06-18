@@ -19,7 +19,7 @@ function MethodRow({ icon, label, onPress }: MethodRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-2xl curve-continuous border-hairline border-border bg-surface-2 px-4 py-3.5"
+      className="flex-row items-center gap-3 rounded-2xl curve-continuous bg-surface-2 px-4 py-3.5"
     >
       <View className="size-9 items-center justify-center rounded-full bg-surface">{icon}</View>
       <Text weight="semibold" className="flex-1">
