@@ -19,6 +19,10 @@ export function SheetScrollView({
   return (
     <GHScrollView
       showsVerticalScrollIndicator={false}
+      // Let taps reach buttons/rows while the keyboard is open (sheets often autofocus an input).
+      // Without this the first tap is swallowed dismissing the keyboard, so actions like "Create"
+      // appear to need a second tap. Callers can override via props.
+      keyboardShouldPersistTaps="handled"
       style={[{ backgroundColor: colors.surface }, style]}
       contentContainerStyle={[
         { paddingHorizontal: SHEET_PADDING_X, paddingTop: SHEET_CONTENT_TOP },
