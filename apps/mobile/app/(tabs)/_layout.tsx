@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { Tabs } from "expo-router";
+import { Tabs, useSegments } from "expo-router";
 import { Flame, Heart, Home, Search, User } from "lucide-react-native";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
@@ -33,6 +33,15 @@ export default function TabsLayout() {
 	// backdrop; the lists already pad 140pt at the bottom so nothing is clipped by the now-floating
 	// (position: absolute) bar.
 	const isDark = useUniwind().theme === "dark";
+
+	// The collection detail screen is the one route in the tab shell that presents FULL SCREEN,
+	// covering the floating tab bar (the same effect settings/edit-profile get as root screens). It
+	// lives in the Profile stack though (so tapping a record or the owner keeps pushing within that
+	// stack), so rather than relocate it out of the tabs we hide the bar whenever it is the focused
+	// route. `useSegments` reflects the active route path, so this flips as the screen is pushed and
+	// popped. The route file is profile/collection/[id], so its "collection" segment is the marker.
+	const segments = useSegments();
+	const hideTabBar = segments.includes("collection");
 
 	// Shared motion values for the Now Playing surface. `expand` is the open/close morph
 	// (0 = mini-bar, 1 = full player); `drag` is the rigid pixel offset while the open sheet is
@@ -83,12 +92,16 @@ export default function TabsLayout() {
 								style={StyleSheet.absoluteFill}
 							/>
 						),
-						tabBarStyle: {
-							position: "absolute",
-							backgroundColor: "transparent",
-							borderTopColor: colors.border,
-							paddingTop: TAB_BAR_TOP_PADDING,
-						},
+						// Hidden outright on the collection screen so it reads as a full-screen page over the
+						// bar; otherwise the floating (absolute) frosted bar the lists pad 140pt to clear.
+						tabBarStyle: hideTabBar
+							? { display: "none" }
+							: {
+									position: "absolute",
+									backgroundColor: "transparent",
+									borderTopColor: colors.border,
+									paddingTop: TAB_BAR_TOP_PADDING,
+								},
 						sceneStyle: { backgroundColor: colors.bg },
 					}}
 				>
