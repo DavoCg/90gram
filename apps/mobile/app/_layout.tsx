@@ -160,6 +160,18 @@ function RootNavigator() {
 						contentStyle: { backgroundColor: colors.surface },
 					}}
 				/>
+				{/* Create a collection, opened from the profile (a content-sized form sheet). A root route
+            (not nested in the Profile stack) so it slides up over the profile and never becomes the
+            Profile tab's initial screen. */}
+				<Stack.Screen
+					name="new-collection"
+					options={{
+						presentation: "formSheet",
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: "fitToContents",
+						contentStyle: { backgroundColor: colors.surface },
+					}}
+				/>
 			</Stack.Protected>
 			{/* Signed in but no username yet: one-time onboarding. Claiming a username flips this guard. */}
 			<Stack.Protected guard={hasSession && needsUsername}>

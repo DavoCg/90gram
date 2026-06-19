@@ -63,8 +63,11 @@ The **Profile ("You") tab** (`app/(tabs)/profile/`) replaced the old Radio tab. 
 the tab bar and mini-player stay put. The shared profile view is `src/screens/profile.tsx` (used by
 both the "You" tab and `user/[username]`; it shows owner affordances when `isMe`, else a follow
 button). Other screens: `edit`, `followers`/`following` (shared `src/screens/user-list.tsx`),
-`collection/[id]`, `new-collection` (a form sheet), plus `vinyl/[id]` + `shop/[id]` re-exports so the
-shared detail screens work inside this stack too.
+`collection/[id]`, plus `vinyl/[id]` + `shop/[id]` re-exports so the shared detail screens work inside
+this stack too. Create-collection is NOT nested here: it is a ROOT form sheet (`app/new-collection.tsx`,
+like the currency / add-to-collection sheets). Keep form sheets as root routes (or non-anchor screens),
+not as declared `<Stack.Screen>` children of a tab stack, or that child becomes the stack's initial
+route and the tab opens onto it instead of its index.
 
 **Onboarding**: `app/(onboarding)/profile-setup.tsx` claims a unique username after the first
 sign-in. The root gate (`app/_layout.tsx`) reads `useMyProfile()` and, while signed in with a null
