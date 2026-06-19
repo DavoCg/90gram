@@ -136,6 +136,9 @@ function RootNavigator() {
 				{/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
             screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
 				<Stack.Screen name="settings" />
+				{/* Edit profile is likewise a root sibling (not nested in the Profile stack) so it pushes a
+            full screen OVER the tabs and the mini-player rather than within the "You" tab. */}
+				<Stack.Screen name="edit-profile" />
 				{/* The display-currency picker, presented as a native form sheet sized to its content. The
             route renders a collapsable={false} header + a ScrollView (the two subviews a form sheet
             supports), which is what lets the title pin above the scrolling list. */}

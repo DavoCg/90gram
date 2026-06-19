@@ -3,10 +3,8 @@ import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
-import { User } from 'lucide-react-native';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../src/theme/uniwind';
-import { IconButton } from '../../../src/components/button';
 import { Text } from '../../../src/components/text';
 import { useVinyls } from '../../../src/api/hooks';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
@@ -17,20 +15,6 @@ import { filters$ } from '../../../src/components/filters/filters-store';
 import { useThemeColors } from '../../../src/theme/colors';
 import { useScreenRefresh } from '../../../src/hooks/use-screen-refresh';
 import { player$ } from '../../../src/audio/store';
-
-// The header user button (top-right): opens the settings page within the Home stack.
-function HeaderUserButton() {
-  const router = useRouter();
-  const colors = useThemeColors();
-  return (
-    <IconButton
-      onPress={() => router.push('/settings')}
-      hitSlop={8}
-      accessibilityLabel="Open settings"
-      icon={<User color={colors.text} size={22} />}
-    />
-  );
-}
 
 // Leaves room at the bottom of the list for the floating mini-player + the tab bar.
 const LIST_BOTTOM_PADDING = 140;
@@ -73,10 +57,6 @@ export default function HomeScreen() {
 
   const hasFilters = selectedGenres.length > 0;
 
-  // Header right: just the user button now. The filter affordance moved out of the header into the
-  // sticky FilterBar below it.
-  const headerRight = <HeaderUserButton />;
-
   // The sticky filter bar, pinned directly under the app header and above the list. Rendered in
   // every state so the filter affordance is always reachable, including while a filtered feed loads.
   const filterBar = (
@@ -86,7 +66,7 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} right={headerRight} />
+        <AppHeader title="Home" showBack={false} />
         {filterBar}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
@@ -101,7 +81,7 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} right={headerRight} />
+        <AppHeader title="Home" showBack={false} />
         {filterBar}
         <View className="flex-1 items-center justify-center gap-3 px-6">
           <Text align="center">Could not reach the API.</Text>
@@ -121,7 +101,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Home" showBack={false} right={headerRight} />
+      <AppHeader title="Home" showBack={false} />
       {filterBar}
       <LegendList
         data={data ?? []}

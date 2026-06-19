@@ -3,15 +3,17 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppHeader } from '../../../src/components/AppHeader';
-import { Button } from '../../../src/components/button';
-import { Input } from '../../../src/components/input';
-import { Text } from '../../../src/components/text';
-import { ActivityIndicator, View } from '../../../src/theme/uniwind';
-import { useMyProfile, useUpdateProfile } from '../../../src/api/hooks';
+import { AppHeader } from '../src/components/AppHeader';
+import { Button } from '../src/components/button';
+import { Input } from '../src/components/input';
+import { Text } from '../src/components/text';
+import { ActivityIndicator, View } from '../src/theme/uniwind';
+import { useMyProfile, useUpdateProfile } from '../src/api/hooks';
 
 // Edit the signed-in user's display name, bio, and avatar URL. Username is changed elsewhere (it is
-// the unique handle); this screen edits the free-form display fields and pops back on save.
+// the unique handle); this screen edits the free-form display fields and pops back on save. Lives at
+// the root (a sibling of the tab shell, like settings) so opening it slides a full screen OVER the
+// tabs and the mini-player rather than pushing within the Profile stack.
 export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
