@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ListPlus, Plus } from 'lucide-react-native';
 import { Pressable, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
@@ -9,6 +9,7 @@ import { FormSheetHeader } from '../src/components/form-sheet-header';
 import { SheetScrollView, SheetSelectableRow } from '../src/components/sheet';
 import { useSheetBottomPadding } from '../src/components/use-sheet-bottom-padding';
 import { useThemeColors } from '../src/theme/colors';
+import { toast } from '../src/components/toast';
 import {
   useCreateCollection,
   useMyCollections,
@@ -24,6 +25,7 @@ export default function AddToCollectionSheet() {
   const { vinylId } = useLocalSearchParams<{ vinylId: string }>();
   const id = vinylId ?? '';
   const colors = useThemeColors();
+  const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
 
   const { data: collections } = useMyCollections();
@@ -35,14 +37,24 @@ export default function AddToCollectionSheet() {
   const [name, setName] = useState('');
   const memberIds = new Set(memberships?.collectionIds ?? []);
 
+  // Adding a record is the reason this sheet exists, so a tap that adds confirms with a toast and
+  // dismisses the tray. (The toggle's optimistic cache write and its onSettled refresh both run
+  // independently of this component, so closing immediately is safe.) Removing just toggles in
+  // place. Toasts float over every screen from the root host, so they outlive the sheet.
+  const onAdd = (collectionId: string, collectionName: string) => {
+    toggleVinyl.mutate({ collectionId, vinylId: id, add: true });
+    toast.success('Added to collection', { description: collectionName });
+    router.back();
+  };
+
   const onCreate = async () => {
     const trimmed = name.trim();
     if (trimmed.length === 0) return;
     const created = await createCollection.mutateAsync({ name: trimmed, description: null });
     // Drop the record straight into the new group, the reason the user opened this sheet.
-    toggleVinyl.mutate({ collectionId: created.id, vinylId: id, add: true });
     setName('');
     setCreating(false);
+    onAdd(created.id, trimmed);
   };
 
   return (
@@ -56,7 +68,9 @@ export default function AddToCollectionSheet() {
               key={collection.id}
               selected={selected}
               onPress={() =>
-                toggleVinyl.mutate({ collectionId: collection.id, vinylId: id, add: !selected })
+                selected
+                  ? toggleVinyl.mutate({ collectionId: collection.id, vinylId: id, add: false })
+                  : onAdd(collection.id, collection.name)
               }
             >
               <View className="flex-1">

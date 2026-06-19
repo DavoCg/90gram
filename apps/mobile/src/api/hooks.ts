@@ -888,6 +888,14 @@ export function useToggleCollectionVinyl() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.vinyls(collectionId) });
+      // The collections rail on profiles (own + others) reads useUserCollections, keyed per
+      // username (['users', <username>, 'collections']). Adding/removing a record changes that
+      // collection's record count and cover mosaic, so refresh every loaded user-collections cache.
+      // The username sits in the middle of the key, so no prefix matches it; use a predicate.
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'users' && query.queryKey[2] === 'collections',
+      });
     },
   });
 }
