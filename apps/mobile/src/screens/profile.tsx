@@ -205,7 +205,7 @@ export default function ProfileScreen({ username }: { username: string }) {
           title="Collections"
           action={
             profile.isMe ? (
-              <Pressable onPress={() => router.push('/profile/new-collection')} hitSlop={8}>
+              <Pressable onPress={() => router.push('/new-collection')} hitSlop={8}>
                 <Text color="accent" weight="semibold">
                   New
                 </Text>
