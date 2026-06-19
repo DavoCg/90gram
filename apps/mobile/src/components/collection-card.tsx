@@ -8,10 +8,10 @@ import { useThemeColors } from '../theme/colors';
 
 // The card squircle: padded surface tile with continuous (iOS) corners. Covers sit inset from the
 // edges with gaps between them so the 2x2 grid reads as separate, rounded tiles.
-const CARD_RADIUS = 22;
-const CARD_PADDING = 10;
-const TILE_GAP = 8;
-const TILE_RADIUS = 12;
+const CARD_RADIUS = 18;
+const CARD_PADDING = 6;
+const TILE_GAP = 4;
+const TILE_RADIUS = 10;
 
 // The 2x2 cover mosaic for a collection. Fills missing slots with a surface tile so the grid stays
 // square. With no covers at all it shows a single placeholder with a disc icon.
