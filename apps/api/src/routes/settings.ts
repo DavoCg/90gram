@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { Context } from 'hono';
 import { prisma } from '@getvinyls/db';
-import { auth } from '../auth.js';
+import { getUserId, unauthorized } from '../auth-helpers.js';
 import {
   CurrencySettingSchema,
   UpdateCurrencySettingSchema,
@@ -14,13 +13,6 @@ import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES, SupportedCurrencySchema } from 
 // read-only): each handler resolves the better-auth session and 401s without one. Currently just the
 // display currency the API converts all prices into.
 export const settingsRouter = new OpenAPIHono();
-
-async function getUserId(c: Context): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  return session?.user.id ?? null;
-}
-
-const unauthorized = { error: 'unauthorized', message: 'Sign in required' } as const;
 
 const listCurrenciesRoute = createRoute({
   method: 'get',

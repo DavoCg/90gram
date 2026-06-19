@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { queryClient } from "../src/api/queryClient";
+import { useMyProfile } from "../src/api/hooks";
 import { audioEngine } from "../src/audio/engine";
 import { authClient } from "../src/auth/client";
 import { AppToaster } from "../src/components/toast";
@@ -65,6 +66,18 @@ export default function RootLayout() {
 function RootNavigator() {
 	const { data: session, isPending } = authClient.useSession();
 	const colors = useThemeColors();
+	const hasSession = !!session;
+
+	// The signed-in user's social profile gates onboarding: a null username means they have not
+	// finished setup yet. Only fetched once signed in; the client forwards the session cookie.
+	const profileQuery = useMyProfile(hasSession);
+	// The profile is "ready" when there is no session (nothing to fetch) or its first load settled
+	// (data or error). isLoading is true only on the first fetch with no data, so it falls to false
+	// on success OR error, which is what we want (an errored profile should not wedge the splash).
+	const profileReady = !hasSession || !profileQuery.isLoading;
+	// Show onboarding while signed in with a profile that has no username yet. When the profile errored
+	// (no data), fall through to the tabs rather than trapping the user on onboarding.
+	const needsUsername = hasSession && profileQuery.data ? profileQuery.data.username === null : false;
 
 	// Configure the audio session and lock-screen handlers once for the whole app.
 	// Tear everything down (remove all subscriptions) on unmount.
@@ -86,20 +99,27 @@ function RootNavigator() {
 		if (!isPending) setAuthResolved(true);
 	}, [isPending]);
 
-	// Fade the native bootsplash (react-native-bootsplash) out exactly ONCE, as soon as auth first
-	// resolves (a ref guard so a later isPending refetch can never re-run it). Stack.Protected resolves
-	// the correct group during render, so by the time we hide the splash we are already on the right
-	// screen, with no async redirect frame to flash through.
+	// Latch "app is ready" once auth AND the first profile load have settled, so the cold-start splash
+	// covers the onboarding-vs-tabs decision (no flash of the wrong group). Once latched it never goes
+	// back, so later background refetches never blank the app.
+	const [appReady, setAppReady] = useState(false);
+	useEffect(() => {
+		if (authResolved && profileReady) setAppReady(true);
+	}, [authResolved, profileReady]);
+
+	// Fade the native bootsplash (react-native-bootsplash) out exactly ONCE, as soon as the app first
+	// becomes ready (a ref guard so a later refetch can never re-run it). Stack.Protected resolves the
+	// correct group during render, so by the time we hide the splash we are already on the right screen.
 	const splashHidden = useRef(false);
 	useEffect(() => {
-		if (splashHidden.current || !authResolved) return;
+		if (splashHidden.current || !appReady) return;
 		splashHidden.current = true;
 		void BootSplash.hide({ fade: true });
-	}, [authResolved]);
+	}, [appReady]);
 
-	// Render nothing underneath until auth first resolves; the native bootsplash still covers the
-	// screen. After that the navigator stays mounted (never blanks on a refetch).
-	if (!authResolved) {
+	// Render nothing underneath until the app first becomes ready; the native bootsplash still covers
+	// the screen. After that the navigator stays mounted (never blanks on a refetch).
+	if (!appReady) {
 		return null;
 	}
 
@@ -111,7 +131,7 @@ function RootNavigator() {
 				animationDuration: STACK_ANIMATION_DURATION,
 			}}
 		>
-			<Stack.Protected guard={!!session}>
+			<Stack.Protected guard={hasSession && !needsUsername}>
 				<Stack.Screen name="(tabs)" />
 				{/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
             screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
@@ -130,8 +150,22 @@ function RootNavigator() {
 						contentStyle: { backgroundColor: colors.surface },
 					}}
 				/>
+				{/* "Save to collection", opened from a record's page (a content-sized form sheet). */}
+				<Stack.Screen
+					name="add-to-collection"
+					options={{
+						presentation: "formSheet",
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: "fitToContents",
+						contentStyle: { backgroundColor: colors.surface },
+					}}
+				/>
 			</Stack.Protected>
-			<Stack.Protected guard={!session}>
+			{/* Signed in but no username yet: one-time onboarding. Claiming a username flips this guard. */}
+			<Stack.Protected guard={hasSession && needsUsername}>
+				<Stack.Screen name="(onboarding)" />
+			</Stack.Protected>
+			<Stack.Protected guard={!hasSession}>
 				{/* Signing out flips this guard on; fade in rather than slide so leaving the app feels like a
             dissolve, not a sideways push back to a previous screen. */}
 				<Stack.Screen name="(auth)" options={{ animation: "fade" }} />

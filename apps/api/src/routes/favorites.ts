@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { Context } from 'hono';
 import { prisma } from '@getvinyls/db';
-import { auth } from '../auth.js';
+import { getUserId, unauthorized } from '../auth-helpers.js';
 import {
   FavoriteIdsSchema,
   FavoriteTracksSchema,
@@ -28,14 +27,6 @@ export const favoritesRouter = new OpenAPIHono<{ Variables: CurrencyVariables }>
 // Favorited vinyls carry prices, so convert them into the signed-in user's display currency. (The
 // other favorites routes return ids/tracks with no prices, so they skip this.)
 favoritesRouter.use('/favorites/vinyls', currencyContext);
-
-// Resolve the signed-in user id, or null when the request carries no valid session.
-async function getUserId(c: Context): Promise<string | null> {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-  return session?.user.id ?? null;
-}
-
-const unauthorized = { error: 'unauthorized', message: 'Sign in required' } as const;
 
 const listFavoriteIdsRoute = createRoute({
   method: 'get',

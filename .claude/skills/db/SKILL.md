@@ -82,6 +82,26 @@ is kept as its own table rather than columns on `users` so the better-auth mirro
 supported currency set is validated at the API boundary (Zod), not by a DB enum, mirroring how
 `Offer.currentCurrency` is a plain string.
 
+## Social (profiles, follows, collections)
+
+`UserProfile`, `Follow`, `Collection`, `CollectionVinyl` are app-owned (the scraper never touches
+them) and hang off `User`, exactly like `Favorite`/`UserSetting`. They stay OFF the better-auth
+`users` mirror so it remains an exact match of better-auth's expected shape.
+
+- `UserProfile` (`user_profiles`) is a 1:1 with `User` (PK == `userId`). `username` is the **unique
+  public handle** (`@unique`), nullable until the user claims one during onboarding (the API creates
+  the row on first sign-in). It is validated and normalized (lowercased) at the API boundary (Zod),
+  mirroring how `currency` is validated there rather than by a DB enum; the `@unique` is the race-safe
+  backstop (catch `P2002` -> 409). Also holds `displayName`, `bio`, `avatarUrl`.
+- `Follow` (`follows`) is a directed, **asymmetric, instant** edge: `follower` follows `following`.
+  Unique on `(followerId, followingId)`; a `CHECK (follower_id <> following_id)` in the migration SQL
+  forbids self-follows (not expressible in Prisma, like the `Favorite` "exactly one target" CHECK).
+  Indexed on both columns for "followers of X" and "following of X" lookups.
+- `Collection` (`collections`) is a user-curated saved group of vinyls (e.g. "Best techno 2026"),
+  owned by one user. Public (no privacy flag yet: visibility is public for everyone).
+- `CollectionVinyl` (`collection_vinyls`) is the explicit Collection<->Vinyl join (like `VinylGenre`),
+  composite PK `(collectionId, vinylId)` so a vinyl cannot be added to a group twice.
+
 ## Workflow
 
 - Edit `prisma/schema.prisma`, then `pnpm --filter @getvinyls/db migrate` (creates a migration + applies it).

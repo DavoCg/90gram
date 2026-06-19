@@ -1,0 +1,107 @@
+import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { ListPlus, Plus } from 'lucide-react-native';
+import { Pressable, View } from '../src/theme/uniwind';
+import { Text } from '../src/components/text';
+import { Input } from '../src/components/input';
+import { Button } from '../src/components/button';
+import { FormSheetHeader } from '../src/components/form-sheet-header';
+import { SheetScrollView, SheetSelectableRow } from '../src/components/sheet';
+import { useSheetBottomPadding } from '../src/components/use-sheet-bottom-padding';
+import { useThemeColors } from '../src/theme/colors';
+import {
+  useCreateCollection,
+  useMyCollections,
+  useCollectionMemberships,
+  useToggleCollectionVinyl,
+} from '../src/api/hooks';
+
+// "Save to collection" sheet, opened from a record's page (a root form sheet, like the currency
+// picker). It lists the signed-in user's collections with a check for the ones already holding this
+// record; tapping toggles membership (optimistic). A new collection can be created inline and the
+// record is added to it immediately.
+export default function AddToCollectionSheet() {
+  const { vinylId } = useLocalSearchParams<{ vinylId: string }>();
+  const id = vinylId ?? '';
+  const colors = useThemeColors();
+  const bottomPadding = useSheetBottomPadding();
+
+  const { data: collections } = useMyCollections();
+  const { data: memberships } = useCollectionMemberships(id);
+  const toggleVinyl = useToggleCollectionVinyl();
+  const createCollection = useCreateCollection();
+
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState('');
+  const memberIds = new Set(memberships?.collectionIds ?? []);
+
+  const onCreate = async () => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return;
+    const created = await createCollection.mutateAsync({ name: trimmed, description: null });
+    // Drop the record straight into the new group, the reason the user opened this sheet.
+    toggleVinyl.mutate({ collectionId: created.id, vinylId: id, add: true });
+    setName('');
+    setCreating(false);
+  };
+
+  return (
+    <>
+      <FormSheetHeader title="Save to collection" />
+      <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
+        {(collections ?? []).map((collection) => {
+          const selected = memberIds.has(collection.id);
+          return (
+            <SheetSelectableRow
+              key={collection.id}
+              selected={selected}
+              onPress={() =>
+                toggleVinyl.mutate({ collectionId: collection.id, vinylId: id, add: !selected })
+              }
+            >
+              <View className="flex-1">
+                <Text weight="semibold">{collection.name}</Text>
+                <Text size="sm" color="neutral-soft" className="mt-0.5">
+                  {collection.vinylCount === 1 ? '1 record' : `${collection.vinylCount} records`}
+                </Text>
+              </View>
+            </SheetSelectableRow>
+          );
+        })}
+
+        {creating ? (
+          <View className="mt-2 gap-3">
+            <Input
+              size="lg"
+              placeholder="Collection name"
+              value={name}
+              onChangeText={setName}
+              autoFocus
+              maxLength={80}
+              returnKeyType="done"
+              onSubmitEditing={() => void onCreate()}
+              startSlot={<ListPlus color={colors.muted} size={20} />}
+            />
+            <Button
+              label="Create and add"
+              layout="flex"
+              loading={createCollection.isPending}
+              disabled={createCollection.isPending || name.trim().length === 0}
+              onPress={() => void onCreate()}
+            />
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setCreating(true)}
+            className="flex-row items-center gap-3 py-3"
+          >
+            <Plus color={colors.accent} size={22} />
+            <Text color="accent" weight="semibold">
+              New collection
+            </Text>
+          </Pressable>
+        )}
+      </SheetScrollView>
+    </>
+  );
+}

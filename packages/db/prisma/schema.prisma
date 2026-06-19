@@ -65,10 +65,11 @@ model Vinyl {
 
   // The reference tracklist: the best-quality track per position, chosen across all shops (these are
   // the Track rows whose `vinylId` is set). Per-shop tracklists hang off `ShopVinyl.tracks` instead.
-  tracks     Track[]
-  shopVinyls ShopVinyl[]
-  genres     VinylGenre[]
-  favorites  Favorite[]
+  tracks      Track[]
+  shopVinyls  ShopVinyl[]
+  genres      VinylGenre[]
+  favorites   Favorite[]
+  collections CollectionVinyl[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -269,6 +270,14 @@ model User {
   favorites Favorite[]
   setting   UserSetting?
 
+  // Social (app-owned, not part of the better-auth mirror).
+  profile     UserProfile?
+  // Follow edges. `following` are the rows where this user is the follower (people they follow);
+  // `followers` are the rows where this user is the followed (people who follow them).
+  following   Follow[]     @relation("follower")
+  followers   Follow[]     @relation("following")
+  collections Collection[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -386,4 +395,86 @@ model Favorite {
   @@unique([userId, trackId], name: "userId_trackId")
   @@index([userId])
   @@map("favorites")
+}
+
+// ----------------------------------------------------------------------------
+// Social (profiles, follows, collections)
+//
+// All app-owned (the scraper never touches them) and hang off `User`, exactly like
+// Favorite / UserSetting. They are deliberately kept OFF the better-auth `users` mirror
+// so that table stays an exact match of better-auth's expected shape. See the db skill.
+// ----------------------------------------------------------------------------
+
+/// A user's public social profile (1:1 with User, PK == userId, like UserSetting). Keeps the public
+/// handle and display fields off the better-auth `users` mirror. `username` is the unique public
+/// handle; it is validated and normalized (lowercased) at the API boundary (Zod), and the `@unique`
+/// here is the race-safe backstop. Null until the user claims one during onboarding (the row is
+/// created on first sign-in by the API). The scraper never touches this table.
+model UserProfile {
+  userId String @id @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  username    String? @unique
+  displayName String? @map("display_name")
+  bio         String?
+  avatarUrl   String? @map("avatar_url")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
+}
+
+/// A directed follow edge: `follower` follows `following`. Asymmetric and instant (no approval):
+/// creating the row is the whole follow. Unique per (follower, following); a CHECK in the migration
+/// SQL forbids self-follows (follower_id <> following_id), which Prisma cannot express. Both sides
+/// cascade-delete with their user. The scraper never touches this table.
+model Follow {
+  id          String @id @default(cuid())
+  followerId  String @map("follower_id")
+  follower    User   @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String @map("following_id")
+  following   User   @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([followerId, followingId], name: "followerId_followingId")
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+/// A user-curated saved group of vinyls (e.g. "Best techno 2026"). Public: anyone can view it.
+/// Owned by one user; its vinyls join through CollectionVinyl. The scraper never touches this table.
+model Collection {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  vinyls CollectionVinyl[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("collections")
+}
+
+/// Explicit many-to-many join between Collection and Vinyl (a vinyl saved into a group). Explicit
+/// (like VinylGenre) with a composite PK so a vinyl cannot be added to the same group twice. Both
+/// sides cascade-delete. The scraper never touches this table.
+model CollectionVinyl {
+  collectionId String     @map("collection_id")
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  vinylId      String     @map("vinyl_id")
+  vinyl        Vinyl      @relation(fields: [vinylId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([collectionId, vinylId])
+  @@index([vinylId])
+  @@map("collection_vinyls")
 }

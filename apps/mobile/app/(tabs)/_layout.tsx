@@ -1,6 +1,6 @@
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
-import { Flame, Heart, Home, Radio, Search } from "lucide-react-native";
+import { Flame, Heart, Home, Search, User } from "lucide-react-native";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
@@ -111,15 +111,6 @@ export default function TabsLayout() {
 						}}
 					/>
 					<Tabs.Screen
-						name="radio"
-						options={{
-							title: "Radio",
-							tabBarIcon: ({ color }) => (
-								<Radio color={color} size={TAB_ICON_SIZE} />
-							),
-						}}
-					/>
-					<Tabs.Screen
 						name="favorites"
 						options={{
 							title: "Favorites",
@@ -146,6 +137,15 @@ export default function TabsLayout() {
 								}
 							},
 						})}
+					/>
+					<Tabs.Screen
+						name="profile"
+						options={{
+							title: "You",
+							tabBarIcon: ({ color }) => (
+								<User color={color} size={TAB_ICON_SIZE} />
+							),
+						}}
 					/>
 				</Tabs>
 			</Animated.View>
