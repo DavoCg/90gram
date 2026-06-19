@@ -717,11 +717,16 @@ export function useUserFavorites(username: string): UseInfiniteQueryResult<Vinyl
   });
 }
 
-// A user's collections (not paginated: a short list).
-export function useUserCollections(username: string): UseQueryResult<CollectionDto[]> {
+// A user's collections (not paginated: a short list). `enabled` lets the profile screen, which renders
+// both the signed-in user's own profile and others, switch this off for the own profile and read the
+// shared own-collections cache (useMyCollections) instead, so it never double-fetches the same list.
+export function useUserCollections(
+  username: string,
+  enabled = true,
+): UseQueryResult<CollectionDto[]> {
   return useQuery({
     queryKey: queryKeys.users.collections(username),
-    enabled: username.length > 0,
+    enabled: enabled && username.length > 0,
     queryFn: async (): Promise<CollectionDto[]> => {
       const { data, error } = await apiClient.GET('/users/{username}/collections', {
         params: { path: { username } },
@@ -734,17 +739,35 @@ export function useUserCollections(username: string): UseQueryResult<CollectionD
   });
 }
 
-// The signed-in user's own collections.
-export function useMyCollections(): UseQueryResult<CollectionDto[]> {
+// Fetch the signed-in user's own collections. Shared by the hook below and the boot-time prefetch so
+// there is exactly one fetch definition for the ['collections','mine'] cache.
+async function fetchMyCollections(): Promise<CollectionDto[]> {
+  const { data, error } = await apiClient.GET('/me/collections');
+  if (error || !data) {
+    throw new Error('Failed to load collections');
+  }
+  return data.collections;
+}
+
+// The signed-in user's own collections. One cache (queryKeys.collections.mine) shared by the
+// add-to-collection sheet and the own-profile rail, so loading it in either place warms the other and
+// neither flashes a spinner. `enabled` lets the shared profile screen mount this only when viewing
+// the own profile (isMe). Preload it at boot with prefetchMyCollections.
+export function useMyCollections(enabled = true): UseQueryResult<CollectionDto[]> {
   return useQuery({
     queryKey: queryKeys.collections.mine,
-    queryFn: async (): Promise<CollectionDto[]> => {
-      const { data, error } = await apiClient.GET('/me/collections');
-      if (error || !data) {
-        throw new Error('Failed to load collections');
-      }
-      return data.collections;
-    },
+    enabled,
+    queryFn: fetchMyCollections,
+  });
+}
+
+// Warm the signed-in user's collections cache ahead of time (called from the root gate once past
+// onboarding), so the profile rail and the add-to-collection sheet both paint instantly from the
+// shared cache. Safe to call repeatedly: react-query dedupes in-flight fetches and honors staleTime.
+export function prefetchMyCollections(queryClient: QueryClient): void {
+  void queryClient.prefetchQuery({
+    queryKey: queryKeys.collections.mine,
+    queryFn: fetchMyCollections,
   });
 }
 

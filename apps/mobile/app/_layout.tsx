@@ -9,7 +9,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { queryClient } from "../src/api/queryClient";
-import { useMyProfile } from "../src/api/hooks";
+import { useMyProfile, prefetchMyCollections } from "../src/api/hooks";
 import { audioEngine } from "../src/audio/engine";
 import { authClient } from "../src/auth/client";
 import { AppToaster } from "../src/components/toast";
@@ -87,6 +87,14 @@ function RootNavigator() {
 			void audioEngine.teardown();
 		};
 	}, []);
+
+	// Preload the signed-in user's collections once past onboarding (a username exists), so the
+	// "You" tab's collections rail and the add-to-collection sheet both paint instantly from the one
+	// shared ['collections','mine'] cache instead of each flashing a spinner on first open.
+	const username = profileQuery.data?.username ?? null;
+	useEffect(() => {
+		if (hasSession && username) prefetchMyCollections(queryClient);
+	}, [hasSession, username]);
 
 	// Whether the auth state has resolved at least once. better-auth's useSession flips isPending back
 	// to true on its background refetches (the expo client reads the cached session, then re-fetches),

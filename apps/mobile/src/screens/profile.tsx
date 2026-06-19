@@ -14,7 +14,7 @@ import { AppHeader } from '../components/AppHeader';
 import { IconButton } from '../components/button';
 import { useThemeColors } from '../theme/colors';
 import { useScreenRefresh } from '../hooks/use-screen-refresh';
-import { useUser, useUserCollections } from '../api/hooks';
+import { useUser, useUserCollections, useMyCollections } from '../api/hooks';
 
 const LIST_BOTTOM_PADDING = 160;
 
@@ -67,7 +67,16 @@ export default function ProfileScreen({
   const router = useRouter();
   const colors = useThemeColors();
   const { data: profile, isLoading, isError, refetch } = useUser(username);
-  const { data: collections, refetch: refetchCollections } = useUserCollections(username);
+  // The own-profile rail reads the SAME cache as the add-to-collection sheet (useMyCollections,
+  // keyed ['collections','mine']), so the two share collections and neither flashes a spinner; other
+  // users' collections are public and keyed per username. Exactly one of these fetches (the other is
+  // disabled) so the own profile never double-loads its collections. isMe is known instantly on the
+  // "You" tab via useUser's placeholder, so the right hook is enabled from the first render.
+  const isMe = profile?.isMe ?? false;
+  const mine = useMyCollections(isMe);
+  const theirs = useUserCollections(username, !isMe);
+  const collections = isMe ? mine.data : theirs.data;
+  const refetchCollections = isMe ? mine.refetch : theirs.refetch;
 
   const { refreshing, handleRefresh } = useScreenRefresh(() =>
     Promise.all([refetch(), refetchCollections()]),
