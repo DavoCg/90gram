@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
   type InfiniteData,
+  type QueryClient,
   type QueryKey,
   type UseInfiniteQueryResult,
   type UseQueryResult,
@@ -567,9 +568,30 @@ export function useUsernameAvailable(username: string): UseQueryResult<UsernameA
 
 // A public user profile by username (viewer-aware follow state + counts).
 export function useUser(username: string): UseQueryResult<PublicUserDto> {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: queryKeys.users.detail(username),
     enabled: username.length > 0,
+    // Seed the signed-in user's own profile from the cached MyProfile (already warmed by the root
+    // gate) so the "You" tab paints the identity instantly instead of flashing a spinner while the
+    // public profile loads. MyProfile carries the identity but none of the social counts, so those
+    // start at 0 and fill in the moment the fetch settles (same seed-then-fill pattern as useVinyl).
+    placeholderData: (): PublicUserDto | undefined => {
+      const me = queryClient.getQueryData<MyProfileDto>(queryKeys.profile);
+      if (!me || me.username !== username) return undefined;
+      return {
+        username: me.username,
+        displayName: me.displayName,
+        avatarUrl: me.avatarUrl,
+        bio: me.bio,
+        isMe: true,
+        isFollowing: false,
+        followerCount: 0,
+        followingCount: 0,
+        collectionCount: 0,
+        favoriteCount: 0,
+      };
+    },
     queryFn: async (): Promise<PublicUserDto> => {
       const { data, error } = await apiClient.GET('/users/{username}', {
         params: { path: { username } },
@@ -763,6 +785,19 @@ export function useCollectionVinyls(id: string): UseInfiniteQueryResult<VinylSum
   });
 }
 
+// The collections rail on every profile (own + others) reads useUserCollections, keyed per username
+// (['users', <username>, 'collections']), and the profile header reads useUser, keyed per username
+// (['users', <username>]) for its collectionCount. Creating, renaming, or deleting a collection
+// changes both, but the username sits in the middle of those keys so no prefix matches them:
+// invalidate via a predicate. (Mirrors the reconcile in useToggleCollectionVinyl.)
+function invalidateProfileCollections(queryClient: QueryClient): void {
+  void queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === 'users' &&
+      (query.queryKey.length === 2 || query.queryKey[2] === 'collections'),
+  });
+}
+
 // Create a collection. Refreshes the owner's collection lists on success.
 export function useCreateCollection() {
   const queryClient = useQueryClient();
@@ -777,6 +812,7 @@ export function useCreateCollection() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
       void queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      invalidateProfileCollections(queryClient);
     },
   });
 }
@@ -804,6 +840,7 @@ export function useUpdateCollection() {
     onSuccess: (data) => {
       queryClient.setQueryData(queryKeys.collections.detail(data.id), data);
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
+      invalidateProfileCollections(queryClient);
     },
   });
 }
@@ -816,9 +853,14 @@ export function useDeleteCollection() {
       const { error } = await apiClient.DELETE('/collections/{id}', { params: { path: { id } } });
       if (error) throw new Error('Failed to delete collection');
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
+      // Drop the dead collection's own caches so nothing refetches a 404 (the detail screen has
+      // already popped back), then refresh the lists that surfaced it.
+      queryClient.removeQueries({ queryKey: queryKeys.collections.detail(id) });
+      queryClient.removeQueries({ queryKey: queryKeys.collections.vinyls(id) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
       void queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      invalidateProfileCollections(queryClient);
     },
   });
 }
@@ -888,14 +930,9 @@ export function useToggleCollectionVinyl() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.collections.vinyls(collectionId) });
-      // The collections rail on profiles (own + others) reads useUserCollections, keyed per
-      // username (['users', <username>, 'collections']). Adding/removing a record changes that
-      // collection's record count and cover mosaic, so refresh every loaded user-collections cache.
-      // The username sits in the middle of the key, so no prefix matches it; use a predicate.
-      void queryClient.invalidateQueries({
-        predicate: (query) =>
-          query.queryKey[0] === 'users' && query.queryKey[2] === 'collections',
-      });
+      // Adding/removing a record changes a collection's record count and cover mosaic, so refresh
+      // the per-username profile caches that render the rail (and its collectionCount).
+      invalidateProfileCollections(queryClient);
     },
   });
 }
