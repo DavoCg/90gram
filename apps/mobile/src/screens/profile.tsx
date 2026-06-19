@@ -2,11 +2,10 @@ import { useCallback } from 'react';
 import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
-import type { CollectionDto, VinylSummaryDto } from '@getvinyls/api-client';
+import type { CollectionDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
 import { Text } from '../components/text';
 import { PressableScale } from '../components/pressable-scale';
-import { CoverArt } from '../components/cover-art';
 import { Avatar } from '../components/avatar';
 import { Button } from '../components/button';
 import { FollowButton } from '../components/follow-button';
@@ -15,7 +14,7 @@ import { AppHeader } from '../components/AppHeader';
 import { IconButton } from '../components/button';
 import { useThemeColors } from '../theme/colors';
 import { useScreenRefresh } from '../hooks/use-screen-refresh';
-import { useUser, useUserCollections, useUserFavorites } from '../api/hooks';
+import { useUser, useUserCollections } from '../api/hooks';
 
 const LIST_BOTTOM_PADDING = 160;
 
@@ -41,27 +40,6 @@ function Stat({
   );
 }
 
-// A favorite record in the horizontal rail: cover + title.
-function FavoriteRailItem({
-  vinyl,
-  onPress,
-}: {
-  vinyl: VinylSummaryDto;
-  onPress: (id: string) => void;
-}) {
-  return (
-    <PressableScale onPress={() => onPress(vinyl.id)} style={{ width: 120 }}>
-      <CoverArt uri={vinyl.coverArtUrl} size={120} radius={10} />
-      <Text numberOfLines={1} size="sm" weight="semibold" className="mt-1.5">
-        {vinyl.title}
-      </Text>
-      <Text numberOfLines={1} size="xs" color="neutral-soft">
-        {vinyl.artist}
-      </Text>
-    </PressableScale>
-  );
-}
-
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
     <View className="flex-row items-center justify-between px-4 pb-2 pt-5">
@@ -74,21 +52,27 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
 }
 
 // The shared profile view, used for both the signed-in user's own profile (isMe) and any other
-// user's public profile. It renders the identity header, the social stats, a collections rail, and a
-// favorites rail. Owner-only affordances (edit, settings, new collection) show only when isMe; other
-// users get a follow button. Lives in src/screens so both profile routes share one implementation.
-export default function ProfileScreen({ username }: { username: string }) {
+// user's public profile. It renders the identity header, the social stats, and a collections rail.
+// Owner-only affordances (edit, settings, new collection) show only when isMe; other users get a
+// follow button. Lives in src/screens so both profile routes share one implementation. `showBack`
+// controls the header arrow: the "You" tab is a stack root and passes false; pushed profiles leave
+// it undefined so AppHeader auto-detects (canGoBack) and shows the arrow.
+export default function ProfileScreen({
+  username,
+  showBack,
+}: {
+  username: string;
+  showBack?: boolean;
+}) {
   const router = useRouter();
   const colors = useThemeColors();
   const { data: profile, isLoading, isError, refetch } = useUser(username);
   const { data: collections, refetch: refetchCollections } = useUserCollections(username);
-  const { data: favorites, refetch: refetchFavorites } = useUserFavorites(username);
 
   const { refreshing, handleRefresh } = useScreenRefresh(() =>
-    Promise.all([refetch(), refetchCollections(), refetchFavorites()]),
+    Promise.all([refetch(), refetchCollections()]),
   );
 
-  const onOpenVinyl = useCallback((id: string) => router.push(`/profile/vinyl/${id}`), [router]);
   const onOpenCollection = useCallback(
     (id: string) => router.push(`/profile/collection/${id}`),
     [router],
@@ -97,7 +81,7 @@ export default function ProfileScreen({ username }: { username: string }) {
   if (isLoading || !profile) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader />
+        <AppHeader showBack={showBack} />
         <View className="flex-1 items-center justify-center gap-3 px-6">
           {isError ? (
             <>
@@ -119,20 +103,18 @@ export default function ProfileScreen({ username }: { username: string }) {
 
   const handle = profile.username ?? username;
   const myCollections = collections ?? [];
-  const recentFavorites = (favorites ?? []).slice(0, 12);
 
   return (
     <View className="flex-1 bg-bg">
       <AppHeader
         title={`@${handle}`}
+        showBack={showBack}
         right={
           profile.isMe ? (
             <IconButton
               onPress={() => router.push('/settings')}
-              variant="ghost"
-              size="xs"
               accessibilityLabel="Settings"
-              icon={<Settings color={colors.text} size={22} />}
+              icon={<Settings color={colors.text} size={20} />}
             />
           ) : undefined
         }
@@ -191,7 +173,7 @@ export default function ProfileScreen({ username }: { username: string }) {
               layout="flex"
               variant="soft"
               color="neutral"
-              onPress={() => router.push('/profile/edit')}
+              onPress={() => router.push('/edit-profile')}
             />
           ) : profile.username ? (
             <View className="items-start">
@@ -229,24 +211,6 @@ export default function ProfileScreen({ username }: { username: string }) {
                 collection={collection}
                 onPress={onOpenCollection}
               />
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Favorites rail. */}
-        <SectionHeader title="Favorites" />
-        {recentFavorites.length === 0 ? (
-          <Text color="neutral-soft" className="px-4">
-            No favorite records yet.
-          </Text>
-        ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
-          >
-            {recentFavorites.map((vinyl) => (
-              <FavoriteRailItem key={vinyl.id} vinyl={vinyl} onPress={onOpenVinyl} />
             ))}
           </ScrollView>
         )}

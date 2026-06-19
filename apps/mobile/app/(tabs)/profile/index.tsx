@@ -20,5 +20,6 @@ export default function MyProfileScreen() {
     );
   }
 
-  return <ProfileScreen username={profile.username} />;
+  // The "You" tab is the root of its stack, so never show a back arrow here (only pushed profiles do).
+  return <ProfileScreen username={profile.username} showBack={false} />;
 }
