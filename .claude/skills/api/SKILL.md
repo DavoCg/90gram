@@ -43,6 +43,20 @@ trusted origins, secret) lives in `src/auth.ts`; secrets and the email provider 
 `src/env.ts`. When no email provider is configured, sign-in codes are logged to the API console so the
 flow is usable in local development.
 
+## Authenticated write surfaces (favorites, settings, social)
+
+The vinyl routes stay read-only, but several routers are per-user write surfaces, all following one
+pattern: resolve the better-auth session with the shared `getUserId(c)` / `unauthorized` helpers in
+`src/auth-helpers.ts` (do NOT re-implement them per router) and 401 without a session. These are
+`routes/favorites.ts`, `routes/settings.ts`, `routes/users.ts` (profiles, username, follow,
+follower/following lists, a user's public favorites + collections), and `routes/collections.ts`
+(collection CRUD + items). Social visibility is PUBLIC: reading any profile/favorites/collection
+needs no session; only writes (edit profile, claim username, follow, collection mutations) do.
+Owner-only writes 403 when the row belongs to another user. The unique `username` is validated +
+normalized at the boundary (`UsernameSchema`); a duplicate claim is caught as Prisma `P2002` -> 409.
+Price-returning social routes (a user's favorites, a collection's vinyls) use the same
+`currencyContext` middleware as the vinyl routes.
+
 ## Why this matters
 
 `/openapi.json` is the contract consumed by `pnpm gen:api-types`. If a route's Zod schema changes, the

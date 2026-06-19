@@ -56,6 +56,28 @@ navigator plus the global mini-player only mount once signed in. Read the sessio
 NOT go through the generated api-client; that client only forwards the better-auth cookie so future
 per-user endpoints are authenticated.
 
+## Social (profiles, follow, collections)
+
+The **Profile ("You") tab** (`app/(tabs)/profile/`) replaced the old Radio tab. It is its own stack
+(like Home/Favorites) so user profiles, collections, and records opened from them push on top while
+the tab bar and mini-player stay put. The shared profile view is `src/screens/profile.tsx` (used by
+both the "You" tab and `user/[username]`; it shows owner affordances when `isMe`, else a follow
+button). Other screens: `edit`, `followers`/`following` (shared `src/screens/user-list.tsx`),
+`collection/[id]`, `new-collection` (a form sheet), plus `vinyl/[id]` + `shop/[id]` re-exports so the
+shared detail screens work inside this stack too.
+
+**Onboarding**: `app/(onboarding)/profile-setup.tsx` claims a unique username after the first
+sign-in. The root gate (`app/_layout.tsx`) reads `useMyProfile()` and, while signed in with a null
+username, mounts `(onboarding)` instead of `(tabs)`; claiming a username flips the guard. The gate
+latches `appReady` once auth AND the first profile load settle, so the cold-start splash covers the
+onboarding-vs-tabs decision.
+
+**Add to collection** is a root form sheet (`app/add-to-collection.tsx`, like the currency picker),
+opened from a record's page; it toggles membership (optimistic, mirrors the favorites pattern) and can
+create a collection inline. Social hooks live in `src/api/hooks.ts` (keys under `queryKeys.profile`,
+`queryKeys.users.*`, `queryKeys.collections.*`); components: `Avatar`, `FollowButton`, `UserRow`,
+`CollectionCard`. Profiles, favorites, and collections are public; only writes need a session.
+
 ## Forms
 
 - **Every form uses TanStack Form** (`@tanstack/react-form`). Use `useForm({ defaultValues, onSubmit })`

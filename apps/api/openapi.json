@@ -621,6 +621,344 @@
         "required": [
           "currency"
         ]
+      },
+      "MyProfile": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "vinyl_lover"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        },
+        "required": [
+          "username",
+          "displayName",
+          "bio",
+          "avatarUrl"
+        ]
+      },
+      "UpdateProfile": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 50
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri"
+          }
+        }
+      },
+      "ClaimUsername": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{3,20}$"
+          }
+        },
+        "required": [
+          "username"
+        ]
+      },
+      "UsernameAvailability": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "vinyl_lover"
+          },
+          "available": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "username",
+          "available"
+        ]
+      },
+      "PublicUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "bio": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "example": "Digging deep house since 2009."
+              },
+              "followerCount": {
+                "type": "integer",
+                "example": 42
+              },
+              "followingCount": {
+                "type": "integer",
+                "example": 12
+              },
+              "collectionCount": {
+                "type": "integer",
+                "example": 3
+              },
+              "favoriteCount": {
+                "type": "integer",
+                "example": 87
+              }
+            },
+            "required": [
+              "bio",
+              "followerCount",
+              "followingCount",
+              "collectionCount",
+              "favoriteCount"
+            ]
+          }
+        ]
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "vinyl_lover"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Vinyl Lover"
+          },
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uri",
+            "example": "https://example.com/me.jpg"
+          },
+          "isFollowing": {
+            "type": "boolean",
+            "example": false
+          },
+          "isMe": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "username",
+          "displayName",
+          "avatarUrl",
+          "isFollowing",
+          "isMe"
+        ]
+      },
+      "UserList": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          }
+        },
+        "required": [
+          "users",
+          "nextCursor"
+        ]
+      },
+      "CollectionList": {
+        "type": "object",
+        "properties": {
+          "collections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Collection"
+            }
+          }
+        },
+        "required": [
+          "collections"
+        ]
+      },
+      "Collection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          },
+          "name": {
+            "type": "string",
+            "example": "Best techno 2026"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "example": "Peak-time cuts from this year."
+          },
+          "vinylCount": {
+            "type": "integer",
+            "example": 12
+          },
+          "coverArtUrls": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            },
+            "example": [
+              "https://example.com/cover.jpg"
+            ]
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-05T12:00:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-06-05T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "vinylCount",
+          "coverArtUrls",
+          "owner",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateCollection": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "Best techno 2026"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CollectionMemberships": {
+        "type": "object",
+        "properties": {
+          "collectionIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "collectionIds"
+        ]
+      },
+      "UpdateCollection": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "example": "Best techno 2026"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AddCollectionVinyl": {
+        "type": "object",
+        "properties": {
+          "vinylId": {
+            "type": "string",
+            "minLength": 1,
+            "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+          }
+        },
+        "required": [
+          "vinylId"
+        ]
       }
     },
     "parameters": {}
@@ -1247,6 +1585,1027 @@
           },
           "401": {
             "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/profile": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get the signed-in user profile",
+        "responses": {
+          "200": {
+            "description": "The signed-in user profile (username is null until claimed during onboarding).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update the signed-in user profile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfile"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/username": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Claim or change the signed-in user username",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimUsername"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated profile with the claimed username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyProfile"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "That username is already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usernames/available": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Check whether a username is available",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the (normalized) username is valid and unclaimed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsernameAvailability"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get a public user profile by username",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The public profile with social counts (viewer-aware follow state).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicUser"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}/follow": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Follow a user",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Now following (idempotent: also 200 if already following).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot follow yourself.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Unfollow a user",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "No longer following (idempotent: also 200 if not following).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}/followers": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List a user followers",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of users who follow this user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}/following": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List the users a user follows",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of users this user follows.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}/favorites": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List a user favorited vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of the vinyls this user has favorited.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinylList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{username}/collections": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "List a user collections",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "vinyl_lover"
+            },
+            "required": true,
+            "name": "username",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The user saved groups (collections), each with a cover preview and count.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/collections": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "List the signed-in user collections",
+        "responses": {
+          "200": {
+            "description": "The signed-in user saved groups (collections).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Create a collection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/collection-memberships": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Which of the signed-in user collections contain a vinyl",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "vinylId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The ids of the signed-in user collections that contain the vinyl.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionMemberships"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/{id}": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Get a collection by id",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection metadata and owner. Its vinyls are paginated separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Update a collection",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCollection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Collection"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Delete a collection",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection was deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/{id}/vinyls": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "List a collection vinyls",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A cursor-paginated page of the vinyls saved in this collection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VinylList"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Add a vinyl to a collection",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCollectionVinyl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The vinyl was added (idempotent: also 200 if already in the collection).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection or vinyl not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/{id}/vinyls/{vinylId}": {
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Remove a vinyl from a collection",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "example": "clz0a1b2c3d4e5f6g7h8i9j0"
+            },
+            "required": true,
+            "name": "vinylId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The vinyl was removed (idempotent: also 200 if it was not in the collection).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the owner.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found.",
             "content": {
               "application/json": {
                 "schema": {

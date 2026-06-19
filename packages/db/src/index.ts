@@ -16,6 +16,10 @@ import type {
   VinylGenre as VinylGenreRow,
   Favorite as FavoriteRow,
   UserSetting as UserSettingRow,
+  UserProfile as UserProfileRow,
+  Follow as FollowRow,
+  Collection as CollectionRow,
+  CollectionVinyl as CollectionVinylRow,
 } from './generated/prisma/client.js';
 import { StockStatus } from './generated/prisma/enums.js';
 
@@ -54,4 +58,8 @@ export type {
   VinylGenreRow,
   FavoriteRow,
   UserSettingRow,
+  UserProfileRow,
+  FollowRow,
+  CollectionRow,
+  CollectionVinylRow,
 };

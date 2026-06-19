@@ -37,4 +37,18 @@ export type CurrencySettingDto = components['schemas']['CurrencySetting'];
 export type UpdateCurrencySettingDto = components['schemas']['UpdateCurrencySetting'];
 export type CurrencyListDto = components['schemas']['CurrencyList'];
 
+// Social (profiles, follows, collections).
+export type MyProfileDto = components['schemas']['MyProfile'];
+export type UpdateProfileDto = components['schemas']['UpdateProfile'];
+export type ClaimUsernameDto = components['schemas']['ClaimUsername'];
+export type UsernameAvailabilityDto = components['schemas']['UsernameAvailability'];
+export type PublicUserDto = components['schemas']['PublicUser'];
+export type UserSummaryDto = components['schemas']['UserSummary'];
+export type UserListDto = components['schemas']['UserList'];
+export type CollectionDto = components['schemas']['Collection'];
+export type CollectionListDto = components['schemas']['CollectionList'];
+export type CreateCollectionDto = components['schemas']['CreateCollection'];
+export type UpdateCollectionDto = components['schemas']['UpdateCollection'];
+export type CollectionMembershipsDto = components['schemas']['CollectionMemberships'];
+
 export type { paths, components } from './schema';

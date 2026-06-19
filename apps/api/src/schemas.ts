@@ -232,6 +232,166 @@ export const IdParamSchema = z.object({
     .openapi({ param: { name: 'id', in: 'path' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
 });
 
+// --- Social: profiles, follows, collections ---
+
+// The public username handle: 3-20 chars, lowercase letters / digits / underscore. Trimmed and
+// lowercased before validation so the handle is normalized at the boundary; the UserProfile.username
+// `@unique` is the race-safe backstop (a duplicate insert is caught as P2002 -> 409). Mirrors how the
+// supported currency set is validated at the API boundary rather than by a DB constraint.
+export const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
+export const UsernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(
+    USERNAME_REGEX,
+    'Username must be 3 to 20 characters: lowercase letters, numbers, or underscore.',
+  );
+
+// Username as a path param (other users' profiles, follow, their content).
+export const UsernameParamSchema = z.object({
+  username: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'username', in: 'path' }, example: 'vinyl_lover' }),
+});
+
+// A lightweight user, for follower/following lists and as the owner on a collection. `isFollowing`
+// is relative to the signed-in viewer (false when anonymous or when it is the viewer themselves);
+// `isMe` marks the viewer's own row.
+export const UserSummarySchema = z
+  .object({
+    username: z.string().nullable().openapi({ example: 'vinyl_lover' }),
+    displayName: z.string().nullable().openapi({ example: 'Vinyl Lover' }),
+    avatarUrl: z.url().nullable().openapi({ example: 'https://example.com/me.jpg' }),
+    isFollowing: z.boolean().openapi({ example: false }),
+    isMe: z.boolean().openapi({ example: false }),
+  })
+  .openapi('UserSummary');
+
+// A user's public profile: the summary plus the social counts shown on the profile screen.
+export const PublicUserSchema = UserSummarySchema.extend({
+  bio: z.string().nullable().openapi({ example: 'Digging deep house since 2009.' }),
+  followerCount: z.number().int().openapi({ example: 42 }),
+  followingCount: z.number().int().openapi({ example: 12 }),
+  collectionCount: z.number().int().openapi({ example: 3 }),
+  favoriteCount: z.number().int().openapi({ example: 87 }),
+}).openapi('PublicUser');
+
+// The signed-in user's own profile (used by onboarding to decide whether a username is set yet, and
+// by the edit screen). `username` is null until claimed during onboarding.
+export const MyProfileSchema = z
+  .object({
+    username: z.string().nullable().openapi({ example: 'vinyl_lover' }),
+    displayName: z.string().nullable(),
+    bio: z.string().nullable(),
+    avatarUrl: z.url().nullable(),
+  })
+  .openapi('MyProfile');
+
+// Body for editing the signed-in user's profile (everything except the username, which is claimed
+// separately). A field omitted is left unchanged; null clears it.
+export const UpdateProfileSchema = z
+  .object({
+    displayName: z.string().trim().max(50).nullish(),
+    bio: z.string().trim().max(300).nullish(),
+    avatarUrl: z.url().nullish(),
+  })
+  .openapi('UpdateProfile');
+
+// Body for claiming / changing the username (onboarding and later edits).
+export const ClaimUsernameSchema = z
+  .object({ username: UsernameSchema })
+  .openapi('ClaimUsername');
+
+// Username availability check (drives the onboarding field's live validation).
+export const UsernameAvailabilitySchema = z
+  .object({
+    username: z.string().openapi({ example: 'vinyl_lover' }),
+    available: z.boolean().openapi({ example: true }),
+  })
+  .openapi('UsernameAvailability');
+
+// Query for the availability check.
+export const UsernameQuerySchema = z.object({
+  username: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'username', in: 'query' }, example: 'vinyl_lover' }),
+});
+
+// A cursor-paginated page of users (followers / following).
+export const UserListSchema = z
+  .object({
+    users: z.array(UserSummarySchema),
+    nextCursor: z.string().nullable().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+  })
+  .openapi('UserList');
+
+// A saved group of vinyls. Carries a small preview of cover art and its owner so a card renders
+// without a follow-up fetch. The vinyls themselves are paginated via GET /collections/{id}/vinyls.
+export const CollectionSchema = z
+  .object({
+    id: z.string().openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+    name: z.string().openapi({ example: 'Best techno 2026' }),
+    description: z.string().nullable().openapi({ example: 'Peak-time cuts from this year.' }),
+    vinylCount: z.number().int().openapi({ example: 12 }),
+    coverArtUrls: z.array(z.url()).openapi({ example: ['https://example.com/cover.jpg'] }),
+    owner: UserSummarySchema,
+    createdAt: z.iso.datetime().openapi({ example: '2026-06-05T12:00:00.000Z' }),
+    updatedAt: z.iso.datetime().openapi({ example: '2026-06-05T12:00:00.000Z' }),
+  })
+  .openapi('Collection');
+
+export const CollectionListSchema = z
+  .object({ collections: z.array(CollectionSchema) })
+  .openapi('CollectionList');
+
+export const CreateCollectionSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).openapi({ example: 'Best techno 2026' }),
+    description: z.string().trim().max(300).nullish(),
+  })
+  .openapi('CreateCollection');
+
+export const UpdateCollectionSchema = z
+  .object({
+    name: z.string().trim().min(1).max(80).openapi({ example: 'Best techno 2026' }),
+    description: z.string().trim().max(300).nullish(),
+  })
+  .openapi('UpdateCollection');
+
+// Body for adding a vinyl to a collection.
+export const AddCollectionVinylSchema = z
+  .object({ vinylId: z.string().min(1).openapi({ example: 'clz0a1b2c3d4e5f6g7h8i9j0' }) })
+  .openapi('AddCollectionVinyl');
+
+// Which of the signed-in user's collections contain a given vinyl (drives the "add to collection"
+// sheet's checkmarks). Ids only, mirroring FavoriteIds.
+export const CollectionMembershipsSchema = z
+  .object({ collectionIds: z.array(z.string()) })
+  .openapi('CollectionMemberships');
+
+// Query carrying a target vinyl id (the collection-memberships lookup for the add-to-collection sheet).
+export const VinylIdQuerySchema = z.object({
+  vinylId: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'vinylId', in: 'query' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+});
+
+// Path params for a collection-vinyl membership (remove a vinyl from a collection).
+export const CollectionVinylParamSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'id', in: 'path' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+  vinylId: z
+    .string()
+    .min(1)
+    .openapi({ param: { name: 'vinylId', in: 'path' }, example: 'clz0a1b2c3d4e5f6g7h8i9j0' }),
+});
+
 // --- Cursor pagination (shared by every paginated list) ---
 
 // Query for a cursor-paginated list: a page size and an opaque cursor (the id of the last row of
@@ -503,5 +663,79 @@ export function toFavoriteTrackDto(row: FavoriteTrackRow): z.infer<typeof Favori
       artist: vinyl.artist,
       coverArtUrl: vinyl.coverArtUrl,
     },
+  };
+}
+
+// --- Social row -> wire DTO mappers ---
+
+// The viewer-relative flags every user DTO carries.
+type ViewerFlags = { isFollowing: boolean; isMe: boolean };
+
+// The profile fields used to render a user. Absent (null) when the user has no profile row yet.
+type ProfileFields = {
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+} | null;
+
+export function toUserSummaryDto(
+  profile: ProfileFields,
+  flags: ViewerFlags,
+): z.infer<typeof UserSummarySchema> {
+  return {
+    username: profile?.username ?? null,
+    displayName: profile?.displayName ?? null,
+    avatarUrl: profile?.avatarUrl ?? null,
+    isFollowing: flags.isFollowing,
+    isMe: flags.isMe,
+  };
+}
+
+export function toPublicUserDto(
+  profile: NonNullable<ProfileFields> & { bio: string | null },
+  flags: ViewerFlags,
+  counts: {
+    followerCount: number;
+    followingCount: number;
+    collectionCount: number;
+    favoriteCount: number;
+  },
+): z.infer<typeof PublicUserSchema> {
+  return {
+    ...toUserSummaryDto(profile, flags),
+    bio: profile.bio,
+    ...counts,
+  };
+}
+
+// The collection shape the mapper expects: the row plus a count of its vinyls and a few cover
+// thumbnails for the card. The route's `include`/`select` must match this (see routes/collections.ts).
+type CollectionRowForDto = {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: { vinyls: number };
+  vinyls: { vinyl: { coverArtUrl: string | null } }[];
+};
+
+export function toCollectionDto(
+  row: CollectionRowForDto,
+  owner: z.infer<typeof UserSummarySchema>,
+): z.infer<typeof CollectionSchema> {
+  // Up to four real cover images for the card's preview grid (skip records with no cover).
+  const coverArtUrls = row.vinyls
+    .flatMap((cv) => (cv.vinyl.coverArtUrl ? [cv.vinyl.coverArtUrl] : []))
+    .slice(0, 4);
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    vinylCount: row._count.vinyls,
+    coverArtUrls,
+    owner,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }

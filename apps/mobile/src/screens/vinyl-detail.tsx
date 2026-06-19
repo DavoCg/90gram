@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
-import { ChevronRight, Play, Shuffle } from 'lucide-react-native';
+import { ChevronRight, ListPlus, Play, Shuffle } from 'lucide-react-native';
 import type { FavoriteTrackDto, OfferDto, TrackDto, VinylDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
 import { Text } from '../components/text';
@@ -10,6 +10,7 @@ import { PressableScale } from '../components/pressable-scale';
 import { CoverArt } from '../components/cover-art';
 import { useVinyl } from '../api/hooks';
 import { AppHeader } from '../components/AppHeader';
+import { IconButton } from '../components/button';
 import { FavoriteButton } from '../components/favorite-button';
 import { EqualizerBars } from '../components/equalizer-bars';
 import { audioEngine } from '../audio/engine';
@@ -145,7 +146,20 @@ export default function VinylDetailScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader right={<FavoriteButton targetType="vinyl" vinyl={vinyl} />} />
+      <AppHeader
+        right={
+          <View className="flex-row items-center gap-1">
+            <IconButton
+              onPress={() => router.push(`/add-to-collection?vinylId=${vinyl.id}`)}
+              variant="ghost"
+              size="xs"
+              accessibilityLabel="Save to collection"
+              icon={<ListPlus color={colors.text} size={22} />}
+            />
+            <FavoriteButton targetType="vinyl" vinyl={vinyl} />
+          </View>
+        }
+      />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

@@ -17,6 +17,16 @@ import type {
   VinylDto,
   VinylListDto,
   VinylSummaryDto,
+  MyProfileDto,
+  UpdateProfileDto,
+  UsernameAvailabilityDto,
+  PublicUserDto,
+  UserSummaryDto,
+  UserListDto,
+  CollectionDto,
+  CreateCollectionDto,
+  UpdateCollectionDto,
+  CollectionMembershipsDto,
 } from '@getvinyls/api-client';
 import { apiClient } from './client';
 import { queryKeys } from './queryKeys';
@@ -478,4 +488,406 @@ export function useToggleFavorite(): ToggleFavoriteApi {
   }, []);
 
   return { toggle, isPending: sync.isPending };
+}
+
+// --- Social: profile, follow, collections (per-user, authenticated) ---
+
+// The signed-in user's own profile. Drives the onboarding gate (username === null means the user
+// still needs to claim one) and the profile tab. `enabled` is left default; it is only mounted once
+// signed in (the gate), and the client forwards the session cookie.
+export function useMyProfile(enabled = true): UseQueryResult<MyProfileDto> {
+  return useQuery({
+    queryKey: queryKeys.profile,
+    enabled,
+    queryFn: async (): Promise<MyProfileDto> => {
+      const { data, error } = await apiClient.GET('/me/profile');
+      if (error || !data) {
+        throw new Error('Failed to load profile');
+      }
+      return data;
+    },
+  });
+}
+
+// Edit the signed-in user's profile (display name, bio, avatar). Refreshes the profile cache on success.
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: UpdateProfileDto): Promise<MyProfileDto> => {
+      const { data, error } = await apiClient.PUT('/me/profile', { body });
+      if (error || !data) {
+        throw new Error('Failed to update profile');
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.profile, data);
+    },
+  });
+}
+
+// Claim or change the username (onboarding + later edits). Throws a tagged error on a 409 so the
+// caller can surface "that username is taken" distinctly from a generic failure.
+export function useClaimUsername() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (username: string): Promise<MyProfileDto> => {
+      const { data, error, response } = await apiClient.POST('/me/username', { body: { username } });
+      if (response.status === 409) {
+        throw new Error('taken');
+      }
+      if (error || !data) {
+        throw new Error('Failed to set username');
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.profile, data);
+    },
+  });
+}
+
+// Live availability check for the onboarding field. Disabled until the handle looks plausible
+// (length >= 3); debounce the input in the component before passing it here.
+export function useUsernameAvailable(username: string): UseQueryResult<UsernameAvailabilityDto> {
+  return useQuery({
+    queryKey: queryKeys.usernameAvailable(username),
+    enabled: username.length >= 3,
+    queryFn: async (): Promise<UsernameAvailabilityDto> => {
+      const { data, error } = await apiClient.GET('/usernames/available', {
+        params: { query: { username } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to check username');
+      }
+      return data;
+    },
+  });
+}
+
+// A public user profile by username (viewer-aware follow state + counts).
+export function useUser(username: string): UseQueryResult<PublicUserDto> {
+  return useQuery({
+    queryKey: queryKeys.users.detail(username),
+    enabled: username.length > 0,
+    queryFn: async (): Promise<PublicUserDto> => {
+      const { data, error } = await apiClient.GET('/users/{username}', {
+        params: { path: { username } },
+      });
+      if (error || !data) {
+        throw new Error(`User ${username} not found`);
+      }
+      return data;
+    },
+  });
+}
+
+// Follow / unfollow a user. Optimistic: flips the cached profile's `isFollowing` and nudges the
+// follower count immediately, reconciling on settle. Read state via the useUser cache.
+export function useFollowUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      username,
+      follow,
+    }: {
+      username: string;
+      follow: boolean;
+    }): Promise<void> => {
+      if (follow) {
+        const { error } = await apiClient.POST('/users/{username}/follow', {
+          params: { path: { username } },
+        });
+        if (error) throw new Error('Failed to follow');
+        return;
+      }
+      const { error } = await apiClient.DELETE('/users/{username}/follow', {
+        params: { path: { username } },
+      });
+      if (error) throw new Error('Failed to unfollow');
+    },
+    onMutate: async ({ username, follow }) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.users.detail(username) });
+      const previous = queryClient.getQueryData<PublicUserDto>(queryKeys.users.detail(username));
+      if (previous) {
+        queryClient.setQueryData<PublicUserDto>(queryKeys.users.detail(username), {
+          ...previous,
+          isFollowing: follow,
+          followerCount: Math.max(0, previous.followerCount + (follow ? 1 : -1)),
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, { username }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.users.detail(username), context.previous);
+      }
+    },
+    onSettled: (_data, _err, { username }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users.detail(username) });
+      // The signed-in user's own following count lives on their profile screen; refresh it.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+  });
+}
+
+function flattenUsers(data: InfiniteData<UserListDto>): UserSummaryDto[] {
+  return data.pages.flatMap((page) => page.users);
+}
+
+// A user's followers, cursor-paginated.
+export function useFollowers(username: string): UseInfiniteQueryResult<UserSummaryDto[], Error> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.users.followers(username),
+    enabled: username.length > 0,
+    queryFn: async ({ pageParam }): Promise<UserListDto> => {
+      const { data, error } = await apiClient.GET('/users/{username}/followers', {
+        params: { path: { username }, query: { limit: PAGE_SIZE, cursor: pageParam } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load followers');
+      }
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    select: flattenUsers,
+  });
+}
+
+// The users a user follows, cursor-paginated.
+export function useFollowing(username: string): UseInfiniteQueryResult<UserSummaryDto[], Error> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.users.following(username),
+    enabled: username.length > 0,
+    queryFn: async ({ pageParam }): Promise<UserListDto> => {
+      const { data, error } = await apiClient.GET('/users/{username}/following', {
+        params: { path: { username }, query: { limit: PAGE_SIZE, cursor: pageParam } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load following');
+      }
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    select: flattenUsers,
+  });
+}
+
+// A user's favorited vinyls (public), cursor-paginated.
+export function useUserFavorites(username: string): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.users.favorites(username),
+    enabled: username.length > 0,
+    queryFn: async ({ pageParam }): Promise<VinylListDto> => {
+      const { data, error } = await apiClient.GET('/users/{username}/favorites', {
+        params: { path: { username }, query: { limit: PAGE_SIZE, cursor: pageParam } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load favorites');
+      }
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    select: flattenVinyls,
+  });
+}
+
+// A user's collections (not paginated: a short list).
+export function useUserCollections(username: string): UseQueryResult<CollectionDto[]> {
+  return useQuery({
+    queryKey: queryKeys.users.collections(username),
+    enabled: username.length > 0,
+    queryFn: async (): Promise<CollectionDto[]> => {
+      const { data, error } = await apiClient.GET('/users/{username}/collections', {
+        params: { path: { username } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load collections');
+      }
+      return data.collections;
+    },
+  });
+}
+
+// The signed-in user's own collections.
+export function useMyCollections(): UseQueryResult<CollectionDto[]> {
+  return useQuery({
+    queryKey: queryKeys.collections.mine,
+    queryFn: async (): Promise<CollectionDto[]> => {
+      const { data, error } = await apiClient.GET('/me/collections');
+      if (error || !data) {
+        throw new Error('Failed to load collections');
+      }
+      return data.collections;
+    },
+  });
+}
+
+// A single collection's metadata + owner.
+export function useCollection(id: string): UseQueryResult<CollectionDto> {
+  return useQuery({
+    queryKey: queryKeys.collections.detail(id),
+    enabled: id.length > 0,
+    queryFn: async (): Promise<CollectionDto> => {
+      const { data, error } = await apiClient.GET('/collections/{id}', {
+        params: { path: { id } },
+      });
+      if (error || !data) {
+        throw new Error(`Collection ${id} not found`);
+      }
+      return data;
+    },
+  });
+}
+
+// A collection's vinyls, cursor-paginated.
+export function useCollectionVinyls(id: string): UseInfiniteQueryResult<VinylSummaryDto[], Error> {
+  return useInfiniteQuery({
+    queryKey: queryKeys.collections.vinyls(id),
+    enabled: id.length > 0,
+    queryFn: async ({ pageParam }): Promise<VinylListDto> => {
+      const { data, error } = await apiClient.GET('/collections/{id}/vinyls', {
+        params: { path: { id }, query: { limit: PAGE_SIZE, cursor: pageParam } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load collection');
+      }
+      return data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    select: flattenUniqueVinyls,
+  });
+}
+
+// Create a collection. Refreshes the owner's collection lists on success.
+export function useCreateCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CreateCollectionDto): Promise<CollectionDto> => {
+      const { data, error } = await apiClient.POST('/me/collections', { body });
+      if (error || !data) {
+        throw new Error('Failed to create collection');
+      }
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+  });
+}
+
+// Edit a collection (name / description).
+export function useUpdateCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: UpdateCollectionDto;
+    }): Promise<CollectionDto> => {
+      const { data, error } = await apiClient.PUT('/collections/{id}', {
+        params: { path: { id } },
+        body,
+      });
+      if (error || !data) {
+        throw new Error('Failed to update collection');
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(queryKeys.collections.detail(data.id), data);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
+    },
+  });
+}
+
+// Delete a collection.
+export function useDeleteCollection() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      const { error } = await apiClient.DELETE('/collections/{id}', { params: { path: { id } } });
+      if (error) throw new Error('Failed to delete collection');
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+    },
+  });
+}
+
+// Which of my collections contain a vinyl (drives the add-to-collection sheet's checkmarks).
+export function useCollectionMemberships(vinylId: string): UseQueryResult<CollectionMembershipsDto> {
+  return useQuery({
+    queryKey: queryKeys.collections.memberships(vinylId),
+    enabled: vinylId.length > 0,
+    queryFn: async (): Promise<CollectionMembershipsDto> => {
+      const { data, error } = await apiClient.GET('/me/collection-memberships', {
+        params: { query: { vinylId } },
+      });
+      if (error || !data) {
+        throw new Error('Failed to load collections');
+      }
+      return data;
+    },
+  });
+}
+
+// Add / remove a vinyl to/from a collection. Optimistic on the memberships cache so the sheet's
+// checkmark flips instantly; reconciles the affected collection lists on settle.
+export function useToggleCollectionVinyl() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      collectionId,
+      vinylId,
+      add,
+    }: {
+      collectionId: string;
+      vinylId: string;
+      add: boolean;
+    }): Promise<void> => {
+      if (add) {
+        const { error } = await apiClient.POST('/collections/{id}/vinyls', {
+          params: { path: { id: collectionId } },
+          body: { vinylId },
+        });
+        if (error) throw new Error('Failed to add to collection');
+        return;
+      }
+      const { error } = await apiClient.DELETE('/collections/{id}/vinyls/{vinylId}', {
+        params: { path: { id: collectionId, vinylId } },
+      });
+      if (error) throw new Error('Failed to remove from collection');
+    },
+    onMutate: async ({ collectionId, vinylId, add }) => {
+      const key = queryKeys.collections.memberships(vinylId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<CollectionMembershipsDto>(key);
+      const current = previous?.collectionIds ?? [];
+      const next = add
+        ? [...new Set([...current, collectionId])]
+        : current.filter((id) => id !== collectionId);
+      queryClient.setQueryData<CollectionMembershipsDto>(key, { collectionIds: next });
+      return { previous };
+    },
+    onError: (_err, { vinylId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(queryKeys.collections.memberships(vinylId), context.previous);
+      }
+    },
+    onSettled: (_data, _err, { collectionId, vinylId }) => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.memberships(vinylId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.mine });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.detail(collectionId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.collections.vinyls(collectionId) });
+    },
+  });
 }
