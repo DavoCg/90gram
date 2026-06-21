@@ -1,38 +1,52 @@
-import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import { Flame, Heart, Home, Search, User } from "lucide-react-native";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
 	useAnimatedStyle,
 	useSharedValue,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUniwind } from "uniwind";
+import { LiquidGlassSurface } from "../../src/components/LiquidGlassSurface";
 import { NowPlaying } from "../../src/components/NowPlaying";
 import { requestSearchFocus } from "../../src/search/focus-signal";
 import { useThemeColors } from "../../src/theme/colors";
+import {
+	TAB_BAR_HEIGHT,
+	TAB_BAR_SIDE_MARGIN,
+	tabBarBottomOffset,
+} from "../../src/theme/tab-bar";
 
-// Bottom tab navigator: Home, Hot, Radio, Favorites, Search. Icons are lucide-react-native
+// Bottom tab navigator: Home, Hot, Favorites, Search, You. Icons are lucide-react-native
 // (SVG), tinted by React Navigation via the `color` prop it passes to tabBarIcon. The tab
 // bar and header colors come from useThemeColors (the JS mirror of the global.css tokens),
 // since React Navigation chrome cannot read Uniwind className styles.
+//
+// The bar is an Instagram-style FLOATING, icon-only capsule: detached from the screen edges,
+// lifted above the home indicator, rounded into a pill, and backed by Apple's Liquid Glass
+// (LiquidGlassSurface uses GlassView on iOS 26+ and falls back to a blur elsewhere). Labels are
+// hidden, so it reads as a compact row of icons. Geometry constants are shared with the
+// mini-player via src/theme/tab-bar.ts so the player floats correctly just above the pill.
 //
 // This layout also OWNS the global mini-player (NowPlaying). Mounting it here, INSIDE the tab
 // shell, is what lets a sibling root route (settings) slide cleanly over both the tabs and the
 // player: it is route structure, not z-index, that puts settings on top. The shared expand/drag
 // values also drive the receding "card" effect on the tab content as the player opens.
 
-// Smaller than the React Navigation default (~24), with extra breathing room above the icons.
-const TAB_ICON_SIZE = 20;
-const TAB_BAR_TOP_PADDING = 4;
+// Icons-only bar, so the glyphs can be a touch larger than the old labelled bar's ~20.
+const TAB_ICON_SIZE = 24;
 
 export default function TabsLayout() {
 	const colors = useThemeColors();
-	// BlurView tint follows the active Uniwind theme (same source the nav chrome colors use, so it
-	// flips synchronously with them). The blur reads the scrolled-under list content as a frosted
-	// backdrop; the lists already pad 140pt at the bottom so nothing is clipped by the now-floating
-	// (position: absolute) bar.
+	// Tint for the glass/blur background follows the active Uniwind theme (same source the nav
+	// chrome colors use, so it flips synchronously with them). The surface reads the scrolled-under
+	// list content as a frosted backdrop; the lists already pad 140pt at the bottom so nothing is
+	// clipped by the now-floating (position: absolute) bar.
 	const isDark = useUniwind().theme === "dark";
+	// The floating pill rests on the bottom safe-area inset (home indicator); read it here so the
+	// bar lifts off the screen edge on devices that have one.
+	const insets = useSafeAreaInsets();
 
 	// Shared motion values for the Now Playing surface. `expand` is the open/close morph
 	// (0 = mini-bar, 1 = full player); `drag` is the rigid pixel offset while the open sheet is
@@ -74,21 +88,43 @@ export default function TabsLayout() {
 						headerShown: false,
 						tabBarActiveTintColor: colors.accent,
 						tabBarInactiveTintColor: colors.muted,
-						// Frosted bar: a BlurView fills the background and the bar itself is transparent
-						// and absolutely positioned so screen content scrolls underneath and shows through.
+						// Icon-only, Instagram style: drop the text labels entirely.
+						tabBarShowLabel: false,
+						// Liquid Glass (or blur) fill, clipped to the pill's radius. It sits behind the
+						// icons and lets the scrolled-under content show through as a frosted backdrop.
 						tabBarBackground: () => (
-							<BlurView
-								tint={isDark ? "dark" : "light"}
-								intensity={100}
-								style={StyleSheet.absoluteFill}
+							<LiquidGlassSurface
+								radius={TAB_BAR_HEIGHT / 2}
+								isDark={isDark}
+								borderColor={colors.border}
 							/>
 						),
+						// Floating capsule: detached from the edges (side margins), lifted above the home
+						// indicator (bottom offset), a fixed height, and pill-rounded. Transparent fill +
+						// no top border so only the glass background shows; a soft shadow makes it float.
 						tabBarStyle: {
 							position: "absolute",
+							left: TAB_BAR_SIDE_MARGIN,
+							right: TAB_BAR_SIDE_MARGIN,
+							bottom: tabBarBottomOffset(insets.bottom),
+							height: TAB_BAR_HEIGHT,
+							borderRadius: TAB_BAR_HEIGHT / 2,
+							borderCurve: "continuous",
+							borderTopWidth: 0,
 							backgroundColor: "transparent",
-							borderTopColor: colors.border,
-							paddingTop: TAB_BAR_TOP_PADDING,
+							// React Navigation adds the bottom safe-area inset as padding by default; the
+							// pill is a fixed height that floats above the inset, so zero it out and let the
+							// item style center the icons within the height.
+							paddingTop: 0,
+							paddingBottom: 0,
+							shadowColor: "#000",
+							shadowOpacity: 0.12,
+							shadowRadius: 16,
+							shadowOffset: { width: 0, height: 6 },
+							elevation: 8,
 						},
+						// Center each icon vertically within the pill now that there is no label below it.
+						tabBarItemStyle: { height: TAB_BAR_HEIGHT },
 						sceneStyle: { backgroundColor: colors.bg },
 					}}
 				>
