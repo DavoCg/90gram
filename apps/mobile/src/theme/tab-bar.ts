@@ -8,8 +8,8 @@
 export const TAB_BAR_HEIGHT = 60;
 
 // Horizontal gap from the screen edges, so the bar floats as a detached pill instead of
-// spanning edge to edge.
-export const TAB_BAR_SIDE_MARGIN = 16;
+// spanning edge to edge. Roomy, like Instagram's bar.
+export const TAB_BAR_SIDE_MARGIN = 20;
 
 // Smallest gap between the pill and the screen's bottom edge, used on devices with no home
 // indicator (zero bottom inset) so the bar never sits flush against the edge.

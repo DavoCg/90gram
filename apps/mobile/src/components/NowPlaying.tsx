@@ -32,7 +32,7 @@ import { player$ } from "../audio/store";
 import { useSmoothPosition } from "../hooks/use-smooth-position";
 import { useThemeColors } from "../theme/colors";
 import { BIG_COVER_MAX, BIG_COVER_RADIUS } from "../theme/sizes";
-import { tabBarTopOffset } from "../theme/tab-bar";
+import { TAB_BAR_SIDE_MARGIN, tabBarTopOffset } from "../theme/tab-bar";
 import { Pressable, View } from "../theme/uniwind";
 import { IconButton } from "./button";
 import { LiquidGlassSurface } from "./LiquidGlassSurface";
@@ -46,7 +46,11 @@ import { VolumeSlider } from "./VolumeSlider";
 // this overlay is mounted, so we derive the bar's top edge from the shared tab-bar geometry
 // (tabBarTopOffset) that the navigator itself uses, keeping the two perfectly aligned.
 const MINI_HEIGHT = 66;
+// Vertical gap between the mini-bar and the floating tab bar below it.
 const MINI_MARGIN = 8;
+// Horizontal inset of the mini-bar. Matches the tab bar's side margin so the two float at the
+// same width and read as one stacked pair.
+const MINI_SIDE_MARGIN = TAB_BAR_SIDE_MARGIN;
 const MINI_ART = 52;
 const PAD = 20;
 // iOS form-sheet corner radius. Constant: it does not change with the drag.
@@ -152,7 +156,7 @@ export function NowPlaying({
 
 	const miniBarTop =
 		H - tabBarTopOffset(insets.bottom) - MINI_MARGIN - MINI_HEIGHT;
-	const miniArtLeft = MINI_MARGIN + 8;
+	const miniArtLeft = MINI_SIDE_MARGIN + 8;
 	const miniArtTop = miniBarTop + (MINI_HEIGHT - MINI_ART) / 2;
 	const miniCenterX = miniArtLeft + MINI_ART / 2;
 	const miniCenterY = miniArtTop + MINI_ART / 2;
@@ -280,8 +284,8 @@ export function NowPlaying({
 				style={{
 					position: "absolute",
 					top: miniBarTop,
-					left: MINI_MARGIN,
-					right: MINI_MARGIN,
+					left: MINI_SIDE_MARGIN,
+					right: MINI_SIDE_MARGIN,
 					height: MINI_HEIGHT,
 					borderRadius: 14,
 					borderCurve: "continuous",
