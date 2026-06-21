@@ -13,11 +13,11 @@ export const TAB_BAR_SIDE_MARGIN = 20;
 
 // Smallest gap between the pill and the screen's bottom edge, used on devices with no home
 // indicator (zero bottom inset) so the bar never sits flush against the edge.
-const TAB_BAR_MIN_BOTTOM = 8;
+const TAB_BAR_MIN_BOTTOM = 10;
 
 // How much of the home-indicator safe-area inset to reclaim, pulling the bar closer to the bottom
 // edge instead of resting on the full inset (which reads as too high a gap).
-const TAB_BAR_INSET_TRIM = 24;
+const TAB_BAR_INSET_TRIM = 18;
 
 // Distance from the screen's bottom edge to the BOTTOM of the floating pill. On devices with a
 // home indicator we sit just above it (the inset minus a trim); otherwise we lift by
