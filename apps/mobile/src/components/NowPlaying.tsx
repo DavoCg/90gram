@@ -1,5 +1,4 @@
 import { use$ } from "@legendapp/state/react";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import {
 	Airplay,
@@ -13,7 +12,7 @@ import {
 	Star,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Platform, StyleSheet, useWindowDimensions } from "react-native";
+import { StyleSheet, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
 	Extrapolation,
@@ -33,18 +32,19 @@ import { player$ } from "../audio/store";
 import { useSmoothPosition } from "../hooks/use-smooth-position";
 import { useThemeColors } from "../theme/colors";
 import { BIG_COVER_MAX, BIG_COVER_RADIUS } from "../theme/sizes";
+import { tabBarTopOffset } from "../theme/tab-bar";
 import { Pressable, View } from "../theme/uniwind";
 import { IconButton } from "./button";
+import { LiquidGlassSurface } from "./LiquidGlassSurface";
 import { MarqueeText } from "./marquee-text";
 import { SeekBar } from "./SeekBar";
 import { Text } from "./text";
 import { VolumeSlider } from "./VolumeSlider";
 
-// Layout constants. The collapsed mini-bar floats just above the tab bar. React Navigation's
-// useBottomTabBarHeight is only available inside a tab screen, not at the root where this
-// overlay is mounted, so we reconstruct the standard tab bar height from the platform default
-// plus the bottom safe-area inset.
-const TAB_BAR_BASE = Platform.OS === "ios" ? 49 : 56;
+// Layout constants. The collapsed mini-bar floats just above the floating tab bar. React
+// Navigation's useBottomTabBarHeight is only available inside a tab screen, not at the root where
+// this overlay is mounted, so we derive the bar's top edge from the shared tab-bar geometry
+// (tabBarTopOffset) that the navigator itself uses, keeping the two perfectly aligned.
 const MINI_HEIGHT = 66;
 const MINI_MARGIN = 8;
 const MINI_ART = 52;
@@ -142,7 +142,6 @@ export function NowPlaying({
 	}, [isPlaying, playScale]);
 
 	// --- Geometry: large (expanded) artwork rect and the mini (collapsed) thumbnail rect. ---
-	const tabBarHeight = TAB_BAR_BASE + insets.bottom;
 	const large = Math.min(W - PAD * 2, BIG_COVER_MAX, H * 0.5);
 	// Center the cover, and inset the controls to its actual edges so the title still lines up with
 	// the artwork even when the cover is capped narrower than the screen.
@@ -151,7 +150,8 @@ export function NowPlaying({
 	const largeCenterX = W / 2;
 	const largeCenterY = artTop + large / 2;
 
-	const miniBarTop = H - tabBarHeight - MINI_MARGIN - MINI_HEIGHT;
+	const miniBarTop =
+		H - tabBarTopOffset(insets.bottom) - MINI_MARGIN - MINI_HEIGHT;
 	const miniArtLeft = MINI_MARGIN + 8;
 	const miniArtTop = miniBarTop + (MINI_HEIGHT - MINI_ART) / 2;
 	const miniCenterX = miniArtLeft + MINI_ART / 2;
@@ -292,12 +292,13 @@ export function NowPlaying({
 					overflow: "hidden",
 				}}
 			>
-				{/* Frosted fill, clipped to the bar's rounded corners by overflow: 'hidden'. First child so
-            it sits behind the title/buttons; matches the tab bar blur for one cohesive bottom stack. */}
-				<BlurView
-					tint={isDark ? "dark" : "light"}
-					intensity={100}
-					style={StyleSheet.absoluteFill}
+				{/* Liquid Glass (or blur) fill, clipped to the bar's rounded corners. First child so it
+            sits behind the title/buttons; the same surface the floating tab bar uses, so the two
+            read as one cohesive frosted stack at the bottom of the screen. */}
+				<LiquidGlassSurface
+					radius={14}
+					isDark={isDark}
+					borderColor={colors.border}
 				/>
 				{/* Tap the bar (outside the buttons) to expand. The artwork floats over this left slot. */}
 				<Pressable
