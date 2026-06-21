@@ -5,7 +5,7 @@
 
 // The floating pill's fixed height. With labels hidden the bar only needs room for the icons,
 // so this is a touch shorter than the old full-width bar and reads as a compact capsule.
-export const TAB_BAR_HEIGHT = 60;
+export const TAB_BAR_HEIGHT = 56;
 
 // Horizontal gap from the screen edges, so the bar floats as a detached pill instead of
 // spanning edge to edge. Roomy, like Instagram's bar.
@@ -13,12 +13,17 @@ export const TAB_BAR_SIDE_MARGIN = 20;
 
 // Smallest gap between the pill and the screen's bottom edge, used on devices with no home
 // indicator (zero bottom inset) so the bar never sits flush against the edge.
-const TAB_BAR_MIN_BOTTOM = 12;
+const TAB_BAR_MIN_BOTTOM = 8;
+
+// How much of the home-indicator safe-area inset to reclaim, pulling the bar closer to the bottom
+// edge instead of resting on the full inset (which reads as too high a gap).
+const TAB_BAR_INSET_TRIM = 24;
 
 // Distance from the screen's bottom edge to the BOTTOM of the floating pill. On devices with a
-// home indicator we rest on the safe-area inset; otherwise we lift by TAB_BAR_MIN_BOTTOM.
+// home indicator we sit just above it (the inset minus a trim); otherwise we lift by
+// TAB_BAR_MIN_BOTTOM. Clamped so the bar never drops below the minimum gap.
 export function tabBarBottomOffset(bottomInset: number): number {
-	return Math.max(bottomInset, TAB_BAR_MIN_BOTTOM);
+	return Math.max(bottomInset - TAB_BAR_INSET_TRIM, TAB_BAR_MIN_BOTTOM);
 }
 
 // Distance from the screen's bottom edge to the TOP of the floating pill. The mini-player uses

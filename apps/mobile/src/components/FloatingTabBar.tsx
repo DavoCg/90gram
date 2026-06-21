@@ -38,9 +38,13 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 const ICON_SIZE = 24;
-// The sliding highlight pill behind the active icon.
-const INDICATOR_WIDTH = 56;
-const INDICATOR_HEIGHT = 38;
+// The sliding highlight pill behind the active icon. INDICATOR_INSET is the single, uniform gap to
+// the bar on every side: the pill fills its slot minus this inset left/right, and the bar minus it
+// top/bottom. Height and corner radius derive from it (radius = bar radius minus the inset, so the
+// corner stays concentric with the bar). Centered on the icon, even padding on all four sides.
+const INDICATOR_INSET = 6;
+const INDICATOR_HEIGHT = TAB_BAR_HEIGHT - INDICATOR_INSET * 2;
+const INDICATOR_RADIUS = TAB_BAR_HEIGHT / 2 - INDICATOR_INSET;
 // Snappy but smooth slide, tuned to feel like the Instagram indicator.
 const SLIDE_SPRING = { damping: 18, stiffness: 220, mass: 0.7 } as const;
 
@@ -55,10 +59,12 @@ export function FloatingTabBar({
 	const { width: W } = useWindowDimensions();
 
 	const count = state.routes.length;
-	// Each tab gets an equal slice of the bar's inner width; the indicator centers in its slice.
+	// Each tab gets an equal slice of the bar's inner width. The highlight fills its slice minus the
+	// uniform INDICATOR_INSET on each side, which both centers it on the icon and gives it the same
+	// side gap it has top and bottom.
 	const slot = (W - TAB_BAR_SIDE_MARGIN * 2) / count;
-	const indicatorX = (index: number) =>
-		index * slot + (slot - INDICATOR_WIDTH) / 2;
+	const indicatorWidth = slot - INDICATOR_INSET * 2;
+	const indicatorX = (index: number) => index * slot + INDICATOR_INSET;
 
 	// Drive the indicator's x on the UI thread. Initialized at the active tab so it does not slide
 	// in from the left on first mount; later index changes spring to the new slot.
@@ -110,11 +116,11 @@ export function FloatingTabBar({
 					style={[
 						{
 							position: "absolute",
-							top: (TAB_BAR_HEIGHT - INDICATOR_HEIGHT) / 2,
+							top: INDICATOR_INSET,
 							left: 0,
-							width: INDICATOR_WIDTH,
+							width: indicatorWidth,
 							height: INDICATOR_HEIGHT,
-							borderRadius: INDICATOR_HEIGHT / 2,
+							borderRadius: INDICATOR_RADIUS,
 							borderCurve: "continuous",
 							backgroundColor: isDark
 								? "rgba(255, 255, 255, 0.16)"
