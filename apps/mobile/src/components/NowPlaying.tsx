@@ -344,16 +344,18 @@ export function NowPlaying({
 						<SkipForward color={colors.text} size={22} fill={colors.text} />
 					}
 				/>
-				{/* Thin progress line at the bottom edge of the bar. scaleX from the left edge (transform
-            only, never layout) so it glides on the UI thread with no per-frame React render. */}
+				{/* Thin progress line near the bottom edge of the bar. Inset horizontally so its ends
+            clear the rounded corners instead of being clipped by them. scaleX from the left edge
+            (transform only, never layout) so it glides on the UI thread with no per-frame React
+            render. */}
 				<Animated.View
 					style={[
 						{
 							position: "absolute",
-							left: 0,
-							bottom: 0,
+							left: 12,
+							right: 12,
+							bottom: 4,
 							height: 2,
-							width: "100%",
 							backgroundColor: colors.accent,
 							transformOrigin: "left",
 						},
