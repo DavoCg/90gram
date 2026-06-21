@@ -58,6 +58,20 @@ export function LiquidGlassSurface({
 				intensity={100}
 				style={StyleSheet.absoluteFill}
 			/>
+			{/* A constant translucent fill over the blur. Without it the bar's color is whatever
+          content happens to be scrolled behind it, so two bars (the tab bar and the mini-player)
+          read as different shades; this pins both to the same tone so they match. Kept
+          semi-transparent so the frost still shows through. */}
+			<View
+				style={[
+					StyleSheet.absoluteFill,
+					{
+						backgroundColor: isDark
+							? "rgba(25, 25, 24, 0.55)"
+							: "rgba(249, 249, 248, 0.6)",
+					},
+				]}
+			/>
 		</View>
 	);
 }

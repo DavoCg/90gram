@@ -1,5 +1,12 @@
 import { Tabs } from "expo-router";
-import { Flame, Heart, Home, Search, User } from "lucide-react-native";
+import {
+	Flame,
+	Heart,
+	Home,
+	type LucideIcon,
+	Search,
+	User,
+} from "lucide-react-native";
 import { useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
@@ -36,6 +43,49 @@ import {
 
 // Icons-only bar, so the glyphs can be a touch larger than the old labelled bar's ~20.
 const TAB_ICON_SIZE = 24;
+
+// A centered icon slot with an Instagram-style active indicator: a rounded highlight pill sits
+// behind the focused tab's icon. The wrapper also fills the bar height so the icon is vertically
+// centered (with labels hidden, the default layout otherwise top-aligns the glyph).
+function TabBarIcon({
+	Icon,
+	color,
+	focused,
+	isDark,
+}: {
+	Icon: LucideIcon;
+	color: string;
+	focused: boolean;
+	isDark: boolean;
+}) {
+	return (
+		<View
+			style={{
+				height: TAB_BAR_HEIGHT,
+				alignItems: "center",
+				justifyContent: "center",
+			}}
+		>
+			<View
+				style={{
+					width: 48,
+					height: 34,
+					borderRadius: 17,
+					borderCurve: "continuous",
+					alignItems: "center",
+					justifyContent: "center",
+					backgroundColor: focused
+						? isDark
+							? "rgba(255, 255, 255, 0.16)"
+							: "rgba(0, 0, 0, 0.07)"
+						: "transparent",
+				}}
+			>
+				<Icon color={color} size={TAB_ICON_SIZE} />
+			</View>
+		</View>
+	);
+}
 
 export default function TabsLayout() {
 	const colors = useThemeColors();
@@ -123,8 +173,9 @@ export default function TabsLayout() {
 							shadowOffset: { width: 0, height: 6 },
 							elevation: 8,
 						},
-						// Center each icon vertically within the pill now that there is no label below it.
-						tabBarItemStyle: { height: TAB_BAR_HEIGHT },
+						// Fill the pill height and center the icon slot within it (the TabBarIcon wrapper
+						// handles vertical centering now that there is no label below the glyph).
+						tabBarItemStyle: { height: TAB_BAR_HEIGHT, paddingVertical: 0 },
 						sceneStyle: { backgroundColor: colors.bg },
 					}}
 				>
@@ -132,8 +183,13 @@ export default function TabsLayout() {
 						name="(home)"
 						options={{
 							title: "Home",
-							tabBarIcon: ({ color }) => (
-								<Home color={color} size={TAB_ICON_SIZE} />
+							tabBarIcon: ({ color, focused }) => (
+								<TabBarIcon
+									Icon={Home}
+									color={color}
+									focused={focused}
+									isDark={isDark}
+								/>
 							),
 						}}
 					/>
@@ -141,8 +197,13 @@ export default function TabsLayout() {
 						name="hot"
 						options={{
 							title: "Hot",
-							tabBarIcon: ({ color }) => (
-								<Flame color={color} size={TAB_ICON_SIZE} />
+							tabBarIcon: ({ color, focused }) => (
+								<TabBarIcon
+									Icon={Flame}
+									color={color}
+									focused={focused}
+									isDark={isDark}
+								/>
 							),
 						}}
 					/>
@@ -150,8 +211,13 @@ export default function TabsLayout() {
 						name="favorites"
 						options={{
 							title: "Favorites",
-							tabBarIcon: ({ color }) => (
-								<Heart color={color} size={TAB_ICON_SIZE} />
+							tabBarIcon: ({ color, focused }) => (
+								<TabBarIcon
+									Icon={Heart}
+									color={color}
+									focused={focused}
+									isDark={isDark}
+								/>
 							),
 						}}
 					/>
@@ -159,8 +225,13 @@ export default function TabsLayout() {
 						name="search"
 						options={{
 							title: "Search",
-							tabBarIcon: ({ color }) => (
-								<Search color={color} size={TAB_ICON_SIZE} />
+							tabBarIcon: ({ color, focused }) => (
+								<TabBarIcon
+									Icon={Search}
+									color={color}
+									focused={focused}
+									isDark={isDark}
+								/>
 							),
 						}}
 						listeners={({ navigation }) => ({
@@ -178,8 +249,13 @@ export default function TabsLayout() {
 						name="profile"
 						options={{
 							title: "You",
-							tabBarIcon: ({ color }) => (
-								<User color={color} size={TAB_ICON_SIZE} />
+							tabBarIcon: ({ color, focused }) => (
+								<TabBarIcon
+									Icon={User}
+									color={color}
+									focused={focused}
+									isDark={isDark}
+								/>
 							),
 						}}
 					/>
