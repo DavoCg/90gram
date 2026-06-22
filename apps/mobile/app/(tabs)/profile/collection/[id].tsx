@@ -2,7 +2,8 @@ import { useCallback } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
-import { Trash2, X } from 'lucide-react-native';
+import { MoreVertical, X } from 'lucide-react-native';
+import { MenuView, type NativeActionEvent } from '@expo/ui/community/menu';
 import type { VinylSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, View } from '../../../../src/theme/uniwind';
 import { Text } from '../../../../src/components/text';
@@ -24,6 +25,7 @@ import {
 } from '../../../../src/api/hooks';
 
 const LIST_BOTTOM_PADDING = 140;
+const DELETE_ACTION = 'delete';
 
 // A record row within a collection. Tap opens the record; the owner gets a trailing remove button.
 function CollectionVinylRow({
@@ -117,6 +119,13 @@ export default function CollectionDetailScreen() {
     ]);
   }, [deleteCollection, collectionId, router]);
 
+  const onPressAction = useCallback(
+    ({ nativeEvent }: NativeActionEvent) => {
+      if (nativeEvent.event === DELETE_ACTION) onDelete();
+    },
+    [onDelete],
+  );
+
   const onEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
@@ -152,11 +161,24 @@ export default function CollectionDetailScreen() {
         title={collection.name}
         right={
           isOwner ? (
-            <IconButton
-              onPress={onDelete}
-              accessibilityLabel="Delete collection"
-              icon={<Trash2 color={colors.text} size={20} />}
-            />
+            <MenuView
+              onPressAction={onPressAction}
+              actions={[
+                {
+                  id: DELETE_ACTION,
+                  title: 'Delete Collection',
+                  // SF Symbol (iOS); Android shows the label without an icon for this action.
+                  image: 'trash',
+                  attributes: { destructive: true },
+                },
+              ]}
+            >
+              <IconButton
+                variant="ghost"
+                accessibilityLabel="Collection actions"
+                icon={<MoreVertical color={colors.text} size={20} />}
+              />
+            </MenuView>
           ) : undefined
         }
       />
