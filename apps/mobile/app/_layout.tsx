@@ -61,11 +61,12 @@ export default function RootLayout() {
 }
 
 // Auth gate. Lives under the providers so it can read the better-auth session. The app is fully
-// gated with Expo Router's declarative guards (Stack.Protected): the (auth) group is only navigable
-// while signed out and the (tabs) + settings group only while signed in, and the router redirects to
-// the first available screen whenever a guard flips, no hand-rolled router.replace needed. The tab
-// shell owns the mini-player, so root-level screens like settings push cleanly OVER the tabs and the
-// player without any z-index juggling.
+// gated with Expo Router's declarative guards (Stack.Protected): the entry flow (sign-in, then the
+// one-time username claim) is navigable until the user is fully onboarded (a session AND a claimed
+// username), and only then does the (tabs) + settings app shell mount. The router redirects to the
+// first available screen whenever a guard flips, no hand-rolled router.replace needed. The tab shell
+// owns the mini-player, so root-level screens like settings push cleanly OVER the tabs and the player
+// without any z-index juggling.
 function RootNavigator() {
 	const { data: session, isPending } = authClient.useSession();
 	const colors = useThemeColors();
@@ -78,13 +79,12 @@ function RootNavigator() {
 	// (data or error). isLoading is true only on the first fetch with no data, so it falls to false
 	// on success OR error, which is what we want (an errored profile should not wedge the splash).
 	const profileReady = !hasSession || !profileQuery.isLoading;
-	// Show onboarding while signed in until we KNOW the profile has a username. An UNKNOWN profile (still
-	// loading, e.g. right after sign-up, when data is undefined) counts as "needs username" so the guard
-	// keeps the user on onboarding instead of briefly mounting the tabs/home; it flips to the tabs the
-	// moment the profile loads with a username. A profile that ERRORED (no data) falls through to the
-	// tabs rather than trapping the user on onboarding.
-	const needsUsername =
-		hasSession && !profileQuery.isError && (profileQuery.data?.username ?? null) === null;
+	// "Onboarded" means signed in AND a username has actually been claimed. Only a CONFIRMED non-null
+	// username counts: while the profile is still loading (data undefined), errored, or simply has no
+	// username yet, the user stays in the entry flow, so the app shell (home/tabs) can NEVER mount
+	// without a username. Claiming a username flips this to true and reveals the tabs.
+	const hasUsername = (profileQuery.data?.username ?? null) !== null;
+	const isOnboarded = hasSession && hasUsername;
 
 	// Configure the audio session and lock-screen handlers once for the whole app.
 	// Tear everything down (remove all subscriptions) on unmount.
@@ -146,8 +146,10 @@ function RootNavigator() {
 				animationDuration: STACK_ANIMATION_DURATION,
 			}}
 		>
-			<Stack.Protected guard={hasSession && !needsUsername}>
-				<Stack.Screen name="(tabs)" />
+			<Stack.Protected guard={isOnboarded}>
+				{/* Entering the app fades in (from sign-in or from the username claim) rather than sliding,
+            so the whole entry flow dissolves into the app instead of a sideways push. */}
+				<Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
 				{/* Settings is a sibling of the tab shell, not nested inside it, so pushing it slides a full
             screen OVER the tabs and the mini-player (both owned by the (tabs) layout). */}
 				<Stack.Screen name="settings" />
@@ -202,14 +204,15 @@ function RootNavigator() {
 					}}
 				/>
 			</Stack.Protected>
-			{/* Signed in but no username yet: one-time onboarding. Claiming a username flips this guard. */}
-			<Stack.Protected guard={hasSession && needsUsername}>
-				<Stack.Screen name="(onboarding)" />
-			</Stack.Protected>
+			{/* Entry flow: sign-in, then the one-time username claim. Both fade so moving from sign-in to
+          onboarding and finally into the app reads as a single dissolve, never a sideways push. The
+          username screen lives in this pre-app flow, not the app shell, so the tabs can never mount
+          without a username. */}
 			<Stack.Protected guard={!hasSession}>
-				{/* Signing out flips this guard on; fade in rather than slide so leaving the app feels like a
-            dissolve, not a sideways push back to a previous screen. */}
 				<Stack.Screen name="(auth)" options={{ animation: "fade" }} />
+			</Stack.Protected>
+			<Stack.Protected guard={hasSession && !hasUsername}>
+				<Stack.Screen name="(onboarding)" options={{ animation: "fade" }} />
 			</Stack.Protected>
 		</Stack>
 	);
