@@ -1,36 +1,40 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vinyl box logo" style="color:#111827">
-  <title>Vinyl box with records</title>
+  <title>Vinyl crate with records</title>
 
   <defs>
-    <!-- Only show records above the crate rim so they tuck inside the box -->
-    <clipPath id="aboveRim">
-      <rect x="0" y="0" width="256" height="150"/>
-    </clipPath>
-    <!-- Clip back records to outside the front record so it sits cleanly on top (works on transparent bg) -->
-    <clipPath id="outsideFront" clipPathUnits="userSpaceOnUse">
-      <path fill-rule="evenodd" clip-rule="evenodd"
-            d="M0 0 H256 V256 H0 Z M82 112 a46 46 0 1 0 92 0 a46 46 0 1 0 -92 0"/>
+    <!-- Hide the part of the records that sits behind the front wall of the crate -->
+    <clipPath id="insideCrate">
+      <rect x="0" y="0" width="256" height="156"/>
     </clipPath>
   </defs>
 
-  <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+  <g fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- Records fanned inside the crate -->
-    <g clip-path="url(#aboveRim)">
-      <!-- back left -->
-      <circle cx="100" cy="118" r="34" clip-path="url(#outsideFront)"/>
-      <!-- back right -->
-      <circle cx="156" cy="118" r="34" clip-path="url(#outsideFront)"/>
-      <!-- front center -->
-      <circle cx="128" cy="112" r="38"/>
-      <circle cx="128" cy="112" r="13" stroke-width="6"/>
-      <circle cx="128" cy="112" r="2.5" fill="currentColor" stroke="none"/>
+    <!-- Back rim of the open crate (behind the records) -->
+    <path d="M76 138 L236 138"/>
+
+    <!-- Records standing in the crate, leaning together -->
+    <g clip-path="url(#insideCrate)">
+      <g transform="rotate(-7 128 180)">
+        <!-- two album sleeves flanking a face-out vinyl record -->
+        <rect x="50" y="96" width="42" height="80" rx="5"/>
+        <rect x="164" y="96" width="42" height="80" rx="5"/>
+        <!-- the vinyl record, face out -->
+        <circle cx="128" cy="124" r="34"/>
+        <circle cx="128" cy="124" r="12" stroke-width="6"/>
+        <circle cx="128" cy="124" r="3" fill="currentColor" stroke="none"/>
+      </g>
     </g>
 
-    <!-- Crate -->
-    <path d="M50 150 L66 210 L190 210 L206 150"/>
-    <line x1="50" y1="150" x2="206" y2="150"/>
-    <!-- Handle slot -->
-    <rect x="110" y="176" width="36" height="12" rx="6"/>
+    <!-- Open crate body (drawn on top so it hides the records' lower halves) -->
+    <!-- front face -->
+    <path d="M48 156 L48 206 Q48 212 54 212 L202 212 Q208 212 208 206 L208 156"/>
+    <!-- front rim -->
+    <path d="M48 156 L208 156"/>
+    <!-- right side (depth) -->
+    <path d="M208 156 L236 138 L236 188 Q236 194 230 196 L208 206"/>
+    <!-- rim depth edges -->
+    <path d="M48 156 L76 138"/>
+    <path d="M208 156 L236 138"/>
   </g>
 </svg>
