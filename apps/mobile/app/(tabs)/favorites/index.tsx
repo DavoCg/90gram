@@ -70,7 +70,7 @@ function FavoriteTrackRow({
           No preview
         </Text>
       ) : null}
-      <FavoriteButton targetType="track" track={track} size={18} />
+      <FavoriteButton targetType="track" track={track} />
     </Pressable>
   );
 }

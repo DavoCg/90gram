@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { RefreshControl, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
-import { ChevronRight, ListPlus, Play, Shuffle } from 'lucide-react-native';
+import { ChevronRight, Play, Shuffle } from 'lucide-react-native';
 import type { FavoriteTrackDto, OfferDto, TrackDto, VinylDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
 import { Text } from '../components/text';
@@ -10,9 +10,8 @@ import { PressableScale } from '../components/pressable-scale';
 import { CoverArt } from '../components/cover-art';
 import { useVinyl } from '../api/hooks';
 import { AppHeader } from '../components/AppHeader';
-import { IconButton } from '../components/button';
-import { FavoriteButton } from '../components/favorite-button';
 import { TrackActionsMenu } from '../components/track-actions-menu';
+import { VinylActionsMenu } from '../components/vinyl-actions-menu';
 import { EqualizerBars } from '../components/equalizer-bars';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
@@ -148,18 +147,7 @@ export default function VinylDetailScreen() {
   return (
     <View className="flex-1 bg-bg">
       <AppHeader
-        right={
-          <View className="flex-row items-center gap-1">
-            <IconButton
-              onPress={() => router.push(`/add-to-collection?vinylId=${vinyl.id}`)}
-              variant="ghost"
-              size="xs"
-              accessibilityLabel="Save to collection"
-              icon={<ListPlus color={colors.text} size={22} />}
-            />
-            <FavoriteButton targetType="vinyl" vinyl={vinyl} />
-          </View>
-        }
+        right={<VinylActionsMenu vinyl={vinyl} />}
       />
       <ScrollView
         className="flex-1"
@@ -231,43 +219,49 @@ export default function VinylDetailScreen() {
             const isCurrent = track.id === currentTrackId;
             const playable = track.previewUrl !== null;
             return (
-              <Pressable
+              <View
                 key={track.id}
-                onPress={() => onPressTrack(track)}
-                disabled={!playable}
                 className="flex-row items-center gap-3 border-b border-separator px-4 py-3"
               >
-                <View className="w-7 items-center">
-                  {isCurrent ? (
-                    <EqualizerBars
-                      playing={playWhenReady}
-                      color={colors.accent}
-                      size={14}
-                    />
-                  ) : (
-                    <Text size="sm" color="neutral-soft">
-                      {track.position}
-                    </Text>
-                  )}
-                </View>
-                <Text
-                  numberOfLines={1}
-                  color={isCurrent ? 'accent' : playable ? 'neutral' : 'neutral-soft'}
-                  className="flex-1"
+                {/* Only the position + title area plays the track; the trailing menu is a sibling so
+                    tapping it opens the menu without launching playback. */}
+                <Pressable
+                  onPress={() => onPressTrack(track)}
+                  disabled={!playable}
+                  className="flex-1 flex-row items-center gap-3"
                 >
-                  {track.title}
-                </Text>
-                {isCurrent && playWhenReady ? (
-                  <Text size="xs" color="accent">
-                    Playing
+                  <View className="w-7 items-center">
+                    {isCurrent ? (
+                      <EqualizerBars
+                        playing={playWhenReady}
+                        color={colors.accent}
+                        size={14}
+                      />
+                    ) : (
+                      <Text size="sm" color="neutral-soft">
+                        {track.position}
+                      </Text>
+                    )}
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    color={isCurrent ? 'accent' : playable ? 'neutral' : 'neutral-soft'}
+                    className="flex-1"
+                  >
+                    {track.title}
                   </Text>
-                ) : !playable ? (
-                  <Text size="xs" color="neutral-soft">
-                    No preview
-                  </Text>
-                ) : null}
+                  {isCurrent && playWhenReady ? (
+                    <Text size="xs" color="accent">
+                      Playing
+                    </Text>
+                  ) : !playable ? (
+                    <Text size="xs" color="neutral-soft">
+                      No preview
+                    </Text>
+                  ) : null}
+                </Pressable>
                 <TrackActionsMenu track={toFavoriteTrack(track, vinyl)} />
-              </Pressable>
+              </View>
             );
           })}
         </View>
