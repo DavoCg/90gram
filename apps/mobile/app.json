@@ -25,6 +25,7 @@
     },
     "android": {
       "package": "com.getvinyls.app",
+      "backgroundColor": "#fdfdfc",
       "edgeToEdgeEnabled": true,
       "permissions": [
         "MODIFY_AUDIO_SETTINGS",
@@ -64,12 +65,13 @@
         {
           "logo": "./assets/bootsplash-logo.png",
           "logoWidth": 100,
-          "background": "#faf7f2",
-          "darkBackground": "#1c1714",
+          "background": "#fdfdfc",
+          "darkBackground": "#111110",
           "assetsOutput": "assets/bootsplash",
           "licenseKey": "779062A7-4F8E4354-8C20D04D-1C68795A"
         }
-      ]
+      ],
+      "./plugins/with-themed-native-background"
     ],
     "experiments": {
       "typedRoutes": true
