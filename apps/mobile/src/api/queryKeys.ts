@@ -30,10 +30,12 @@ export const queryKeys = {
   },
   // The validated genres (drives the home filter sheet; rarely changes).
   genres: ['genres'] as const,
-  // The signed-in user's settings (display currency today).
+  // The signed-in user's settings (display currency + UI language).
   settings: ['settings'] as const,
   // The supported display currencies (drives the picker; rarely changes).
   currencies: ['currencies'] as const,
+  // The supported UI languages (drives the language picker; rarely changes).
+  languages: ['languages'] as const,
   // The signed-in user's own social profile (drives the onboarding gate + the profile tab).
   profile: ['profile'] as const,
   // Live username-availability check for the onboarding field, keyed by the typed handle.

@@ -16,6 +16,9 @@ import { AppToaster } from "../src/components/toast";
 import { useThemeColors } from "../src/theme/colors";
 import { STACK_ANIMATION_DURATION } from "../src/theme/motion";
 import { initializeTheme } from "../src/theme/theme";
+// Initialise i18next before the first render (side-effect import) so the app starts in the user's
+// language (resolved from MMKV / the phone locale) with no flash. See src/i18n.
+import "../src/i18n";
 
 // Apply the persisted dark-mode preference before the first render to avoid a theme flash.
 initializeTheme();
@@ -162,6 +165,17 @@ function RootNavigator() {
 						sheetAllowedDetents: "fitToContents",
 						// Paint the whole sheet (incl. the native safe-area extension at the bottom) with the
 						// surface color, otherwise that strip shows the dark screen background.
+						contentStyle: { backgroundColor: colors.surface },
+					}}
+				/>
+				{/* The UI-language picker, a native form sheet sized to its content (mirrors the currency
+            sheet: a collapsable={false} header + a ScrollView). */}
+				<Stack.Screen
+					name="language"
+					options={{
+						presentation: "formSheet",
+						sheetGrabberVisible: true,
+						sheetAllowedDetents: "fitToContents",
 						contentStyle: { backgroundColor: colors.surface },
 					}}
 				/>

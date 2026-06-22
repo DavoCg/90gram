@@ -3,6 +3,7 @@ import type { Prisma, ShopRow, GenreRow } from '@getvinyls/db';
 import type { CurrencyConverter } from './currency/converter.js';
 import type { VinylSearchDocument } from './search/meili.js';
 import { SupportedCurrencySchema } from './currency/currencies.js';
+import { SupportedLanguageSchema } from './language/languages.js';
 
 // The wire shapes for the API. Zod schemas are the source of truth; the OpenAPI document
 // and the generated client types both derive from these.
@@ -135,19 +136,24 @@ export const CurrencyQuerySchema = z.object({
   }),
 });
 
-// The signed-in user's display-currency setting.
-export const CurrencySettingSchema = z
+// The signed-in user's settings: the display currency (always present, defaults to EUR) and the
+// preferred UI language (NULLABLE: null means the user has not chosen one, so the app falls back to
+// the phone locale, then English). One read surface for every per-user preference.
+export const UserSettingsSchema = z
   .object({
     currency: SupportedCurrencySchema,
+    language: SupportedLanguageSchema.nullable(),
   })
-  .openapi('CurrencySetting');
+  .openapi('UserSettings');
 
-// Body for updating the display-currency setting.
-export const UpdateCurrencySettingSchema = z
+// Body for updating settings. Every field is optional so the client can PATCH just the currency or
+// just the language; the server upserts only the keys that are present.
+export const UpdateUserSettingsSchema = z
   .object({
-    currency: SupportedCurrencySchema,
+    currency: SupportedCurrencySchema.optional(),
+    language: SupportedLanguageSchema.optional(),
   })
-  .openapi('UpdateCurrencySetting');
+  .openapi('UpdateUserSettings');
 
 // The list of currencies the app supports (drives the picker, keeps mobile in sync with the server).
 export const CurrencyListSchema = z
@@ -155,6 +161,13 @@ export const CurrencyListSchema = z
     currencies: z.array(SupportedCurrencySchema),
   })
   .openapi('CurrencyList');
+
+// The list of UI languages the app supports (drives the language picker; mirrors CurrencyList).
+export const LanguageListSchema = z
+  .object({
+    languages: z.array(SupportedLanguageSchema),
+  })
+  .openapi('LanguageList');
 
 // --- Favorites (per-user) ---
 

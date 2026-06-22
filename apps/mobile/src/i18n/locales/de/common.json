@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "retry": "Erneut versuchen",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "done": "Fertig",
+    "clear": "Löschen",
+    "undo": "Rückgängig",
+    "back": "Zurück",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "remove": "Entfernen"
+  },
+  "tabs": {
+    "home": "Start",
+    "hot": "Trends",
+    "favorites": "Favoriten",
+    "search": "Suche",
+    "profile": "Du"
+  },
+  "states": {
+    "loading": "Wird geladen…",
+    "empty": "Noch nichts vorhanden."
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen.",
+    "network": "API nicht erreichbar.",
+    "apiHint": "Läuft sie? Prüfe EXPO_PUBLIC_API_BASE_URL."
+  }
+}

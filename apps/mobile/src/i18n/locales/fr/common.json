@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "retry": "Réessayer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "done": "Terminé",
+    "clear": "Effacer",
+    "undo": "Annuler",
+    "back": "Retour",
+    "close": "Fermer",
+    "edit": "Modifier",
+    "remove": "Retirer"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "hot": "Tendances",
+    "favorites": "Favoris",
+    "search": "Recherche",
+    "profile": "Profil"
+  },
+  "states": {
+    "loading": "Chargement…",
+    "empty": "Rien pour le moment."
+  },
+  "errors": {
+    "generic": "Une erreur est survenue.",
+    "network": "Impossible de joindre l'API.",
+    "apiHint": "Est-elle démarrée ? Vérifiez EXPO_PUBLIC_API_BASE_URL."
+  }
+}

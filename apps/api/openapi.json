@@ -586,25 +586,31 @@
           "currencies"
         ]
       },
-      "CurrencySetting": {
+      "LanguageList": {
         "type": "object",
         "properties": {
-          "currency": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SupportedCurrency"
-              },
-              {
-                "example": "EUR"
-              }
-            ]
+          "languages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupportedLanguage"
+            }
           }
         },
         "required": [
-          "currency"
+          "languages"
         ]
       },
-      "UpdateCurrencySetting": {
+      "SupportedLanguage": {
+        "type": "string",
+        "enum": [
+          "en",
+          "fr",
+          "de",
+          "es"
+        ],
+        "example": "en"
+      },
+      "UserSettings": {
         "type": "object",
         "properties": {
           "currency": {
@@ -616,11 +622,43 @@
                 "example": "EUR"
               }
             ]
+          },
+          "language": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportedLanguage"
+              },
+              {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            ]
           }
         },
         "required": [
-          "currency"
+          "currency",
+          "language"
         ]
+      },
+      "UpdateUserSettings": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupportedCurrency"
+              },
+              {
+                "example": "EUR"
+              }
+            ]
+          },
+          "language": {
+            "$ref": "#/components/schemas/SupportedLanguage"
+          }
+        }
       },
       "MyProfile": {
         "type": "object",
@@ -1529,6 +1567,26 @@
         }
       }
     },
+    "/languages": {
+      "get": {
+        "tags": [
+          "settings"
+        ],
+        "summary": "List the supported UI languages",
+        "responses": {
+          "200": {
+            "description": "The languages a user can choose for the app interface.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LanguageList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/settings": {
       "get": {
         "tags": [
@@ -1541,7 +1599,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CurrencySetting"
+                  "$ref": "#/components/schemas/UserSettings"
                 }
               }
             }
@@ -1567,7 +1625,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCurrencySetting"
+                "$ref": "#/components/schemas/UpdateUserSettings"
               }
             }
           }
@@ -1578,7 +1636,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CurrencySetting"
+                  "$ref": "#/components/schemas/UserSettings"
                 }
               }
             }

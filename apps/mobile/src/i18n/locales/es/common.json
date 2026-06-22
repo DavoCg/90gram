@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "retry": "Reintentar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "done": "Hecho",
+    "clear": "Borrar",
+    "undo": "Deshacer",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "edit": "Editar",
+    "remove": "Quitar"
+  },
+  "tabs": {
+    "home": "Inicio",
+    "hot": "Tendencias",
+    "favorites": "Favoritos",
+    "search": "Buscar",
+    "profile": "Tú"
+  },
+  "states": {
+    "loading": "Cargando…",
+    "empty": "Aún no hay nada aquí."
+  },
+  "errors": {
+    "generic": "Algo salió mal.",
+    "network": "No se pudo conectar con la API.",
+    "apiHint": "¿Está en marcha? Revisa EXPO_PUBLIC_API_BASE_URL."
+  }
+}
