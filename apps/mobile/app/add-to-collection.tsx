@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ListPlus, Plus } from 'lucide-react-native';
 import { Pressable, View } from '../src/theme/uniwind';
@@ -24,6 +25,7 @@ import {
 export default function AddToCollectionSheet() {
   const { vinylId } = useLocalSearchParams<{ vinylId: string }>();
   const id = vinylId ?? '';
+  const { t } = useTranslation('vinyl');
   const colors = useThemeColors();
   const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
@@ -43,7 +45,7 @@ export default function AddToCollectionSheet() {
   // place. Toasts float over every screen from the root host, so they outlive the sheet.
   const onAdd = (collectionId: string, collectionName: string) => {
     toggleVinyl.mutate({ collectionId, vinylId: id, add: true });
-    toast.success('Added to collection', { description: collectionName });
+    toast.success(t('collection.added'), { description: collectionName });
     router.back();
   };
 
@@ -59,7 +61,7 @@ export default function AddToCollectionSheet() {
 
   return (
     <>
-      <FormSheetHeader title="Save to collection" />
+      <FormSheetHeader title={t('collection.saveTitle')} />
       <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
         {(collections ?? []).map((collection) => {
           const selected = memberIds.has(collection.id);
@@ -76,7 +78,7 @@ export default function AddToCollectionSheet() {
               <View className="flex-1">
                 <Text weight="semibold">{collection.name}</Text>
                 <Text size="sm" color="neutral-soft" className="mt-0.5">
-                  {collection.vinylCount === 1 ? '1 record' : `${collection.vinylCount} records`}
+                  {t('collection.record', { count: collection.vinylCount })}
                 </Text>
               </View>
             </SheetSelectableRow>
@@ -87,7 +89,7 @@ export default function AddToCollectionSheet() {
           <View className="mt-2 gap-3">
             <Input
               size="lg"
-              placeholder="Collection name"
+              placeholder={t('collection.namePlaceholder')}
               value={name}
               onChangeText={setName}
               autoFocus
@@ -97,7 +99,7 @@ export default function AddToCollectionSheet() {
               startSlot={<ListPlus color={colors.muted} size={20} />}
             />
             <Button
-              label="Create and add"
+              label={t('collection.createAndAdd')}
               layout="flex"
               loading={createCollection.isPending}
               disabled={createCollection.isPending || name.trim().length === 0}
@@ -111,7 +113,7 @@ export default function AddToCollectionSheet() {
           >
             <Plus color={colors.accent} size={22} />
             <Text color="accent" weight="semibold">
-              New collection
+              {t('collection.newCollection')}
             </Text>
           </Pressable>
         )}

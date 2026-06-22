@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LayoutChangeEvent, TextInput } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -39,6 +40,8 @@ const FOCUS_TIMING = { duration: 220, easing: Easing.out(Easing.cubic) } as cons
 
 export default function SearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation('search');
+  const { t: tCommon } = useTranslation('common');
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
 
@@ -148,7 +151,7 @@ export default function SearchScreen() {
             <Animated.View pointerEvents="none" style={titleFadeStyle}>
               <View className="h-12 justify-center">
                 <Text numberOfLines={1} size="2xl" weight="bold">
-                  Search
+                  {tCommon('tabs.search')}
                 </Text>
               </View>
             </Animated.View>
@@ -160,7 +163,7 @@ export default function SearchScreen() {
                   onChangeText={setText}
                   onFocus={onFocus}
                   onBlur={onBlur}
-                  placeholder="Title, artist, label…"
+                  placeholder={t('placeholder')}
                   autoCapitalize="none"
                   autoCorrect={false}
                   returnKeyType="search"
@@ -182,7 +185,7 @@ export default function SearchScreen() {
                 className="pl-3"
               >
                 <Text numberOfLines={1} weight="medium">
-                  Cancel
+                  {tCommon('actions.cancel')}
                 </Text>
               </View>
               <Animated.View
@@ -194,12 +197,12 @@ export default function SearchScreen() {
                 <PressableScale
                   onPress={handleCancel}
                   accessibilityRole="button"
-                  accessibilityLabel="Cancel search"
+                  accessibilityLabel={t('cancelA11yLabel')}
                   style={{ width: cancelWidth }}
                   className="pl-3"
                 >
                   <Text numberOfLines={1} color="accent" weight="medium">
-                    Cancel
+                    {tCommon('actions.cancel')}
                   </Text>
                 </PressableScale>
               </Animated.View>
@@ -213,15 +216,15 @@ export default function SearchScreen() {
               </View>
             ) : isError ? (
               <View className="flex-1 items-center justify-center gap-2 px-8">
-                <Text align="center">Search is unavailable.</Text>
+                <Text align="center">{t('error.title')}</Text>
                 <Text size="sm" color="neutral-soft" align="center">
-                  Please try again in a moment.
+                  {t('error.hint')}
                 </Text>
               </View>
             ) : results.length === 0 ? (
               <View className="flex-1 items-center justify-center px-8">
                 <Text size="sm" color="neutral-soft" align="center">
-                  No records match “{query}”.
+                  {t('noResults', { query })}
                 </Text>
               </View>
             ) : (

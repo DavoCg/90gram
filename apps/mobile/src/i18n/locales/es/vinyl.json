@@ -1,0 +1,69 @@
+{
+  "detail": {
+    "from": "desde {{price}}",
+    "shop_one": "{{count}} tienda",
+    "shop_other": "{{count}} tiendas",
+    "play": "Reproducir",
+    "shuffle": "Aleatorio",
+    "noPreview": "Sin vista previa",
+    "availableAt": "Disponible en",
+    "loadFailed": "No se pudo cargar este disco."
+  },
+  "row": {
+    "shop_one": "{{count}} tienda",
+    "shop_other": "{{count}} tiendas"
+  },
+  "shop": {
+    "record_zero": "Aún no hay discos listados",
+    "record_one": "{{count}} disco",
+    "record_other": "{{count}} discos",
+    "loadFailed": "No se pudo cargar esta tienda."
+  },
+  "collection": {
+    "saveTitle": "Guardar en colección",
+    "namePlaceholder": "Nombre de la colección",
+    "createAndAdd": "Crear y añadir",
+    "newCollection": "Nueva colección",
+    "added": "Añadido a la colección",
+    "record_one": "{{count}} disco",
+    "record_other": "{{count}} discos",
+    "createTitle": "Nueva colección",
+    "createSubtitle": "Agrupa discos, como «Mejor techno 2026». Tus seguidores pueden verla.",
+    "descriptionPlaceholder": "Descripción (opcional)",
+    "create": "Crear",
+    "nameRequired": "Dale un nombre a tu colección.",
+    "createFailed": "No se pudo crear la colección. Inténtalo de nuevo."
+  },
+  "player": {
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "previousTrack": "Pista anterior",
+    "nextTrack": "Pista siguiente",
+    "favorite": "Favorito",
+    "more": "Más"
+  },
+  "track": {
+    "actions": "Acciones de la pista",
+    "addToFavorites": "Añadir a favoritos",
+    "removeFromFavorites": "Quitar de favoritos"
+  },
+  "vinylActions": {
+    "actions": "Acciones del disco",
+    "addToFavorites": "Añadir a favoritos",
+    "removeFromFavorites": "Quitar de favoritos",
+    "addToCollection": "Añadir a colección"
+  },
+  "favorite": {
+    "add": "Añadir a favoritos",
+    "remove": "Quitar de favoritos"
+  },
+  "updates": {
+    "check": "Buscar actualizaciones",
+    "notAvailable": "No disponible en desarrollo",
+    "checking": "Buscando actualizaciones...",
+    "downloading": "Descargando actualización...",
+    "upToDate": "Estás al día",
+    "error": "No se pudieron buscar actualizaciones",
+    "version": "Versión {{version}}"
+  }
+}

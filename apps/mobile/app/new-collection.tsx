@@ -1,5 +1,6 @@
 import { useForm } from '@tanstack/react-form';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { Button } from '../src/components/button';
 import { Input } from '../src/components/input';
@@ -17,6 +18,7 @@ import { useCreateCollection } from '../src/api/hooks';
 // FormSheetHeader + a SheetScrollView) so react-native-screens can size the sheet to its contents.
 export default function NewCollectionSheet() {
   const router = useRouter();
+  const { t } = useTranslation('vinyl');
   const bottomPadding = useSheetBottomPadding();
   const createCollection = useCreateCollection();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -32,7 +34,7 @@ export default function NewCollectionSheet() {
         });
         router.back();
       } catch {
-        setServerError('Could not create the collection. Try again.');
+        setServerError(t('collection.createFailed'));
       }
     },
   });
@@ -40,21 +42,21 @@ export default function NewCollectionSheet() {
   return (
     <>
       <FormSheetHeader
-        title="New collection"
-        subtitle='Group records together, like "Best techno 2026". Your followers can see it.'
+        title={t('collection.createTitle')}
+        subtitle={t('collection.createSubtitle')}
       />
       <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
         <form.Field
           name="name"
           validators={{
             onChange: ({ value }) =>
-              value.trim().length > 0 ? undefined : 'Give your collection a name.',
+              value.trim().length > 0 ? undefined : t('collection.nameRequired'),
           }}
         >
           {(field) => (
             <Input
               size="lg"
-              placeholder="Collection name"
+              placeholder={t('collection.namePlaceholder')}
               value={field.state.value}
               onChangeText={field.handleChange}
               onBlur={field.handleBlur}
@@ -70,7 +72,7 @@ export default function NewCollectionSheet() {
             {(field) => (
               <Input
                 size="lg"
-                placeholder="Description (optional)"
+                placeholder={t('collection.descriptionPlaceholder')}
                 value={field.state.value}
                 onChangeText={field.handleChange}
                 onBlur={field.handleBlur}
@@ -92,7 +94,7 @@ export default function NewCollectionSheet() {
           {([canSubmit, isSubmitting]) => (
             <View className="mt-5">
               <Button
-                label="Create"
+                label={t('collection.create')}
                 layout="flex"
                 loading={isSubmitting}
                 disabled={isSubmitting || !canSubmit}

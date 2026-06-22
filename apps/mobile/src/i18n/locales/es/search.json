@@ -1,0 +1,9 @@
+{
+  "placeholder": "Título, artista, sello…",
+  "cancelA11yLabel": "Cancelar búsqueda",
+  "error": {
+    "title": "La búsqueda no está disponible.",
+    "hint": "Inténtalo de nuevo en un momento."
+  },
+  "noResults": "Ningún disco coincide con «{{query}}»."
+}

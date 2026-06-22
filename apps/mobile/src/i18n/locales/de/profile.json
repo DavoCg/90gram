@@ -1,0 +1,54 @@
+{
+  "loadError": "Dieses Profil konnte nicht geladen werden.",
+  "settingsA11y": "Einstellungen",
+  "loadingTitle": "Profil",
+  "stats": {
+    "followers_one": "Follower",
+    "followers_other": "Follower",
+    "following": "Folge ich",
+    "records_one": "Platte",
+    "records_other": "Platten"
+  },
+  "actions": {
+    "editProfile": "Profil bearbeiten"
+  },
+  "follow": {
+    "follow": "Folgen",
+    "following": "Folge ich"
+  },
+  "collections": {
+    "title": "Sammlungen",
+    "new": "Neu",
+    "emptyOwn": "Erstelle eine Gruppe, um Platten zu speichern.",
+    "emptyOther": "Noch keine Sammlungen.",
+    "count_one": "{{count}} Platte",
+    "count_other": "{{count}} Platten"
+  },
+  "userList": {
+    "followersTitle": "Follower",
+    "followingTitle": "Folge ich",
+    "emptyFollowers": "Noch keine Follower.",
+    "emptyFollowing": "Folgt noch niemandem."
+  },
+  "edit": {
+    "title": "Profil bearbeiten",
+    "displayNameLabel": "Anzeigename",
+    "displayNamePlaceholder": "Dein Name",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Erzähl anderen, was du magst",
+    "avatarUrlLabel": "Avatar-URL",
+    "avatarUrlPlaceholder": "https://...",
+    "saveError": "Dein Profil konnte nicht gespeichert werden. Prüfe die Avatar-URL und versuche es erneut."
+  },
+  "collectionDetail": {
+    "removeA11y": "Aus Sammlung entfernen",
+    "deleteMenu": "Sammlung löschen",
+    "actionsA11y": "Sammlungsaktionen",
+    "deleteTitle": "Sammlung löschen",
+    "deleteMessage": "Dies kann nicht rückgängig gemacht werden.",
+    "deleteConfirm": "Löschen",
+    "by": "von @{{username}}",
+    "emptyOwn": "Noch keine Platten. Füge welche von einer Plattenseite hinzu.",
+    "emptyOther": "Diese Sammlung ist leer."
+  }
+}

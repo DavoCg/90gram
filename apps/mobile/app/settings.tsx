@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
 import { Button } from '../src/components/button';
 import { AppHeader } from '../src/components/AppHeader';
 import { CheckForUpdatesRow } from '../src/components/check-for-updates-row';
 import { CurrencySettingRow } from '../src/components/currency-setting-row';
+import { LanguageSettingRow } from '../src/components/language-setting-row';
 import { toast } from '../src/components/toast';
 import { useThemeColors } from '../src/theme/colors';
 import { useDarkMode } from '../src/theme/theme';
@@ -19,29 +21,31 @@ import { authClient } from '../src/auth/client';
 // Scaffolded as labelled sections of rows; add new settings by dropping rows into a section.
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation('settings');
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Settings" showBack />
+      <AppHeader title={t('title')} showBack />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         contentContainerClassName="gap-6 px-4 pt-4"
       >
-        <SettingsSection title="Account">
+        <SettingsSection title={t('sections.account')}>
           <AccountRow />
           <SignOutRow />
         </SettingsSection>
-        <SettingsSection title="Preferences">
+        <SettingsSection title={t('sections.preferences')}>
+          <LanguageSettingRow />
           <CurrencySettingRow />
         </SettingsSection>
-        <SettingsSection title="Appearance">
+        <SettingsSection title={t('sections.appearance')}>
           <DarkModeRow />
         </SettingsSection>
-        <SettingsSection title="About">
+        <SettingsSection title={t('sections.about')}>
           <CheckForUpdatesRow />
         </SettingsSection>
-        <SettingsSection title="Developer">
+        <SettingsSection title={t('sections.developer')}>
           <ToastDemoRow />
         </SettingsSection>
       </ScrollView>
@@ -73,13 +77,14 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 // in sync with sign-in/sign-out without any extra wiring.
 function AccountRow() {
   const { data: session } = authClient.useSession();
+  const { t } = useTranslation('settings');
   return (
     <View className="border-b border-separator px-4 py-3.5">
       <Text size="sm" color="neutral-soft">
-        Signed in as
+        {t('account.signedInAs')}
       </Text>
       <Text weight="semibold" className="mt-0.5">
-        {session?.user.email ?? 'Unknown'}
+        {session?.user.email ?? t('account.unknown')}
       </Text>
     </View>
   );
@@ -91,26 +96,32 @@ function AccountRow() {
 // commits the sign-out, so an accidental tap is harmless.
 function SignOutRow() {
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   return (
     <Pressable
       disabled={busy}
       onPress={() => {
-        Alert.alert('Sign out', 'You will need to sign in again to access your collection.', [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Sign out',
-            style: 'destructive',
-            onPress: () => {
-              setBusy(true);
-              void authClient.signOut().finally(() => setBusy(false));
+        Alert.alert(
+          t('account.signOutConfirmTitle'),
+          t('account.signOutConfirmDescription'),
+          [
+            { text: tc('actions.cancel'), style: 'cancel' },
+            {
+              text: t('account.signOutAction'),
+              style: 'destructive',
+              onPress: () => {
+                setBusy(true);
+                void authClient.signOut().finally(() => setBusy(false));
+              },
             },
-          },
-        ]);
+          ],
+        );
       }}
       className="px-4 py-3.5"
     >
       <Text weight="semibold" color="critical">
-        Sign out
+        {t('account.signOut')}
       </Text>
     </Pressable>
   );
@@ -120,22 +131,24 @@ function SignOutRow() {
 // description and an action so the themed surface, typography, icon, and button styling are all
 // visible at once. Handy as a living reference for how to call `toast` from anywhere in the app.
 function ToastDemoRow() {
+  const { t } = useTranslation('settings');
+  const { t: tc } = useTranslation('common');
   return (
     <View className="px-4 py-3.5">
-      <Text weight="semibold">Toasts</Text>
+      <Text weight="semibold">{t('toasts.title')}</Text>
       <Text size="sm" color="neutral-soft" className="mt-0.5 mb-3">
-        Preview a design-system toast
+        {t('toasts.subtitle')}
       </Text>
       <Button
-        label="Show toast"
+        label={t('toasts.button')}
         variant="soft"
         color="accent"
         layout="flex"
         size="sm"
         onPress={() =>
-          toast.success('Added to your collection', {
-            description: 'Pink Floyd - The Dark Side of the Moon',
-            action: { label: 'Undo', onClick: () => toast('Removed again') },
+          toast.success(t('toasts.successTitle'), {
+            description: t('toasts.successDescription'),
+            action: { label: tc('actions.undo'), onClick: () => toast(t('toasts.removed')) },
           })
         }
       />
@@ -148,13 +161,14 @@ function ToastDemoRow() {
 function DarkModeRow() {
   const { isDark, setDarkMode } = useDarkMode();
   const colors = useThemeColors();
+  const { t } = useTranslation('settings');
 
   return (
     <View className="flex-row items-center justify-between px-4 py-3.5">
       <View className="flex-1 pr-4">
-        <Text weight="semibold">Dark mode</Text>
+        <Text weight="semibold">{t('darkMode.title')}</Text>
         <Text size="sm" color="neutral-soft" className="mt-0.5">
-          Use a dark color scheme
+          {t('darkMode.subtitle')}
         </Text>
       </View>
       <Switch

@@ -1,0 +1,46 @@
+{
+  "carousel": {
+    "previousSlide": "Diapositive précédente",
+    "nextSlide": "Diapositive suivante"
+  },
+  "slides": {
+    "discover": {
+      "title": "Découvrez du vinyle qui mérite d'être écouté.",
+      "subtitle": "Des nouveautés de disquaires près de chez vous et au-delà."
+    },
+    "preview": {
+      "title": "Écoutez avant d'acheter.",
+      "subtitle": "Pré-écoutez chaque disque, directement depuis l'annonce."
+    },
+    "feed": {
+      "title": "Un seul fil. Toutes les boutiques.",
+      "subtitle": "Les nouveautés de tous les magasins, réunies au même endroit."
+    },
+    "radio": {
+      "title": "Branchez-vous sur la radio.",
+      "subtitle": "Du crate-digging sans fin, sélectionné pour vous."
+    },
+    "wishlist": {
+      "title": "Gardez ceux que vous aimez.",
+      "subtitle": "Créez une liste de souhaits et ne ratez aucune réédition."
+    }
+  },
+  "profileSetup": {
+    "title": "Choisissez un nom d'utilisateur",
+    "subtitle": "C'est ainsi que les autres diggers vous trouvent et vous suivent. Vous pourrez le changer plus tard.",
+    "username": {
+      "placeholder": "nom d'utilisateur",
+      "formatError": "3 à 20 caractères : lettres minuscules, chiffres ou tiret bas.",
+      "taken": "Ce nom d'utilisateur est déjà pris.",
+      "available": "Disponible"
+    },
+    "displayName": {
+      "placeholder": "Nom affiché (facultatif)"
+    },
+    "continue": "Continuer",
+    "errors": {
+      "taken": "Ce nom d'utilisateur est déjà pris.",
+      "save": "Impossible d'enregistrer votre profil. Réessayez."
+    }
+  }
+}

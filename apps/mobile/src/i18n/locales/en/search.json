@@ -1,0 +1,9 @@
+{
+  "placeholder": "Title, artist, label…",
+  "cancelA11yLabel": "Cancel search",
+  "error": {
+    "title": "Search is unavailable.",
+    "hint": "Please try again in a moment."
+  },
+  "noResults": "No records match “{{query}}”."
+}

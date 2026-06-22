@@ -1,0 +1,46 @@
+{
+  "carousel": {
+    "previousSlide": "Vorherige Folie",
+    "nextSlide": "Nächste Folie"
+  },
+  "slides": {
+    "discover": {
+      "title": "Entdecke Vinyl, das sich zu hören lohnt.",
+      "subtitle": "Neue Pressungen aus Plattenläden in deiner Nähe und weltweit."
+    },
+    "preview": {
+      "title": "Hör rein, bevor du kaufst.",
+      "subtitle": "Höre jede Platte direkt aus dem Angebot an."
+    },
+    "feed": {
+      "title": "Ein Feed. Alle Läden.",
+      "subtitle": "Neuzugänge aus Läden überall, an einem Ort."
+    },
+    "radio": {
+      "title": "Schalte das Radio ein.",
+      "subtitle": "Endloses Crate-Digging, handverlesen für dich."
+    },
+    "wishlist": {
+      "title": "Merke dir deine Favoriten.",
+      "subtitle": "Leg eine Wunschliste an und verpasse keine Neuauflage."
+    }
+  },
+  "profileSetup": {
+    "title": "Wähle einen Benutzernamen",
+    "subtitle": "So finden und folgen dir andere Digger. Du kannst ihn später ändern.",
+    "username": {
+      "placeholder": "Benutzername",
+      "formatError": "3 bis 20 Zeichen: Kleinbuchstaben, Ziffern oder Unterstrich.",
+      "taken": "Dieser Benutzername ist vergeben.",
+      "available": "Verfügbar"
+    },
+    "displayName": {
+      "placeholder": "Anzeigename (optional)"
+    },
+    "continue": "Weiter",
+    "errors": {
+      "taken": "Dieser Benutzername ist bereits vergeben.",
+      "save": "Dein Profil konnte nicht gespeichert werden. Versuche es erneut."
+    }
+  }
+}

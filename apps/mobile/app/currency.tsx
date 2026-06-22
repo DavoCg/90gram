@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import type { SupportedCurrency } from '@getvinyls/api-client';
 import { View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
@@ -15,6 +16,7 @@ import { CURRENCY_META, useDisplayCurrency, useSupportedCurrencies } from '../sr
 export default function CurrencySheet() {
   const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
+  const { t } = useTranslation('settings');
   const { currency, setCurrency } = useDisplayCurrency();
   const currencies = useSupportedCurrencies();
 
@@ -23,7 +25,7 @@ export default function CurrencySheet() {
     // subviews: the collapsable={false} header (FormSheetHeader) and the ScrollView. A wrapping View,
     // a background on that wrapper, or extra subviews make the list overlap the header.
     <>
-      <FormSheetHeader title="Currency" />
+      <FormSheetHeader title={t('currency.title')} />
       <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
         {currencies.map((code) => {
           const isSelected = code === currency;

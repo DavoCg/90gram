@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
@@ -17,6 +18,7 @@ export default function CodeScreen() {
   const insets = useSafeAreaInsets();
   const { email = '' } = useLocalSearchParams<{ email: string }>();
   const [serverError, setServerError] = useState<string | null>(null);
+  const { t } = useTranslation('auth');
 
   const form = useForm({
     defaultValues: { code: '' },
@@ -27,7 +29,7 @@ export default function CodeScreen() {
         otp: value.code.trim(),
       });
       if (error) {
-        setServerError(error.message ?? 'That code did not work. Try again.');
+        setServerError(error.message ?? t('code.errorVerify'));
       }
       // On success the session listener flips and the root gate navigates away.
     },
@@ -40,7 +42,7 @@ export default function CodeScreen() {
       type: 'sign-in',
     });
     toast[error ? 'error' : 'success'](
-      error ? 'Could not resend the code.' : 'A new code is on its way.',
+      error ? t('code.resendError') : t('code.resendSuccess'),
     );
   };
 
@@ -53,10 +55,11 @@ export default function CodeScreen() {
         <View className="flex-1 px-6">
           <View className="mt-2 mb-8">
             <Text size="3xl" weight="bold">
-              Enter your code
+              {t('code.title')}
             </Text>
             <Text color="neutral-soft" className="mt-2" multiline>
-              We sent a 6-digit code to <Text weight="semibold">{email}</Text>.
+              {t('code.subtitlePrefix')} <Text weight="semibold">{email}</Text>
+              {t('code.subtitleSuffix')}
             </Text>
           </View>
 
@@ -75,7 +78,7 @@ export default function CodeScreen() {
                       onChange: ({ value }) =>
                         value.trim().length === 6
                           ? undefined
-                          : 'Enter the 6-digit code from your email.',
+                          : t('code.invalid'),
                     }}
                   >
                     {(field) => (
@@ -99,13 +102,13 @@ export default function CodeScreen() {
                   ) : null}
 
                   <View className="mt-6 flex-row items-center justify-center gap-2">
-                    <Text color="neutral-soft">Didn't get it?</Text>
+                    <Text color="neutral-soft">{t('code.didntGetIt')}</Text>
                     <Text
                       weight="semibold"
                       color={isSubmitting ? 'neutral-disabled' : 'accent'}
                       onPress={isSubmitting ? undefined : () => void resend()}
                     >
-                      Resend
+                      {t('code.resend')}
                     </Text>
                   </View>
                 </>

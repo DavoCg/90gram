@@ -1,0 +1,30 @@
+{
+  "actions": {
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "done": "Done",
+    "clear": "Clear",
+    "undo": "Undo",
+    "back": "Back",
+    "close": "Close",
+    "edit": "Edit",
+    "remove": "Remove"
+  },
+  "tabs": {
+    "home": "Home",
+    "hot": "Hot",
+    "favorites": "Favorites",
+    "search": "Search",
+    "profile": "You"
+  },
+  "states": {
+    "loading": "Loading…",
+    "empty": "Nothing here yet."
+  },
+  "errors": {
+    "generic": "Something went wrong.",
+    "network": "Could not reach the API.",
+    "apiHint": "Is it running? Check EXPO_PUBLIC_API_BASE_URL."
+  }
+}

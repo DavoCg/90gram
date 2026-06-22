@@ -103,6 +103,15 @@ create a collection inline. Social hooks live in `src/api/hooks.ts` (keys under 
 - Read observables in components with `use$(player$.x)` from `@legendapp/state/react` (fine-grained: only the
   fields you read trigger re-render). Write from non-React code (the engine) with `.set()` / `.assign()`.
 
+## Internationalization
+
+The app is fully translated with **i18next + react-i18next** (en/fr/de/es, English fallback). There is
+**no hardcoded user-facing copy**: every visible string goes through `t()` from `useTranslation(ns)`.
+Locale bundles live in `src/i18n/locales/<lang>/<namespace>.json` (scoped namespaces); the language is
+a per-user setting (`useDisplayLanguage`) that mirrors the currency setting. **Whenever you add a
+screen or any user-facing string, add its keys to ALL FOUR languages.** Read the `i18n` skill before
+touching copy, adding a screen, or changing the language setting.
+
 ## Performance
 
 - Use `LegendList` (from `@legendapp/list/react-native`), not `FlatList`/`FlashList`, for the record lists.

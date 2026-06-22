@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useMMKVString } from 'react-native-mmkv';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { SupportedCurrency } from '@getvinyls/api-client';
+import type { SupportedCurrency, UserSettingsDto } from '@getvinyls/api-client';
 import { storage } from './storage';
 import { apiClient } from './api/client';
 import { queryKeys } from './api/queryKeys';
@@ -82,9 +82,11 @@ export function useDisplayCurrency(): DisplayCurrencyApi {
   const queryClient = useQueryClient();
   const [stored, setStored] = useMMKVString(CURRENCY_KEY, storage);
 
+  // Shared settings cache (also read/written by useDisplayLanguage), so the queryFn returns the full
+  // settings shape; this hook only reads `currency`.
   const { data } = useQuery({
     queryKey: queryKeys.settings,
-    queryFn: async (): Promise<{ currency: SupportedCurrency }> => {
+    queryFn: async (): Promise<UserSettingsDto> => {
       const { data, error } = await apiClient.GET('/settings');
       if (error || !data) throw new Error('Failed to load settings');
       return data;
@@ -102,8 +104,11 @@ export function useDisplayCurrency(): DisplayCurrencyApi {
   const setCurrency = useCallback(
     (next: SupportedCurrency) => {
       // Instant local update (picker + next-boot value) and an optimistic settings-cache write.
+      // Merge into the existing settings so a concurrent language choice is preserved.
       setStored(next);
-      queryClient.setQueryData(queryKeys.settings, { currency: next });
+      queryClient.setQueryData<UserSettingsDto>(queryKeys.settings, (prev) =>
+        prev ? { ...prev, currency: next } : prev,
+      );
       void apiClient
         .PUT('/settings', { body: { currency: next } })
         .then(({ error }) => {

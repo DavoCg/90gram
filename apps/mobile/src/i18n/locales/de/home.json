@@ -1,0 +1,13 @@
+{
+  "loadingRecords": "Schallplatten werden geladen…",
+  "emptyFiltered": "Keine Platten entsprechen diesen Filtern.",
+  "clearFilters": "Filter zurücksetzen",
+  "filter": {
+    "title": "Filter",
+    "genres": "Genres",
+    "noGenres": "Noch keine Genres verfügbar.",
+    "clearAll": "Alle löschen",
+    "showResults": "Ergebnisse anzeigen",
+    "showResultsCount": "Ergebnisse anzeigen ({{count}})"
+  }
+}

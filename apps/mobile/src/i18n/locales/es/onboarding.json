@@ -1,0 +1,46 @@
+{
+  "carousel": {
+    "previousSlide": "Diapositiva anterior",
+    "nextSlide": "Diapositiva siguiente"
+  },
+  "slides": {
+    "discover": {
+      "title": "Descubre vinilos que merece la pena escuchar.",
+      "subtitle": "Nuevas ediciones de tiendas de discos cercanas y lejanas."
+    },
+    "preview": {
+      "title": "Escúchalo antes de comprarlo.",
+      "subtitle": "Previsualiza cada disco, directamente desde el anuncio."
+    },
+    "feed": {
+      "title": "Un solo feed. Todas las tiendas.",
+      "subtitle": "Novedades de tiendas de todas partes, en un solo lugar."
+    },
+    "radio": {
+      "title": "Sintoniza la radio.",
+      "subtitle": "Crate-digging sin parar, elegido para ti."
+    },
+    "wishlist": {
+      "title": "Guarda los que te encantan.",
+      "subtitle": "Crea una lista de deseos y no te pierdas ninguna reedición."
+    }
+  },
+  "profileSetup": {
+    "title": "Elige un nombre de usuario",
+    "subtitle": "Así es como otros diggers te encuentran y te siguen. Puedes cambiarlo más tarde.",
+    "username": {
+      "placeholder": "nombre de usuario",
+      "formatError": "De 3 a 20 caracteres: letras minúsculas, números o guion bajo.",
+      "taken": "Este nombre de usuario ya está en uso.",
+      "available": "Disponible"
+    },
+    "displayName": {
+      "placeholder": "Nombre visible (opcional)"
+    },
+    "continue": "Continuar",
+    "errors": {
+      "taken": "Este nombre de usuario ya está en uso.",
+      "save": "No se pudo guardar tu perfil. Inténtalo de nuevo."
+    }
+  }
+}

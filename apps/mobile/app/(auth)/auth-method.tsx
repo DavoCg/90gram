@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Apple, ChevronRight, Mail } from 'lucide-react-native';
 import { Pressable, View } from '../../src/theme/uniwind';
 import { useThemeColors } from '../../src/theme/colors';
@@ -39,17 +40,20 @@ export default function AuthMethodSheet() {
   const router = useRouter();
   const bottomPadding = useSheetBottomPadding();
   const colors = useThemeColors();
+  const { t } = useTranslation('auth');
 
   const comingSoon = (provider: string) => {
     router.back();
-    toast.info(`${provider} sign-in is coming soon`, { description: 'Use your email for now.' });
+    toast.info(t('authMethod.comingSoon', { provider }), {
+      description: t('authMethod.comingSoonDescription'),
+    });
   };
 
   return (
     <>
       <FormSheetHeader
-        title="Create your account"
-        subtitle="Choose how you want to get started."
+        title={t('authMethod.title')}
+        subtitle={t('authMethod.subtitle')}
       />
       <View
         className="bg-surface"
@@ -62,7 +66,7 @@ export default function AuthMethodSheet() {
         <View className="gap-2.5">
           <MethodRow
             icon={<Mail color={colors.text} size={20} />}
-            label="Continue with email"
+            label={t('authMethod.email')}
             onPress={() => {
               // Close the sheet, then push the email step only once it has finished sliding away.
               // Doing both synchronously batches them into a single transition (no sheet dismiss, no
@@ -79,18 +83,18 @@ export default function AuthMethodSheet() {
                 G
               </Text>
             }
-            label="Continue with Google"
+            label={t('authMethod.google')}
             onPress={() => comingSoon('Google')}
           />
           <MethodRow
             icon={<Apple color={colors.text} size={20} />}
-            label="Continue with Apple"
+            label={t('authMethod.apple')}
             onPress={() => comingSoon('Apple')}
           />
         </View>
 
         <Text size="xs" color="neutral-soft" align="center" className="mt-4" multiline>
-          By creating an account you agree to our Terms and Privacy Policy.
+          {t('authMethod.legal')}
         </Text>
       </View>
     </>

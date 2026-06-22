@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import type { UserSummaryDto } from '@getvinyls/api-client';
 import { ActivityIndicator, View } from '../theme/uniwind';
@@ -21,6 +22,7 @@ export default function UserListScreen({
   mode: 'followers' | 'following';
 }) {
   const router = useRouter();
+  const { t } = useTranslation('profile');
   // Both hooks are always called (rules of hooks); only the active one is enabled by passing a
   // non-empty username, the other is parked with an empty key so it never fetches.
   const followers = useFollowers(mode === 'followers' ? username : '');
@@ -44,7 +46,7 @@ export default function UserListScreen({
     [onPressUser],
   );
 
-  const title = mode === 'followers' ? 'Followers' : 'Following';
+  const title = mode === 'followers' ? t('userList.followersTitle') : t('userList.followingTitle');
   const users = data ?? [];
 
   return (
@@ -57,7 +59,7 @@ export default function UserListScreen({
       ) : users.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <Text color="neutral-soft">
-            {mode === 'followers' ? 'No followers yet.' : 'Not following anyone yet.'}
+            {mode === 'followers' ? t('userList.emptyFollowers') : t('userList.emptyFollowing')}
           </Text>
         </View>
       ) : (

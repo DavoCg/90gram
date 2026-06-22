@@ -2,6 +2,7 @@ import { useForm } from "@tanstack/react-form";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { authClient } from "../../src/auth/client";
@@ -21,6 +22,7 @@ export default function EmailScreen() {
 	const insets = useSafeAreaInsets();
 	const { intent } = useLocalSearchParams<{ intent?: string }>();
 	const [serverError, setServerError] = useState<string | null>(null);
+	const { t } = useTranslation("auth");
 
 	const isSignup = intent !== "signin";
 
@@ -34,7 +36,7 @@ export default function EmailScreen() {
 				type: "sign-in",
 			});
 			if (error) {
-				setServerError(error.message ?? "Could not send the code. Try again.");
+				setServerError(error.message ?? t("email.errorSend"));
 				return;
 			}
 			router.push({ pathname: "/code", params: { email } });
@@ -54,10 +56,10 @@ export default function EmailScreen() {
 					>
 						<View className="mt-2 mb-8">
 							<Text size="3xl" weight="bold">
-								{isSignup ? "What's your email?" : "Welcome back"}
+								{isSignup ? t("email.titleSignup") : t("email.titleSignin")}
 							</Text>
 							<Text color="neutral-soft" className="mt-2" multiline>
-								We will send a code to this address to verify it is yours.
+								{t("email.subtitle")}
 							</Text>
 						</View>
 
@@ -67,7 +69,7 @@ export default function EmailScreen() {
 								onChange: ({ value }) =>
 									EMAIL_RE.test(value.trim())
 										? undefined
-										: "Enter a valid email address.",
+										: t("email.invalid"),
 							}}
 						>
 							{(field) => {
@@ -77,7 +79,7 @@ export default function EmailScreen() {
 								return (
 									<Input
 										size="lg"
-										placeholder="you@example.com"
+										placeholder={t("email.placeholder")}
 										value={field.state.value}
 										onChangeText={field.handleChange}
 										onBlur={field.handleBlur}
@@ -112,7 +114,7 @@ export default function EmailScreen() {
 							style={{ marginTop: "auto" }}
 						>
 							<Button
-								label="Send code"
+								label={t("email.sendCode")}
 								layout="flex"
 								loading={isSubmitting}
 								disabled={isSubmitting || !canSubmit}

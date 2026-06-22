@@ -1,0 +1,69 @@
+{
+  "detail": {
+    "from": "ab {{price}}",
+    "shop_one": "{{count}} Shop",
+    "shop_other": "{{count}} Shops",
+    "play": "Wiedergabe",
+    "shuffle": "Zufall",
+    "noPreview": "Keine Vorschau",
+    "availableAt": "Erhältlich bei",
+    "loadFailed": "Dieser Tonträger konnte nicht geladen werden."
+  },
+  "row": {
+    "shop_one": "{{count}} Shop",
+    "shop_other": "{{count}} Shops"
+  },
+  "shop": {
+    "record_zero": "Noch keine Tonträger gelistet",
+    "record_one": "{{count}} Tonträger",
+    "record_other": "{{count}} Tonträger",
+    "loadFailed": "Dieser Shop konnte nicht geladen werden."
+  },
+  "collection": {
+    "saveTitle": "In Sammlung speichern",
+    "namePlaceholder": "Name der Sammlung",
+    "createAndAdd": "Erstellen und hinzufügen",
+    "newCollection": "Neue Sammlung",
+    "added": "Zur Sammlung hinzugefügt",
+    "record_one": "{{count}} Tonträger",
+    "record_other": "{{count}} Tonträger",
+    "createTitle": "Neue Sammlung",
+    "createSubtitle": "Fasse Tonträger zusammen, etwa „Beste Techno 2026“. Deine Follower können sie sehen.",
+    "descriptionPlaceholder": "Beschreibung (optional)",
+    "create": "Erstellen",
+    "nameRequired": "Gib deiner Sammlung einen Namen.",
+    "createFailed": "Die Sammlung konnte nicht erstellt werden. Versuche es erneut."
+  },
+  "player": {
+    "play": "Wiedergabe",
+    "pause": "Pause",
+    "previousTrack": "Vorheriger Titel",
+    "nextTrack": "Nächster Titel",
+    "favorite": "Favorit",
+    "more": "Mehr"
+  },
+  "track": {
+    "actions": "Titelaktionen",
+    "addToFavorites": "Zu Favoriten hinzufügen",
+    "removeFromFavorites": "Aus Favoriten entfernen"
+  },
+  "vinylActions": {
+    "actions": "Tonträgeraktionen",
+    "addToFavorites": "Zu Favoriten hinzufügen",
+    "removeFromFavorites": "Aus Favoriten entfernen",
+    "addToCollection": "Zur Sammlung hinzufügen"
+  },
+  "favorite": {
+    "add": "Zu Favoriten hinzufügen",
+    "remove": "Aus Favoriten entfernen"
+  },
+  "updates": {
+    "check": "Nach Updates suchen",
+    "notAvailable": "In der Entwicklung nicht verfügbar",
+    "checking": "Suche nach Updates...",
+    "downloading": "Update wird geladen...",
+    "upToDate": "Du bist auf dem neuesten Stand",
+    "error": "Updates konnten nicht gesucht werden",
+    "version": "Version {{version}}"
+  }
+}

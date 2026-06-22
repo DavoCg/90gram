@@ -1,0 +1,39 @@
+{
+  "title": "Einstellungen",
+  "sections": {
+    "account": "Konto",
+    "preferences": "Einstellungen",
+    "appearance": "Darstellung",
+    "about": "Über",
+    "developer": "Entwickler"
+  },
+  "account": {
+    "signedInAs": "Angemeldet als",
+    "unknown": "Unbekannt",
+    "signOut": "Abmelden",
+    "signOutConfirmTitle": "Abmelden?",
+    "signOutConfirmDescription": "Du musst dich erneut anmelden, um auf deine Sammlung zuzugreifen.",
+    "signOutAction": "Abmelden"
+  },
+  "currency": {
+    "title": "Währung",
+    "subtitle": "Preise anzeigen in {{name}} ({{code}})",
+    "subtitleFallback": "Preise anzeigen in {{code}}"
+  },
+  "language": {
+    "title": "Sprache",
+    "subtitle": "App-Sprache: {{name}}"
+  },
+  "darkMode": {
+    "title": "Dunkler Modus",
+    "subtitle": "Dunkles Farbschema verwenden"
+  },
+  "toasts": {
+    "title": "Hinweise",
+    "subtitle": "Vorschau eines Design-System-Hinweises",
+    "button": "Hinweis anzeigen",
+    "successTitle": "Zu deiner Sammlung hinzugefügt",
+    "successDescription": "Pink Floyd - The Dark Side of the Moon",
+    "removed": "Wieder entfernt"
+  }
+}

@@ -1,5 +1,6 @@
 import { useForm } from '@tanstack/react-form';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBar } from 'expo-status-bar';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 // First-run profile setup: claim a unique username (with a live availability check) and optionally a
 // display name. Claiming flips the auth gate, which navigates to the tabs (no manual redirect).
 export default function ProfileSetupScreen() {
+  const { t } = useTranslation('onboarding');
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const claimUsername = useClaimUsername();
@@ -57,8 +59,8 @@ export default function ProfileSetupScreen() {
       } catch (e) {
         setServerError(
           e instanceof Error && e.message === 'taken'
-            ? 'That username is already taken.'
-            : 'Could not save your profile. Try again.',
+            ? t('profileSetup.errors.taken')
+            : t('profileSetup.errors.save'),
         );
       }
     },
@@ -73,10 +75,10 @@ export default function ProfileSetupScreen() {
           <View className="flex-1 px-6" style={{ paddingBottom: insets.bottom + 16 }}>
             <View className="mt-2 mb-8">
               <Text size="3xl" weight="bold">
-                Choose a username
+                {t('profileSetup.title')}
               </Text>
               <Text color="neutral-soft" className="mt-2" multiline>
-                This is how other diggers find and follow you. You can change it later.
+                {t('profileSetup.subtitle')}
               </Text>
             </View>
 
@@ -86,7 +88,7 @@ export default function ProfileSetupScreen() {
                 onChange: ({ value }) =>
                   USERNAME_RE.test(value.trim().toLowerCase())
                     ? undefined
-                    : '3 to 20 characters: lowercase letters, numbers, or underscore.',
+                    : t('profileSetup.username.formatError'),
               }}
             >
               {(field) => {
@@ -95,17 +97,17 @@ export default function ProfileSetupScreen() {
                 const helperText = showFormatError
                   ? field.state.meta.errors.join(', ')
                   : taken
-                    ? 'That username is taken.'
+                    ? t('profileSetup.username.taken')
                     : free
-                      ? 'Available'
+                      ? t('profileSetup.username.available')
                       : undefined;
                 return (
                   <Input
                     size="lg"
-                    placeholder="username"
+                    placeholder={t('profileSetup.username.placeholder')}
                     value={field.state.value}
-                    onChangeText={(t) => {
-                      const v = t.toLowerCase();
+                    onChangeText={(text) => {
+                      const v = text.toLowerCase();
                       field.handleChange(v);
                       setTyped(v);
                     }}
@@ -140,7 +142,7 @@ export default function ProfileSetupScreen() {
                 {(field) => (
                   <Input
                     size="lg"
-                    placeholder="Display name (optional)"
+                    placeholder={t('profileSetup.displayName.placeholder')}
                     value={field.state.value}
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
@@ -165,7 +167,7 @@ export default function ProfileSetupScreen() {
               style={{ marginTop: 'auto' }}
             >
               <Button
-                label="Continue"
+                label={t('profileSetup.continue')}
                 layout="flex"
                 loading={isSubmitting}
                 disabled={isSubmitting || !canSubmit || taken}

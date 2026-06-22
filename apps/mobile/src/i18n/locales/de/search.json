@@ -1,0 +1,9 @@
+{
+  "placeholder": "Titel, Künstler, Label…",
+  "cancelA11yLabel": "Suche abbrechen",
+  "error": {
+    "title": "Suche nicht verfügbar.",
+    "hint": "Bitte versuche es gleich noch einmal."
+  },
+  "noResults": "Keine Platten passen zu „{{query}}“."
+}

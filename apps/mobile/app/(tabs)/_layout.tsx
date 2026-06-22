@@ -1,4 +1,5 @@
 import { Tabs } from "expo-router";
+import { useTranslation } from "react-i18next";
 import { useWindowDimensions, View } from "react-native";
 import Animated, {
 	interpolate,
@@ -23,6 +24,7 @@ import { useThemeColors } from "../../src/theme/colors";
 // values also drive the receding "card" effect on the tab content as the player opens.
 
 export default function TabsLayout() {
+	const { t } = useTranslation("common");
 	const colors = useThemeColors();
 	// Tint for the glass/blur background follows the active Uniwind theme (same source the nav
 	// chrome colors use, so it flips synchronously with them).
@@ -73,12 +75,15 @@ export default function TabsLayout() {
 						<FloatingTabBar {...props} isDark={isDark} colors={colors} />
 					)}
 				>
-					<Tabs.Screen name="(home)" options={{ title: "Home" }} />
-					<Tabs.Screen name="hot" options={{ title: "Hot" }} />
-					<Tabs.Screen name="favorites" options={{ title: "Favorites" }} />
+					<Tabs.Screen name="(home)" options={{ title: t("tabs.home") }} />
+					<Tabs.Screen name="hot" options={{ title: t("tabs.hot") }} />
+					<Tabs.Screen
+						name="favorites"
+						options={{ title: t("tabs.favorites") }}
+					/>
 					<Tabs.Screen
 						name="search"
-						options={{ title: "Search" }}
+						options={{ title: t("tabs.search") }}
 						listeners={({ navigation }) => ({
 							// Tapping the Search tab again while it is already the active tab focuses the
 							// search field (first tap navigates here, second tap opens the keyboard). The
@@ -91,7 +96,7 @@ export default function TabsLayout() {
 							},
 						})}
 					/>
-					<Tabs.Screen name="profile" options={{ title: "You" }} />
+					<Tabs.Screen name="profile" options={{ title: t("tabs.profile") }} />
 				</Tabs>
 			</Animated.View>
 			{/* The mini-player floats above the tab content (and below any pushed root screen, like

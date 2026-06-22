@@ -1,0 +1,54 @@
+{
+  "loadError": "Could not load this profile.",
+  "settingsA11y": "Settings",
+  "loadingTitle": "Profile",
+  "stats": {
+    "followers_one": "Follower",
+    "followers_other": "Followers",
+    "following": "Following",
+    "records_one": "Record",
+    "records_other": "Records"
+  },
+  "actions": {
+    "editProfile": "Edit profile"
+  },
+  "follow": {
+    "follow": "Follow",
+    "following": "Following"
+  },
+  "collections": {
+    "title": "Collections",
+    "new": "New",
+    "emptyOwn": "Create a group to save records into.",
+    "emptyOther": "No collections yet.",
+    "count_one": "{{count}} record",
+    "count_other": "{{count}} records"
+  },
+  "userList": {
+    "followersTitle": "Followers",
+    "followingTitle": "Following",
+    "emptyFollowers": "No followers yet.",
+    "emptyFollowing": "Not following anyone yet."
+  },
+  "edit": {
+    "title": "Edit profile",
+    "displayNameLabel": "Display name",
+    "displayNamePlaceholder": "Your name",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Tell people what you dig",
+    "avatarUrlLabel": "Avatar URL",
+    "avatarUrlPlaceholder": "https://...",
+    "saveError": "Could not save your profile. Check the avatar URL and try again."
+  },
+  "collectionDetail": {
+    "removeA11y": "Remove from collection",
+    "deleteMenu": "Delete Collection",
+    "actionsA11y": "Collection actions",
+    "deleteTitle": "Delete collection",
+    "deleteMessage": "This cannot be undone.",
+    "deleteConfirm": "Delete",
+    "by": "by @{{username}}",
+    "emptyOwn": "No records yet. Add some from a record page.",
+    "emptyOther": "This collection is empty."
+  }
+}

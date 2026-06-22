@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { MoreVertical } from 'lucide-react-native';
 import { MenuView, type NativeActionEvent } from '@expo/ui/community/menu';
@@ -16,6 +17,7 @@ const FAVORITE_ACTION = 'favorite';
 // the vinyl detail screen.
 export function TrackActionsMenu({ track }: { track: FavoriteTrackDto }) {
   const colors = useThemeColors();
+  const { t } = useTranslation('vinyl');
   const { toggle } = useToggleFavorite();
   const isFavorite = useIsFavorite('track', track.id);
 
@@ -34,7 +36,7 @@ export function TrackActionsMenu({ track }: { track: FavoriteTrackDto }) {
       actions={[
         {
           id: FAVORITE_ACTION,
-          title: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+          title: isFavorite ? t('track.removeFromFavorites') : t('track.addToFavorites'),
           // SF Symbol (iOS); Android shows the label without an icon for this action.
           image: isFavorite ? 'bookmark.fill' : 'bookmark',
         },
@@ -42,7 +44,7 @@ export function TrackActionsMenu({ track }: { track: FavoriteTrackDto }) {
     >
       <IconButton
         variant="ghost"
-        accessibilityLabel="Track actions"
+        accessibilityLabel={t('track.actions')}
         icon={<MoreVertical color={colors.muted} size={ICON_SIZE} />}
       />
     </MenuView>

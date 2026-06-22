@@ -16,6 +16,7 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 | api         | `.claude/skills/api`           | Hono + zod-openapi, generated OpenAPI, read-only routes       |
 | api-client  | `.claude/skills/api-client`    | openapi-typescript + openapi-fetch, no React deps             |
 | mobile      | `.claude/skills/mobile`        | Expo Router, Uniwind, react-query hooks, LegendList          |
+| i18n        | `.claude/skills/i18n`          | i18next + react-i18next, scoped locale bundles, the language setting |
 | audio       | `.claude/skills/audio`         | react-native-audio-api graph, player store, lock screen       |
 | scraper     | `.claude/skills/scraper`       | Scrapy, politeness, PostgresPipeline, reflected schema        |
 | typescript  | `.claude/skills/typescript`    | strict TS rules everywhere                                    |
@@ -37,6 +38,10 @@ If a skill conflicts with another skill or with a task instruction, stop and sur
 - **Zod schemas are the source of truth** for the API; the OpenAPI document is generated, never authored by hand.
 - **Prisma is the sole owner** of the database schema and migrations. The scraper only writes rows, never DDL.
 - **No em dashes** in generated docs, comments, or copy. Use commas, parentheses, or separate sentences.
+- **The app is fully internationalized (i18next/react-i18next).** No hardcoded user-facing copy in the
+  mobile app: every visible string goes through `t()`. **Whenever you ship a feature (or touch any
+  user-facing copy), you MUST add the new keys to ALL supported locales (en/fr/de/es), not just English.**
+  A feature is not done until it is translated in every language. See the `i18n` skill.
 - **Pull requests target `develop`**, never `main`. Always open PRs with `develop` as the base branch.
 - **Env via a typed loader**: validate with Zod at boot, fail fast on missing vars. Document every var in `.env.example`.
 

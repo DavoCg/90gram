@@ -1,0 +1,69 @@
+{
+  "detail": {
+    "from": "from {{price}}",
+    "shop_one": "{{count}} shop",
+    "shop_other": "{{count}} shops",
+    "play": "Play",
+    "shuffle": "Shuffle",
+    "noPreview": "No preview",
+    "availableAt": "Available at",
+    "loadFailed": "Could not load this record."
+  },
+  "row": {
+    "shop_one": "{{count}} shop",
+    "shop_other": "{{count}} shops"
+  },
+  "shop": {
+    "record_zero": "No records listed yet",
+    "record_one": "{{count}} record",
+    "record_other": "{{count}} records",
+    "loadFailed": "Could not load this shop."
+  },
+  "collection": {
+    "saveTitle": "Save to collection",
+    "namePlaceholder": "Collection name",
+    "createAndAdd": "Create and add",
+    "newCollection": "New collection",
+    "added": "Added to collection",
+    "record_one": "{{count}} record",
+    "record_other": "{{count}} records",
+    "createTitle": "New collection",
+    "createSubtitle": "Group records together, like \"Best techno 2026\". Your followers can see it.",
+    "descriptionPlaceholder": "Description (optional)",
+    "create": "Create",
+    "nameRequired": "Give your collection a name.",
+    "createFailed": "Could not create the collection. Try again."
+  },
+  "player": {
+    "play": "Play",
+    "pause": "Pause",
+    "previousTrack": "Previous track",
+    "nextTrack": "Next track",
+    "favorite": "Favorite",
+    "more": "More"
+  },
+  "track": {
+    "actions": "Track actions",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites"
+  },
+  "vinylActions": {
+    "actions": "Record actions",
+    "addToFavorites": "Add to Favorites",
+    "removeFromFavorites": "Remove from Favorites",
+    "addToCollection": "Add to Collection"
+  },
+  "favorite": {
+    "add": "Add to favorites",
+    "remove": "Remove from favorites"
+  },
+  "updates": {
+    "check": "Check for updates",
+    "notAvailable": "Not available in development",
+    "checking": "Checking for updates...",
+    "downloading": "Downloading update...",
+    "upToDate": "You're up to date",
+    "error": "Could not check for updates",
+    "version": "Version {{version}}"
+  }
+}

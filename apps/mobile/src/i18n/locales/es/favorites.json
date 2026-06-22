@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "records": "Discos",
+    "tracks": "Canciones"
+  },
+  "track": {
+    "noPreview": "Sin vista previa"
+  },
+  "error": {
+    "loadFailed": "No se pudieron cargar tus favoritos."
+  }
+}

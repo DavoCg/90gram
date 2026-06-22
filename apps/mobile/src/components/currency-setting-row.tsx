@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Pressable, View } from '../theme/uniwind';
 import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
@@ -12,6 +13,7 @@ import { CURRENCY_META, useDisplayCurrency } from '../currency';
 export function CurrencySettingRow() {
   const colors = useThemeColors();
   const router = useRouter();
+  const { t } = useTranslation('settings');
   const { currency } = useDisplayCurrency();
 
   const selectedMeta = CURRENCY_META[currency];
@@ -22,9 +24,11 @@ export function CurrencySettingRow() {
       className="flex-row items-center justify-between px-4 py-3.5"
     >
       <View className="flex-1 pr-4">
-        <Text weight="semibold">Currency</Text>
+        <Text weight="semibold">{t('currency.title')}</Text>
         <Text size="sm" color="neutral-soft" className="mt-0.5">
-          Show prices in {selectedMeta ? `${selectedMeta.name} (${currency})` : currency}
+          {selectedMeta
+            ? t('currency.subtitle', { name: selectedMeta.name, code: currency })
+            : t('currency.subtitleFallback', { code: currency })}
         </Text>
       </View>
       <View className="flex-row items-center gap-2">

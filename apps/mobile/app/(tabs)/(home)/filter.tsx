@@ -1,4 +1,5 @@
 import { ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { useForm } from '@tanstack/react-form';
 import { View } from '../../../src/theme/uniwind';
@@ -27,6 +28,7 @@ const FOOTER_CLEARANCE = 64;
 // home feed reads) and dismisses; a drag-dismiss simply never writes, so the draft is discarded.
 export default function FilterSheet() {
   const router = useRouter();
+  const { t } = useTranslation('home');
   const bottomPadding = useSheetBottomPadding();
   const genresQuery = useGenres();
   const genres = genresQuery.data ?? [];
@@ -47,7 +49,7 @@ export default function FilterSheet() {
     // native views, the fix for the list overlapping pinned chrome) and the ScrollView filling the
     // middle. Background is set per subview, not on the root wrapper, which would re-trigger overlap.
     <View style={{ flex: 1 }}>
-      <FormSheetHeader title="Filters" subtitle="Genres" />
+      <FormSheetHeader title={t('filter.title')} subtitle={t('filter.genres')} />
 
       <form.Field name="genres">
         {(field) => {
@@ -74,7 +76,7 @@ export default function FilterSheet() {
                 ) : genres.length === 0 ? (
                   <View className="py-10">
                     <Text color="neutral-soft" align="center">
-                      No genres available yet.
+                      {t('filter.noGenres')}
                     </Text>
                   </View>
                 ) : (
@@ -101,7 +103,7 @@ export default function FilterSheet() {
               >
                 <View className="flex-1">
                   <Button
-                    label="Clear all"
+                    label={t('filter.clearAll')}
                     variant="soft"
                     color="neutral"
                     disabled={count === 0}
@@ -110,7 +112,11 @@ export default function FilterSheet() {
                 </View>
                 <View className="flex-1">
                   <Button
-                    label={count > 0 ? `Show results (${String(count)})` : 'Show results'}
+                    label={
+                      count > 0
+                        ? t('filter.showResultsCount', { count })
+                        : t('filter.showResults')
+                    }
                     variant="solid"
                     color="accent"
                     onPress={() => void form.handleSubmit()}

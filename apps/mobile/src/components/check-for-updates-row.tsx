@@ -1,4 +1,6 @@
 import Constants from 'expo-constants';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { Check, RefreshCw } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, View } from '../theme/uniwind';
 import { Text } from './text';
@@ -12,9 +14,10 @@ import { useAppUpdates } from '../hooks/use-app-updates';
 export function CheckForUpdatesRow() {
   const { isEnabled, status, error, checkForUpdate } = useAppUpdates();
   const colors = useThemeColors();
+  const { t } = useTranslation('vinyl');
 
   const busy = status === 'checking' || status === 'downloading';
-  const subtitle = describeStatus({ isEnabled, status, error });
+  const subtitle = describeStatus({ isEnabled, status, error, t });
 
   return (
     <Pressable
@@ -23,7 +26,7 @@ export function CheckForUpdatesRow() {
       className="flex-row items-center justify-between px-4 py-3.5"
     >
       <View className="flex-1 pr-4">
-        <Text weight="semibold">Check for updates</Text>
+        <Text weight="semibold">{t('updates.check')}</Text>
         <Text size="sm" color="neutral-soft" className="mt-0.5">
           {subtitle}
         </Text>
@@ -45,22 +48,24 @@ function describeStatus({
   isEnabled,
   status,
   error,
+  t,
 }: {
   isEnabled: boolean;
   status: ReturnType<typeof useAppUpdates>['status'];
   error: string | null;
+  t: TFunction<'vinyl'>;
 }): string {
-  if (!isEnabled) return 'Not available in development';
+  if (!isEnabled) return t('updates.notAvailable');
   switch (status) {
     case 'checking':
-      return 'Checking for updates...';
+      return t('updates.checking');
     case 'downloading':
-      return 'Downloading update...';
+      return t('updates.downloading');
     case 'upToDate':
-      return "You're up to date";
+      return t('updates.upToDate');
     case 'error':
-      return error ?? 'Could not check for updates';
+      return error ?? t('updates.error');
     default:
-      return `Version ${Constants.expoConfig?.version ?? '?'}`;
+      return t('updates.version', { version: Constants.expoConfig?.version ?? '?' });
   }
 }

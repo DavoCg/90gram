@@ -1,0 +1,12 @@
+{
+  "sections": {
+    "records": "Records",
+    "tracks": "Tracks"
+  },
+  "track": {
+    "noPreview": "No preview"
+  },
+  "error": {
+    "loadFailed": "Could not load your favorites."
+  }
+}

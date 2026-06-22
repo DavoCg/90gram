@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { RefreshControl } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -22,6 +23,7 @@ const LIST_BOTTOM_PADDING = 140;
 // The shop's identity block (name, address, country): the list header above its vinyls.
 function ShopHeader({ shop }: { shop: ShopDetailDto }) {
   const colors = useThemeColors();
+  const { t } = useTranslation('vinyl');
   const location = [shop.address, shop.country].filter((part): part is string => Boolean(part)).join(' · ');
   const count = shop.vinylCount;
   return (
@@ -38,7 +40,7 @@ function ShopHeader({ shop }: { shop: ShopDetailDto }) {
         </View>
       ) : null}
       <Text size="sm" color="neutral-soft" className="mt-3">
-        {count === 0 ? 'No records listed yet' : count === 1 ? '1 record' : `${count} records`}
+        {t('shop.record', { count })}
       </Text>
     </View>
   );
@@ -48,6 +50,8 @@ function ShopHeader({ shop }: { shop: ShopDetailDto }) {
 // of whichever tab stack opened it (so the tab bar and mini-player stay visible).
 export default function ShopDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation('vinyl');
+  const { t: tCommon } = useTranslation('common');
   const { data: shop, isLoading, isError, refetch } = useShop(id ?? '');
   const {
     data: vinyls,
@@ -96,12 +100,12 @@ export default function ShopDetailScreen() {
         <View className="flex-1 bg-bg">
           <AppHeader />
           <View className="flex-1 items-center justify-center gap-3 px-6">
-            <Text align="center">Could not load this shop.</Text>
+            <Text align="center">{t('shop.loadFailed')}</Text>
             <PressableScale
               onPress={() => void refetch()}
               className="rounded-full curve-continuous bg-accent px-5 py-2"
             >
-              <Text color="white">Retry</Text>
+              <Text color="white">{tCommon('actions.retry')}</Text>
             </PressableScale>
           </View>
         </View>

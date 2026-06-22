@@ -1,0 +1,13 @@
+{
+  "loadingRecords": "Chargement des disques…",
+  "emptyFiltered": "Aucun disque ne correspond à ces filtres.",
+  "clearFilters": "Effacer les filtres",
+  "filter": {
+    "title": "Filtres",
+    "genres": "Genres",
+    "noGenres": "Aucun genre disponible pour le moment.",
+    "clearAll": "Tout effacer",
+    "showResults": "Voir les résultats",
+    "showResultsCount": "Voir les résultats ({{count}})"
+  }
+}

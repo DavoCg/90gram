@@ -1,0 +1,39 @@
+{
+  "title": "Settings",
+  "sections": {
+    "account": "Account",
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "about": "About",
+    "developer": "Developer"
+  },
+  "account": {
+    "signedInAs": "Signed in as",
+    "unknown": "Unknown",
+    "signOut": "Sign out",
+    "signOutConfirmTitle": "Sign out?",
+    "signOutConfirmDescription": "You will need to sign in again to access your collection.",
+    "signOutAction": "Sign out"
+  },
+  "currency": {
+    "title": "Currency",
+    "subtitle": "Show prices in {{name}} ({{code}})",
+    "subtitleFallback": "Show prices in {{code}}"
+  },
+  "language": {
+    "title": "Language",
+    "subtitle": "App language: {{name}}"
+  },
+  "darkMode": {
+    "title": "Dark mode",
+    "subtitle": "Use a dark color scheme"
+  },
+  "toasts": {
+    "title": "Toasts",
+    "subtitle": "Preview a design-system toast",
+    "button": "Show toast",
+    "successTitle": "Added to your collection",
+    "successDescription": "Pink Floyd - The Dark Side of the Moon",
+    "removed": "Removed again"
+  }
+}

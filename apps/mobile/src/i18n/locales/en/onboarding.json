@@ -1,0 +1,46 @@
+{
+  "carousel": {
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
+  },
+  "slides": {
+    "discover": {
+      "title": "Discover vinyl worth spinning.",
+      "subtitle": "New pressings from record shops near you and far."
+    },
+    "preview": {
+      "title": "Hear it before you buy.",
+      "subtitle": "Preview every record, right from the listing."
+    },
+    "feed": {
+      "title": "One feed. Every shop.",
+      "subtitle": "Fresh arrivals from stores everywhere, in one place."
+    },
+    "radio": {
+      "title": "Tune into the radio.",
+      "subtitle": "Nonstop crate-digging, hand-picked for you."
+    },
+    "wishlist": {
+      "title": "Save the ones you love.",
+      "subtitle": "Build a wishlist and never miss a repress."
+    }
+  },
+  "profileSetup": {
+    "title": "Choose a username",
+    "subtitle": "This is how other diggers find and follow you. You can change it later.",
+    "username": {
+      "placeholder": "username",
+      "formatError": "3 to 20 characters: lowercase letters, numbers, or underscore.",
+      "taken": "That username is taken.",
+      "available": "Available"
+    },
+    "displayName": {
+      "placeholder": "Display name (optional)"
+    },
+    "continue": "Continue",
+    "errors": {
+      "taken": "That username is already taken.",
+      "save": "Could not save your profile. Try again."
+    }
+  }
+}

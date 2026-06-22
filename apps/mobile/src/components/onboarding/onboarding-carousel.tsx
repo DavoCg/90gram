@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AppState, type AppStateStatus, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -49,19 +50,20 @@ const styles = StyleSheet.create({
 // Title + subtitle for one slide. Only the active slide is mounted, so the staggered entrance is a
 // mount animation (the whole layer fades out together when the slide leaves, see SlideLayer).
 function SlideText({ slide }: { slide: OnboardingSlide }) {
+  const { t } = useTranslation('onboarding');
   return (
     <View className="gap-3">
       <Animated.View entering={FadeInUp.duration(TEXT_ENTER_DURATION_MS)}>
         {/* Tighten the display line height (multiline 5xl defaults to 56px on a 48px font). */}
         <Text size="5xl" weight="bold" color="white" multiline style={{ lineHeight: 50 }}>
-          {slide.title}
+          {t(`slides.${slide.key}.title`)}
         </Text>
       </Animated.View>
       <Animated.View
         entering={FadeInUp.duration(TEXT_ENTER_DURATION_MS).delay(SUBTITLE_ENTER_DELAY_MS)}
       >
         <Text size="lg" weight="medium" color="white" multiline className="opacity-80">
-          {slide.subtitle}
+          {t(`slides.${slide.key}.subtitle`)}
         </Text>
       </Animated.View>
     </View>
@@ -163,6 +165,7 @@ function ProgressBar({ index, activeIndex, progress }: ProgressBarProps) {
 }
 
 export function OnboardingCarousel() {
+  const { t } = useTranslation('onboarding');
   const insets = useSafeAreaInsets();
   const slides = ONBOARDING_SLIDES;
 
@@ -302,7 +305,7 @@ export function OnboardingCarousel() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Previous slide"
+        accessibilityLabel={t('carousel.previousSlide')}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onLongPress={handleLongPress}
@@ -311,7 +314,7 @@ export function OnboardingCarousel() {
       />
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Next slide"
+        accessibilityLabel={t('carousel.nextSlide')}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onLongPress={handleLongPress}

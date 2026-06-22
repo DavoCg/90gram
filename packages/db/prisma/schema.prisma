@@ -286,9 +286,9 @@ model User {
 
 /// Per-user app preferences. One row per user (PK == userId, a 1:1 with User). Kept separate from
 /// the better-auth `users` table so that mirror stays exactly in lockstep with better-auth's schema
-/// (the db skill: never bolt arbitrary columns onto the auth tables). Currently just the display
-/// currency the app converts all prices into (ISO-4217, defaults to "EUR"). The scraper never
-/// touches this table.
+/// (the db skill: never bolt arbitrary columns onto the auth tables). Holds the display currency the
+/// app converts all prices into (ISO-4217, defaults to "EUR") and the preferred UI language. The
+/// scraper never touches this table.
 model UserSetting {
   userId String @id @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -296,6 +296,12 @@ model UserSetting {
   // ISO-4217 code the user wants prices shown in. Validated against the supported set at the API
   // boundary (Zod); stored as a plain string here, mirroring Offer.currentCurrency.
   currency String @default("EUR")
+
+  // Preferred UI language as an ISO-639-1 code (validated against the supported set at the API
+  // boundary, like currency). NULLABLE on purpose: a missing value means the user has not chosen one,
+  // so the app falls back to the phone's locale (then English). An explicit choice is persisted here
+  // for cross-device sync.
+  language String? @map("language")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
