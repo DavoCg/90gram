@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { View } from '../theme/uniwind';
@@ -22,6 +23,7 @@ interface AppHeaderProps {
 // this at the top rather than re-enabling per-screen native headers.
 export function AppHeader({ title, showBack, right }: AppHeaderProps) {
   const router = useRouter();
+  const { t } = useTranslation('common');
   const insets = useSafeAreaInsets();
   const colors = useThemeColors();
   const canGoBack = showBack ?? router.canGoBack();
@@ -36,7 +38,7 @@ export function AppHeader({ title, showBack, right }: AppHeaderProps) {
               variant="ghost"
               size="xs"
               hitSlop={8}
-              accessibilityLabel="Go back"
+              accessibilityLabel={t('a11y.goBack')}
               icon={<ChevronLeft color={colors.text} size={28} />}
             />
           </View>

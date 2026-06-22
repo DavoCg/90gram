@@ -1,4 +1,5 @@
 import { SlidersHorizontal } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Pressable, View } from '../../theme/uniwind';
 import { useThemeColors } from '../../theme/colors';
 import { Text } from '../text';
@@ -14,6 +15,7 @@ interface FilterBarProps {
 // The button reflects how many filters are active so the state reads at a glance.
 export function FilterBar({ onPress, activeCount }: FilterBarProps) {
   const colors = useThemeColors();
+  const { t } = useTranslation('home');
   const active = activeCount > 0;
   return (
     <View className="bg-bg px-4 pb-2 pt-1">
@@ -21,14 +23,14 @@ export function FilterBar({ onPress, activeCount }: FilterBarProps) {
         onPress={onPress}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="Filters"
+        accessibilityLabel={t('filter.title')}
         className={`flex-row items-center gap-2 self-start rounded-2xl curve-continuous px-3.5 py-2 ${
           active ? 'bg-surface-2' : 'bg-surface'
         }`}
       >
         <SlidersHorizontal color={active ? colors.accent : colors.text} size={18} />
         <Text weight="semibold" size="sm">
-          Filters
+          {t('filter.title')}
         </Text>
         {active ? (
           <View

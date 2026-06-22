@@ -6,6 +6,7 @@ import { Text } from './text';
 import { useThemeColors } from '../theme/colors';
 import { useDisplayLanguage } from '../language';
 import { LANGUAGE_META } from '../i18n/languages';
+import { LanguageBadge } from './language-badge';
 
 // Settings row for the UI language. Tapping it opens the language form sheet (app/language.tsx)
 // listing the supported languages; choosing one switches every translation instantly and persists it.
@@ -30,7 +31,7 @@ export function LanguageSettingRow() {
         </Text>
       </View>
       <View className="flex-row items-center gap-2">
-        <Text style={{ fontSize: 28 }}>{meta.flag}</Text>
+        <LanguageBadge code={language} size={32} />
         <ChevronRight color={colors.muted} size={20} />
       </View>
     </Pressable>
