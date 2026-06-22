@@ -250,11 +250,7 @@ export default function VinylDetailScreen() {
                   >
                     {track.title}
                   </Text>
-                  {isCurrent && playWhenReady ? (
-                    <Text size="xs" color="accent">
-                      Playing
-                    </Text>
-                  ) : !playable ? (
+                  {!playable ? (
                     <Text size="xs" color="neutral-soft">
                       No preview
                     </Text>
