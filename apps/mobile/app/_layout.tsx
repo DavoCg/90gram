@@ -1,6 +1,7 @@
 import "../global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
+import { ActivityIndicator, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect, useRef, useState } from "react";
@@ -129,6 +130,20 @@ function RootNavigator() {
 	// the screen. After that the navigator stays mounted (never blanks on a refetch).
 	if (!appReady) {
 		return null;
+	}
+
+	// After the cold-start splash hides, signing in flips `hasSession` on BEFORE the profile's first
+	// load resolves. During that window `profileQuery.data` is still undefined, so `needsUsername`
+	// defaults to false and the tabs guard would briefly mount the home screen before the username gate
+	// kicks in (a flash of home right after creating an account). `appReady` cannot cover this because
+	// it already latched during the signed-out cold start. Hold on a loading view until the profile
+	// settles so the very first authed screen is the correct one (onboarding or tabs), never home.
+	if (!profileReady) {
+		return (
+			<View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
+				<ActivityIndicator color={colors.muted} />
+			</View>
+		);
 	}
 
 	return (
