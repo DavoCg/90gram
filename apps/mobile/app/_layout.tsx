@@ -1,7 +1,6 @@
 import "../global.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { ActivityIndicator, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SystemUI from "expo-system-ui";
 import { useEffect, useRef, useState } from "react";
@@ -76,9 +75,13 @@ function RootNavigator() {
 	// (data or error). isLoading is true only on the first fetch with no data, so it falls to false
 	// on success OR error, which is what we want (an errored profile should not wedge the splash).
 	const profileReady = !hasSession || !profileQuery.isLoading;
-	// Show onboarding while signed in with a profile that has no username yet. When the profile errored
-	// (no data), fall through to the tabs rather than trapping the user on onboarding.
-	const needsUsername = hasSession && profileQuery.data ? profileQuery.data.username === null : false;
+	// Show onboarding while signed in until we KNOW the profile has a username. An UNKNOWN profile (still
+	// loading, e.g. right after sign-up, when data is undefined) counts as "needs username" so the guard
+	// keeps the user on onboarding instead of briefly mounting the tabs/home; it flips to the tabs the
+	// moment the profile loads with a username. A profile that ERRORED (no data) falls through to the
+	// tabs rather than trapping the user on onboarding.
+	const needsUsername =
+		hasSession && !profileQuery.isError && (profileQuery.data?.username ?? null) === null;
 
 	// Configure the audio session and lock-screen handlers once for the whole app.
 	// Tear everything down (remove all subscriptions) on unmount.
@@ -130,20 +133,6 @@ function RootNavigator() {
 	// the screen. After that the navigator stays mounted (never blanks on a refetch).
 	if (!appReady) {
 		return null;
-	}
-
-	// After the cold-start splash hides, signing in flips `hasSession` on BEFORE the profile's first
-	// load resolves. During that window `profileQuery.data` is still undefined, so `needsUsername`
-	// defaults to false and the tabs guard would briefly mount the home screen before the username gate
-	// kicks in (a flash of home right after creating an account). `appReady` cannot cover this because
-	// it already latched during the signed-out cold start. Hold on a loading view until the profile
-	// settles so the very first authed screen is the correct one (onboarding or tabs), never home.
-	if (!profileReady) {
-		return (
-			<View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg }}>
-				<ActivityIndicator color={colors.muted} />
-			</View>
-		);
 	}
 
 	return (
