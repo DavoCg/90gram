@@ -86,15 +86,26 @@ function AccountRow() {
 }
 
 // Sign out: clears the session (and the SecureStore token). The root auth gate then redirects to
-// the sign-in screen, so no manual navigation is needed here.
+// the sign-in screen, so no manual navigation is needed here. Tapping the row does not sign out
+// immediately; it raises a confirmation toast whose action commits the sign-out, so an accidental
+// tap is harmless (swipe the toast away, or let it auto-dismiss, to cancel).
 function SignOutRow() {
   const [busy, setBusy] = useState(false);
   return (
     <Pressable
       disabled={busy}
       onPress={() => {
-        setBusy(true);
-        void authClient.signOut().finally(() => setBusy(false));
+        toast.warning('Sign out?', {
+          description: 'You will need to sign in again to access your collection.',
+          duration: 6000,
+          action: {
+            label: 'Sign out',
+            onClick: () => {
+              setBusy(true);
+              void authClient.signOut().finally(() => setBusy(false));
+            },
+          },
+        });
       }}
       className="px-4 py-3.5"
     >
