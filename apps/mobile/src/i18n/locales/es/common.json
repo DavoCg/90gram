@@ -18,6 +18,9 @@
     "search": "Buscar",
     "profile": "Tú"
   },
+  "a11y": {
+    "goBack": "Volver"
+  },
   "states": {
     "loading": "Cargando…",
     "empty": "Aún no hay nada aquí."

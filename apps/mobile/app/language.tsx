@@ -7,6 +7,7 @@ import { SheetScrollView, SheetSelectableRow } from '../src/components/sheet';
 import { useSheetBottomPadding } from '../src/components/use-sheet-bottom-padding';
 import { useDisplayLanguage, useSupportedLanguages } from '../src/language';
 import { LANGUAGE_META } from '../src/i18n/languages';
+import { LanguageBadge } from '../src/components/language-badge';
 
 // UI-language picker, presented as a native form sheet (see the formSheet screen options in
 // app/_layout.tsx). Fully self-contained: language state is global (useDisplayLanguage reads i18next
@@ -37,7 +38,7 @@ export default function LanguageSheet() {
                 router.back();
               }}
             >
-              <Text style={{ fontSize: 28 }}>{meta.flag}</Text>
+              <LanguageBadge code={code} />
               <View className="flex-1">
                 <Text weight="semibold">{meta.nativeName}</Text>
                 <Text size="sm" color="neutral-soft" className="mt-0.5">

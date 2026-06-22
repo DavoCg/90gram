@@ -32,12 +32,13 @@ export type Namespace = (typeof NAMESPACES)[number];
 export const LANGUAGE_STORAGE_KEY = 'app-language';
 
 // Human-readable labels for the picker. `nativeName` is shown in the language's own script so a user
-// who cannot read the current UI language can still recognise their own. `flag` is a regional cue.
-export const LANGUAGE_META: Record<SupportedLanguage, { name: string; nativeName: string; flag: string }> = {
-  en: { name: 'English', nativeName: 'English', flag: '🇬🇧' },
-  fr: { name: 'French', nativeName: 'Français', flag: '🇫🇷' },
-  de: { name: 'German', nativeName: 'Deutsch', flag: '🇩🇪' },
-  es: { name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' },
+// who cannot read the current UI language can still recognise their own. The picker shows the
+// two-letter code in a coin-like badge (see LanguageBadge), mirroring the currency picker.
+export const LANGUAGE_META: Record<SupportedLanguage, { name: string; nativeName: string }> = {
+  en: { name: 'English', nativeName: 'English' },
+  fr: { name: 'French', nativeName: 'Français' },
+  de: { name: 'German', nativeName: 'Deutsch' },
+  es: { name: 'Spanish', nativeName: 'Español' },
 };
 
 // Narrow an arbitrary string to a supported language code, or null if unsupported.

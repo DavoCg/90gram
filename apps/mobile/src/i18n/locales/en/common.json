@@ -18,6 +18,9 @@
     "search": "Search",
     "profile": "You"
   },
+  "a11y": {
+    "goBack": "Go back"
+  },
   "states": {
     "loading": "Loading…",
     "empty": "Nothing here yet."

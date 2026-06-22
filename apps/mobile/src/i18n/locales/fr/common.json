@@ -18,6 +18,9 @@
     "search": "Recherche",
     "profile": "Profil"
   },
+  "a11y": {
+    "goBack": "Retour"
+  },
   "states": {
     "loading": "Chargement…",
     "empty": "Rien pour le moment."
