@@ -75,9 +75,13 @@ function RootNavigator() {
 	// (data or error). isLoading is true only on the first fetch with no data, so it falls to false
 	// on success OR error, which is what we want (an errored profile should not wedge the splash).
 	const profileReady = !hasSession || !profileQuery.isLoading;
-	// Show onboarding while signed in with a profile that has no username yet. When the profile errored
-	// (no data), fall through to the tabs rather than trapping the user on onboarding.
-	const needsUsername = hasSession && profileQuery.data ? profileQuery.data.username === null : false;
+	// Show onboarding while signed in until we KNOW the profile has a username. An UNKNOWN profile (still
+	// loading, e.g. right after sign-up, when data is undefined) counts as "needs username" so the guard
+	// keeps the user on onboarding instead of briefly mounting the tabs/home; it flips to the tabs the
+	// moment the profile loads with a username. A profile that ERRORED (no data) falls through to the
+	// tabs rather than trapping the user on onboarding.
+	const needsUsername =
+		hasSession && !profileQuery.isError && (profileQuery.data?.username ?? null) === null;
 
 	// Configure the audio session and lock-screen handlers once for the whole app.
 	// Tear everything down (remove all subscriptions) on unmount.
