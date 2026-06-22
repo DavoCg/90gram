@@ -1,53 +1,36 @@
-<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vinyl box logo">
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Vinyl box logo" style="color:#111827">
   <title>Vinyl box with records</title>
 
-  <!-- Records leaning out of the box -->
-  <g>
-    <!-- Record sleeve 1 -->
-    <rect x="78" y="34" width="92" height="92" rx="4" transform="rotate(-9 124 80)" fill="#3b3f46"/>
-    <rect x="78" y="34" width="92" height="92" rx="4" transform="rotate(-9 124 80)" fill="none" stroke="#23262b" stroke-width="3"/>
-    <!-- Vinyl disc peeking from sleeve 1 -->
-    <circle cx="150" cy="58" r="26" fill="#16181c" transform="rotate(-9 124 80)"/>
-    <circle cx="150" cy="58" r="11" fill="#d9534f" transform="rotate(-9 124 80)"/>
-    <circle cx="150" cy="58" r="2.5" fill="#16181c" transform="rotate(-9 124 80)"/>
+  <defs>
+    <!-- Only show records above the crate rim so they tuck inside the box -->
+    <clipPath id="aboveRim">
+      <rect x="0" y="0" width="256" height="150"/>
+    </clipPath>
+    <!-- Clip back records to outside the front record so it sits cleanly on top (works on transparent bg) -->
+    <clipPath id="outsideFront" clipPathUnits="userSpaceOnUse">
+      <path fill-rule="evenodd" clip-rule="evenodd"
+            d="M0 0 H256 V256 H0 Z M82 112 a46 46 0 1 0 92 0 a46 46 0 1 0 -92 0"/>
+    </clipPath>
+  </defs>
 
-    <!-- Record sleeve 2 -->
-    <rect x="98" y="30" width="92" height="98" rx="4" transform="rotate(2 144 79)" fill="#5b6068"/>
-    <rect x="98" y="30" width="92" height="98" rx="4" transform="rotate(2 144 79)" fill="none" stroke="#33373d" stroke-width="3"/>
+  <g fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
 
-    <!-- Record sleeve 3 -->
-    <rect x="120" y="36" width="92" height="94" rx="4" transform="rotate(11 166 83)" fill="#787e88"/>
-    <rect x="120" y="36" width="92" height="94" rx="4" transform="rotate(11 166 83)" fill="none" stroke="#4a4f57" stroke-width="3"/>
-    <!-- Vinyl disc peeking from sleeve 3 -->
-    <circle cx="150" cy="62" r="24" fill="#16181c" transform="rotate(11 166 83)"/>
-    <circle cx="150" cy="62" r="10" fill="#e8b04b" transform="rotate(11 166 83)"/>
-    <circle cx="150" cy="62" r="2.5" fill="#16181c" transform="rotate(11 166 83)"/>
-  </g>
+    <!-- Records fanned inside the crate -->
+    <g clip-path="url(#aboveRim)">
+      <!-- back left -->
+      <circle cx="100" cy="118" r="34" clip-path="url(#outsideFront)"/>
+      <!-- back right -->
+      <circle cx="156" cy="118" r="34" clip-path="url(#outsideFront)"/>
+      <!-- front center -->
+      <circle cx="128" cy="112" r="38"/>
+      <circle cx="128" cy="112" r="13" stroke-width="6"/>
+      <circle cx="128" cy="112" r="2.5" fill="currentColor" stroke="none"/>
+    </g>
 
-  <!-- Wooden crate / box -->
-  <g>
-    <!-- Back top edge -->
-    <path d="M40 122 L128 96 L216 122 L128 148 Z" fill="#5a3a24"/>
-    <!-- Front face -->
-    <path d="M40 122 L40 210 L128 236 L128 148 Z" fill="#73492c"/>
-    <!-- Right face -->
-    <path d="M216 122 L216 210 L128 236 L128 148 Z" fill="#5e3b22"/>
-
-    <!-- Wood grain front -->
-    <path d="M58 150 L58 214" stroke="#83552f" stroke-width="2" opacity="0.5"/>
-    <path d="M88 158 L88 222" stroke="#83552f" stroke-width="2" opacity="0.5"/>
-    <path d="M110 164 L110 228" stroke="#83552f" stroke-width="2" opacity="0.5"/>
-    <!-- Wood grain right -->
-    <path d="M160 150 L160 224" stroke="#6c4426" stroke-width="2" opacity="0.5"/>
-    <path d="M190 142 L190 216" stroke="#6c4426" stroke-width="2" opacity="0.5"/>
-
-    <!-- Leather handle on front -->
-    <rect x="72" y="172" width="24" height="14" rx="2" fill="#2c2c2c"/>
-    <rect x="74" y="174" width="20" height="10" rx="1.5" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
-
-    <!-- Box outline -->
-    <path d="M40 122 L128 96 L216 122 L216 210 L128 236 L40 210 Z" fill="none" stroke="#3d2615" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M128 148 L128 236" stroke="#3d2615" stroke-width="3"/>
-    <path d="M40 122 L128 148 L216 122" fill="none" stroke="#3d2615" stroke-width="3" stroke-linejoin="round"/>
+    <!-- Crate -->
+    <path d="M50 150 L66 210 L190 210 L206 150"/>
+    <line x1="50" y1="150" x2="206" y2="150"/>
+    <!-- Handle slot -->
+    <rect x="110" y="176" width="36" height="12" rx="6"/>
   </g>
 </svg>
