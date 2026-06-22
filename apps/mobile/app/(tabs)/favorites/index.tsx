@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
 import type { FavoriteTrackDto, VinylSummaryDto } from '@getvinyls/api-client';
@@ -45,6 +46,7 @@ function FavoriteTrackRow({
   onOpenVinyl: (vinylId: string) => void;
 }) {
   const colors = useThemeColors();
+  const { t } = useTranslation('favorites');
   const playable = track.previewUrl !== null;
   return (
     <Pressable
@@ -67,7 +69,7 @@ function FavoriteTrackRow({
         <EqualizerBars playing={isPlaying} color={colors.accent} size={14} />
       ) : !playable ? (
         <Text size="xs" color="neutral-soft">
-          No preview
+          {t('track.noPreview')}
         </Text>
       ) : null}
       <TrackActionsMenu track={track} />
@@ -77,6 +79,8 @@ function FavoriteTrackRow({
 
 export default function FavoritesScreen() {
   const router = useRouter();
+  const { t } = useTranslation('favorites');
+  const { t: tc } = useTranslation('common');
   const {
     data: vinyls,
     isLoading: vinylsLoading,
@@ -132,7 +136,7 @@ export default function FavoritesScreen() {
   if (vinylsLoading || tracksLoading) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Favorites" showBack={false} />
+        <AppHeader title={tc('tabs.favorites')} showBack={false} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -143,9 +147,9 @@ export default function FavoritesScreen() {
   if (vinylsError || tracksError) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Favorites" showBack={false} />
+        <AppHeader title={tc('tabs.favorites')} showBack={false} />
         <View className="flex-1 items-center justify-center gap-3 px-6">
-          <Text align="center">Could not load your favorites.</Text>
+          <Text align="center">{t('error.loadFailed')}</Text>
           <Pressable
             onPress={() => {
               void refetchVinyls();
@@ -153,7 +157,7 @@ export default function FavoritesScreen() {
             }}
             className="rounded-2xl curve-continuous bg-accent px-5 py-2"
           >
-            <Text color="white">Retry</Text>
+            <Text color="white">{tc('actions.retry')}</Text>
           </Pressable>
         </View>
       </View>
@@ -167,7 +171,7 @@ export default function FavoritesScreen() {
   // footer so the existing Records-then-Tracks order is preserved on one scroll surface.
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Favorites" showBack={false} />
+      <AppHeader title={tc('tabs.favorites')} showBack={false} />
       <LegendList
         data={favoriteVinyls}
         keyExtractor={(item) => item.id}
@@ -187,13 +191,15 @@ export default function FavoritesScreen() {
             colors={[colors.accent]}
           />
         }
-        ListHeaderComponent={favoriteVinyls.length > 0 ? <SectionTitle>Records</SectionTitle> : null}
+        ListHeaderComponent={
+          favoriteVinyls.length > 0 ? <SectionTitle>{t('sections.records')}</SectionTitle> : null
+        }
         ListFooterComponent={
           <>
             <ListFooterLoader loading={isFetchingNextPage} />
             {favoriteTracks.length > 0 ? (
               <>
-                <SectionTitle>Tracks</SectionTitle>
+                <SectionTitle>{t('sections.tracks')}</SectionTitle>
                 {favoriteTracks.map((track) => (
                   <FavoriteTrackRow
                     key={track.id}

@@ -1,1 +1,13 @@
-{}
+{
+  "loadingRecords": "Loading records…",
+  "emptyFiltered": "No records match these filters.",
+  "clearFilters": "Clear filters",
+  "filter": {
+    "title": "Filters",
+    "genres": "Genres",
+    "noGenres": "No genres available yet.",
+    "clearAll": "Clear all",
+    "showResults": "Show results",
+    "showResultsCount": "Show results ({{count}})"
+  }
+}

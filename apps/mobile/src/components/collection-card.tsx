@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Disc3 } from 'lucide-react-native';
 import type { CollectionDto } from '@getvinyls/api-client';
 import { Image, View } from '../theme/uniwind';
@@ -77,8 +78,8 @@ export interface CollectionCardProps {
 // A saved-group card: a square cover mosaic with the name and record count beneath. Used in the
 // collections grid on profiles.
 function CollectionCardBase({ collection, onPress, size = 150 }: CollectionCardProps) {
-  const count =
-    collection.vinylCount === 1 ? '1 record' : `${collection.vinylCount} records`;
+  const { t } = useTranslation('profile');
+  const count = t('collections.count', { count: collection.vinylCount });
   return (
     <PressableScale onPress={() => onPress(collection.id)} style={{ width: size }}>
       <CoverMosaic urls={collection.coverArtUrls} size={size} />

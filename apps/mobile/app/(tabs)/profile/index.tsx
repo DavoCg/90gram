@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, View } from '../../../src/theme/uniwind';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useMyProfile } from '../../../src/api/hooks';
@@ -7,12 +8,13 @@ import ProfileScreen from '../../../src/screens/profile';
 // one exists past onboarding), then render the shared ProfileScreen, which detects isMe and shows the
 // owner affordances (edit, settings, new collection).
 export default function MyProfileScreen() {
+  const { t } = useTranslation('profile');
   const { data: profile } = useMyProfile();
 
   if (!profile?.username) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Profile" showBack={false} />
+        <AppHeader title={t('loadingTitle')} showBack={false} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>

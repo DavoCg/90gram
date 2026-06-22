@@ -1,1 +1,54 @@
-{}
+{
+  "loadError": "No se pudo cargar este perfil.",
+  "settingsA11y": "Ajustes",
+  "loadingTitle": "Perfil",
+  "stats": {
+    "followers_one": "Seguidor",
+    "followers_other": "Seguidores",
+    "following": "Siguiendo",
+    "records_one": "Disco",
+    "records_other": "Discos"
+  },
+  "actions": {
+    "editProfile": "Editar perfil"
+  },
+  "follow": {
+    "follow": "Seguir",
+    "following": "Siguiendo"
+  },
+  "collections": {
+    "title": "Colecciones",
+    "new": "Nueva",
+    "emptyOwn": "Crea un grupo para guardar discos.",
+    "emptyOther": "Aún no hay colecciones.",
+    "count_one": "{{count}} disco",
+    "count_other": "{{count}} discos"
+  },
+  "userList": {
+    "followersTitle": "Seguidores",
+    "followingTitle": "Siguiendo",
+    "emptyFollowers": "Aún no hay seguidores.",
+    "emptyFollowing": "Todavía no sigue a nadie."
+  },
+  "edit": {
+    "title": "Editar perfil",
+    "displayNameLabel": "Nombre visible",
+    "displayNamePlaceholder": "Tu nombre",
+    "bioLabel": "Biografía",
+    "bioPlaceholder": "Cuenta a los demás lo que te gusta",
+    "avatarUrlLabel": "URL del avatar",
+    "avatarUrlPlaceholder": "https://...",
+    "saveError": "No se pudo guardar tu perfil. Revisa la URL del avatar e inténtalo de nuevo."
+  },
+  "collectionDetail": {
+    "removeA11y": "Quitar de la colección",
+    "deleteMenu": "Eliminar colección",
+    "actionsA11y": "Acciones de la colección",
+    "deleteTitle": "Eliminar colección",
+    "deleteMessage": "Esta acción no se puede deshacer.",
+    "deleteConfirm": "Eliminar",
+    "by": "por @{{username}}",
+    "emptyOwn": "Aún no hay discos. Añade algunos desde la página de un disco.",
+    "emptyOther": "Esta colección está vacía."
+  }
+}

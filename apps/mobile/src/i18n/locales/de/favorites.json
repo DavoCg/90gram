@@ -1,1 +1,12 @@
-{}
+{
+  "sections": {
+    "records": "Platten",
+    "tracks": "Titel"
+  },
+  "track": {
+    "noPreview": "Keine Vorschau"
+  },
+  "error": {
+    "loadFailed": "Deine Favoriten konnten nicht geladen werden."
+  }
+}

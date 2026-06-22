@@ -12,6 +12,7 @@ import {
 	Star,
 } from "lucide-react-native";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -79,6 +80,7 @@ export function NowPlaying({
 	expand: SharedValue<number>;
 	drag: SharedValue<number>;
 }) {
+	const { t } = useTranslation("vinyl");
 	const track = use$(player$.track);
 	const playWhenReady = use$(player$.playWhenReady);
 	const status = use$(player$.status);
@@ -323,7 +325,7 @@ export function NowPlaying({
 					onPress={() => void audioEngine.toggle()}
 					variant="ghost"
 					size="xs"
-					accessibilityLabel={isPlaying ? "Pause" : "Play"}
+					accessibilityLabel={isPlaying ? t("player.pause") : t("player.play")}
 					icon={
 						isPlaying ? (
 							<Pause color={colors.text} size={22} fill={colors.text} />
@@ -338,7 +340,7 @@ export function NowPlaying({
 					preserveDisabledStyle
 					variant="ghost"
 					size="xs"
-					accessibilityLabel="Next track"
+					accessibilityLabel={t("player.nextTrack")}
 					style={{ opacity: hasNext ? 1 : 0.35 }}
 					icon={
 						<SkipForward color={colors.text} size={22} fill={colors.text} />
@@ -451,14 +453,14 @@ export function NowPlaying({
 							<View className="ml-2">
 								<IconButton
 									size="2xs"
-									accessibilityLabel="Favorite"
+									accessibilityLabel={t("player.favorite")}
 									icon={<Star color={colors.text} size={18} />}
 								/>
 							</View>
 							<View className="ml-2">
 								<IconButton
 									size="2xs"
-									accessibilityLabel="More"
+									accessibilityLabel={t("player.more")}
 									icon={<MoreHorizontal color={colors.text} size={18} />}
 								/>
 							</View>
@@ -489,7 +491,7 @@ export function NowPlaying({
 								onPress={() => audioEngine.prev()}
 								variant="ghost"
 								size="md"
-								accessibilityLabel="Previous track"
+								accessibilityLabel={t("player.previousTrack")}
 								icon={
 									<SkipBack color={colors.text} size={32} fill={colors.text} />
 								}
@@ -498,7 +500,7 @@ export function NowPlaying({
 								onPress={() => void audioEngine.toggle()}
 								variant="ghost"
 								size="lg"
-								accessibilityLabel={isPlaying ? "Pause" : "Play"}
+								accessibilityLabel={isPlaying ? t("player.pause") : t("player.play")}
 								icon={
 									isPlaying ? (
 										<Pause color={colors.text} size={44} fill={colors.text} />
@@ -513,7 +515,7 @@ export function NowPlaying({
 								preserveDisabledStyle
 								variant="ghost"
 								size="md"
-								accessibilityLabel="Next track"
+								accessibilityLabel={t("player.nextTrack")}
 								style={{ opacity: hasNext ? 1 : 0.35 }}
 								icon={
 									<SkipForward

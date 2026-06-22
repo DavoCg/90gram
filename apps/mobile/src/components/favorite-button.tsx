@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { Bookmark } from 'lucide-react-native';
 import type { VinylSummaryDto, FavoriteTrackDto } from '@getvinyls/api-client';
@@ -22,6 +23,7 @@ const ICON_SIZE = 22;
 // useIsFavorite).
 export function FavoriteButton(props: FavoriteButtonProps) {
   const colors = useThemeColors();
+  const { t } = useTranslation('vinyl');
   const { toggle } = useToggleFavorite();
 
   const targetId = props.targetType === 'vinyl' ? props.vinyl.id : props.track.id;
@@ -41,7 +43,7 @@ export function FavoriteButton(props: FavoriteButtonProps) {
     <IconButton
       onPress={onPress}
       hitSlop={8}
-      accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+      accessibilityLabel={isFavorite ? t('favorite.remove') : t('favorite.add')}
       icon={
         <Bookmark
           color={isFavorite ? colors.accent : colors.text}

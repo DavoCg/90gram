@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { RefreshControl, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { Settings } from 'lucide-react-native';
 import type { CollectionDto } from '@getvinyls/api-client';
 import { ActivityIndicator, Pressable, ScrollView, View } from '../theme/uniwind';
@@ -70,6 +71,8 @@ export default function ProfileScreen({
 }) {
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation('profile');
+  const { t: tc } = useTranslation('common');
   const { width } = useWindowDimensions();
   // Two columns: split the row width (minus side insets and the inter-column gap) in half.
   const cardSize = (width - GRID_PADDING * 2 - GRID_GAP) / 2;
@@ -101,12 +104,12 @@ export default function ProfileScreen({
         <View className="flex-1 items-center justify-center gap-3 px-6">
           {isError ? (
             <>
-              <Text align="center">Could not load this profile.</Text>
+              <Text align="center">{t('loadError')}</Text>
               <PressableScale
                 onPress={() => void refetch()}
                 className="rounded-full curve-continuous bg-accent px-5 py-2"
               >
-                <Text color="white">Retry</Text>
+                <Text color="white">{tc('actions.retry')}</Text>
               </PressableScale>
             </>
           ) : (
@@ -129,7 +132,7 @@ export default function ProfileScreen({
           profile.isMe ? (
             <IconButton
               onPress={() => router.push('/settings')}
-              accessibilityLabel="Settings"
+              accessibilityLabel={t('settingsA11y')}
               icon={<Settings color={colors.text} size={20} />}
             />
           ) : undefined
@@ -170,22 +173,25 @@ export default function ProfileScreen({
         <View className="mt-5 flex-row px-6">
           <Stat
             value={profile.followerCount}
-            label="Followers"
+            label={t('stats.followers', { count: profile.followerCount })}
             onPress={() => router.push(`/profile/followers?username=${handle}`)}
           />
           <Stat
             value={profile.followingCount}
-            label="Following"
+            label={t('stats.following')}
             onPress={() => router.push(`/profile/following?username=${handle}`)}
           />
-          <Stat value={profile.favoriteCount} label="Records" />
+          <Stat
+            value={profile.favoriteCount}
+            label={t('stats.records', { count: profile.favoriteCount })}
+          />
         </View>
 
         {/* Primary action: edit (self) or follow (others). */}
         <View className="mt-5 px-6">
           {profile.isMe ? (
             <Button
-              label="Edit profile"
+              label={t('actions.editProfile')}
               layout="flex"
               variant="soft"
               color="neutral"
@@ -200,12 +206,12 @@ export default function ProfileScreen({
 
         {/* Collections rail. */}
         <SectionHeader
-          title="Collections"
+          title={t('collections.title')}
           action={
             profile.isMe ? (
               <Pressable onPress={() => router.push('/new-collection')} hitSlop={8}>
                 <Text color="accent" weight="semibold">
-                  New
+                  {t('collections.new')}
                 </Text>
               </Pressable>
             ) : undefined
@@ -213,7 +219,7 @@ export default function ProfileScreen({
         />
         {myCollections.length === 0 ? (
           <Text color="neutral-soft" className="px-4">
-            {profile.isMe ? 'Create a group to save records into.' : 'No collections yet.'}
+            {profile.isMe ? t('collections.emptyOwn') : t('collections.emptyOther')}
           </Text>
         ) : (
           <View

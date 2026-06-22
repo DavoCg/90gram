@@ -1,5 +1,6 @@
 import type { VinylSummaryDto } from "@getvinyls/api-client";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import { formatPrice } from "../currency";
 import { View } from "../theme/uniwind";
 import { CoverArt } from "./cover-art";
@@ -13,9 +14,10 @@ export interface VinylRowProps {
 }
 
 function VinylRowBase({ vinyl, onPress }: VinylRowProps) {
+	const { t } = useTranslation("vinyl");
 	// Cheapest offer across shops, converted to the display currency; null when no priced offer.
 	const price = formatPrice(vinyl.lowestPrice, vinyl.currency);
-	const shops = vinyl.shopCount === 1 ? "1 shop" : `${vinyl.shopCount} shops`;
+	const shops = t("row.shop", { count: vinyl.shopCount });
 
 	return (
 		<PressableScale

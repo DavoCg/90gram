@@ -77,10 +77,12 @@ sole owner; never let the better-auth CLI run DDL against this database).
 
 `Favorite` (`favorites`) and `UserSetting` (`user_settings`) hang off `User` and are owned by the
 app, not the scraper (it never touches them). `UserSetting` is a 1:1 with `User` (PK == `userId`),
-holding the display `currency` (ISO-4217, defaults to `"EUR"`) the API converts all prices into; it
-is kept as its own table rather than columns on `users` so the better-auth mirror stays exact. The
-supported currency set is validated at the API boundary (Zod), not by a DB enum, mirroring how
-`Offer.currentCurrency` is a plain string.
+holding the display `currency` (ISO-4217, defaults to `"EUR"`) the API converts all prices into and
+the preferred UI `language` (ISO-639-1, **nullable**: null means the user has not chosen one, so the
+app falls back to the phone locale, then English). It is kept as its own table rather than columns on
+`users` so the better-auth mirror stays exact. Both supported sets are validated at the API boundary
+(Zod), not by a DB enum, mirroring how `Offer.currentCurrency` is a plain string. See the `i18n`
+skill for the language pipeline.
 
 ## Social (profiles, follows, collections)
 

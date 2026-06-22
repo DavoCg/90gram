@@ -1,1 +1,69 @@
-{}
+{
+  "detail": {
+    "from": "à partir de {{price}}",
+    "shop_one": "{{count}} boutique",
+    "shop_other": "{{count}} boutiques",
+    "play": "Lecture",
+    "shuffle": "Aléatoire",
+    "noPreview": "Pas d'extrait",
+    "availableAt": "Disponible chez",
+    "loadFailed": "Impossible de charger ce disque."
+  },
+  "row": {
+    "shop_one": "{{count}} boutique",
+    "shop_other": "{{count}} boutiques"
+  },
+  "shop": {
+    "record_zero": "Aucun disque pour le moment",
+    "record_one": "{{count}} disque",
+    "record_other": "{{count}} disques",
+    "loadFailed": "Impossible de charger cette boutique."
+  },
+  "collection": {
+    "saveTitle": "Enregistrer dans une collection",
+    "namePlaceholder": "Nom de la collection",
+    "createAndAdd": "Créer et ajouter",
+    "newCollection": "Nouvelle collection",
+    "added": "Ajouté à la collection",
+    "record_one": "{{count}} disque",
+    "record_other": "{{count}} disques",
+    "createTitle": "Nouvelle collection",
+    "createSubtitle": "Regroupez des disques, comme « Meilleure techno 2026 ». Vos abonnés peuvent la voir.",
+    "descriptionPlaceholder": "Description (facultatif)",
+    "create": "Créer",
+    "nameRequired": "Donnez un nom à votre collection.",
+    "createFailed": "Impossible de créer la collection. Réessayez."
+  },
+  "player": {
+    "play": "Lecture",
+    "pause": "Pause",
+    "previousTrack": "Titre précédent",
+    "nextTrack": "Titre suivant",
+    "favorite": "Favori",
+    "more": "Plus"
+  },
+  "track": {
+    "actions": "Actions du titre",
+    "addToFavorites": "Ajouter aux favoris",
+    "removeFromFavorites": "Retirer des favoris"
+  },
+  "vinylActions": {
+    "actions": "Actions du disque",
+    "addToFavorites": "Ajouter aux favoris",
+    "removeFromFavorites": "Retirer des favoris",
+    "addToCollection": "Ajouter à une collection"
+  },
+  "favorite": {
+    "add": "Ajouter aux favoris",
+    "remove": "Retirer des favoris"
+  },
+  "updates": {
+    "check": "Rechercher des mises à jour",
+    "notAvailable": "Indisponible en développement",
+    "checking": "Recherche de mises à jour...",
+    "downloading": "Téléchargement de la mise à jour...",
+    "upToDate": "Vous êtes à jour",
+    "error": "Impossible de rechercher des mises à jour",
+    "version": "Version {{version}}"
+  }
+}

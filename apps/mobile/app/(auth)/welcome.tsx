@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "../../src/components/button";
 import { OnboardingCarousel } from "../../src/components/onboarding";
@@ -14,6 +15,7 @@ import { View } from "../../src/theme/uniwind";
 export default function WelcomeScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	const { t } = useTranslation("auth");
 
 	return (
 		<View className="flex-1 bg-black">
@@ -26,7 +28,7 @@ export default function WelcomeScreen() {
 				style={{ paddingBottom: insets.bottom + 12 }}
 			>
 				<Button
-					label="Create account"
+					label={t("welcome.createAccount")}
 					color="white"
 					variant="intense"
 					layout="flex"
@@ -34,7 +36,7 @@ export default function WelcomeScreen() {
 				/>
 
 				<Button
-					label="Log in"
+					label={t("welcome.logIn")}
 					color="white"
 					variant="soft"
 					layout="flex"

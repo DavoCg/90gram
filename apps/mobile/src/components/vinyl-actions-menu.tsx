@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { MoreVertical } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ const COLLECTION_ACTION = 'collection';
 // opens the picker sheet. Replaces the separate favorite + add-to-collection header icons.
 export function VinylActionsMenu({ vinyl }: { vinyl: VinylSummaryDto }) {
   const colors = useThemeColors();
+  const { t } = useTranslation('vinyl');
   const router = useRouter();
   const { toggle } = useToggleFavorite();
   const isFavorite = useIsFavorite('vinyl', vinyl.id);
@@ -39,20 +41,20 @@ export function VinylActionsMenu({ vinyl }: { vinyl: VinylSummaryDto }) {
       actions={[
         {
           id: FAVORITE_ACTION,
-          title: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+          title: isFavorite ? t('vinylActions.removeFromFavorites') : t('vinylActions.addToFavorites'),
           // SF Symbol (iOS); Android shows the label without an icon for this action.
           image: isFavorite ? 'bookmark.fill' : 'bookmark',
         },
         {
           id: COLLECTION_ACTION,
-          title: 'Add to Collection',
+          title: t('vinylActions.addToCollection'),
           image: 'text.badge.plus',
         },
       ]}
     >
       <IconButton
         variant="ghost"
-        accessibilityLabel="Record actions"
+        accessibilityLabel={t('vinylActions.actions')}
         icon={<MoreVertical color={colors.muted} size={ICON_SIZE} />}
       />
     </MenuView>

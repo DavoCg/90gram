@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { Alert, RefreshControl } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { MoreVertical, X } from 'lucide-react-native';
 import { MenuView, type NativeActionEvent } from '@expo/ui/community/menu';
@@ -40,6 +41,7 @@ function CollectionVinylRow({
   onRemove: (id: string) => void;
 }) {
   const colors = useThemeColors();
+  const { t } = useTranslation('profile');
   const price = formatPrice(vinyl.lowestPrice, vinyl.currency);
   return (
     <PressableScale
@@ -62,7 +64,7 @@ function CollectionVinylRow({
           variant="ghost"
           size="xs"
           hitSlop={8}
-          accessibilityLabel="Remove from collection"
+          accessibilityLabel={t('collectionDetail.removeA11y')}
           icon={<X color={colors.muted} size={20} />}
         />
       ) : price ? (
@@ -77,6 +79,8 @@ export default function CollectionDetailScreen() {
   const collectionId = id ?? '';
   const router = useRouter();
   const colors = useThemeColors();
+  const { t } = useTranslation('profile');
+  const { t: tc } = useTranslation('common');
   const { data: collection, isLoading: metaLoading } = useCollection(collectionId);
   const {
     data: vinyls,
@@ -107,17 +111,17 @@ export default function CollectionDetailScreen() {
   }, [router, collection]);
 
   const onDelete = useCallback(() => {
-    Alert.alert('Delete collection', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('collectionDetail.deleteTitle'), t('collectionDetail.deleteMessage'), [
+      { text: tc('actions.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('collectionDetail.deleteConfirm'),
         style: 'destructive',
         onPress: () => {
           deleteCollection.mutate(collectionId, { onSuccess: () => router.back() });
         },
       },
     ]);
-  }, [deleteCollection, collectionId, router]);
+  }, [deleteCollection, collectionId, router, t, tc]);
 
   const onPressAction = useCallback(
     ({ nativeEvent }: NativeActionEvent) => {
@@ -166,7 +170,7 @@ export default function CollectionDetailScreen() {
               actions={[
                 {
                   id: DELETE_ACTION,
-                  title: 'Delete Collection',
+                  title: t('collectionDetail.deleteMenu'),
                   // SF Symbol (iOS); Android shows the label without an icon for this action.
                   image: 'trash',
                   attributes: { destructive: true },
@@ -175,7 +179,7 @@ export default function CollectionDetailScreen() {
             >
               <IconButton
                 variant="ghost"
-                accessibilityLabel="Collection actions"
+                accessibilityLabel={t('collectionDetail.actionsA11y')}
                 icon={<MoreVertical color={colors.text} size={20} />}
               />
             </MenuView>
@@ -214,7 +218,7 @@ export default function CollectionDetailScreen() {
                 size={28}
               />
               <Text size="sm" color="neutral-soft">
-                by @{collection.owner.username ?? 'unknown'}
+                {t('collectionDetail.by', { username: collection.owner.username ?? 'unknown' })}
               </Text>
             </Pressable>
           </View>
@@ -228,8 +232,8 @@ export default function CollectionDetailScreen() {
             <View className="items-center justify-center px-6 py-16">
               <Text color="neutral-soft" align="center" multiline>
                 {isOwner
-                  ? 'No records yet. Add some from a record page.'
-                  : 'This collection is empty.'}
+                  ? t('collectionDetail.emptyOwn')
+                  : t('collectionDetail.emptyOther')}
               </Text>
             </View>
           )

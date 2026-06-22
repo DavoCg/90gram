@@ -1,1 +1,9 @@
-{}
+{
+  "placeholder": "Titre, artiste, label…",
+  "cancelA11yLabel": "Annuler la recherche",
+  "error": {
+    "title": "Recherche indisponible.",
+    "hint": "Veuillez réessayer dans un instant."
+  },
+  "noResults": "Aucun disque ne correspond à « {{query}} »."
+}

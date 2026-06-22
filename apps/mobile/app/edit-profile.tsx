@@ -1,6 +1,7 @@
 import { useForm } from '@tanstack/react-form';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { KeyboardStickyView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader } from '../src/components/AppHeader';
@@ -16,6 +17,8 @@ import { useMyProfile, useUpdateProfile } from '../src/api/hooks';
 // tabs and the mini-player rather than pushing within the Profile stack.
 export default function EditProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation('profile');
+  const { t: tc } = useTranslation('common');
   const insets = useSafeAreaInsets();
   const { data: profile, isLoading } = useMyProfile();
   const updateProfile = useUpdateProfile();
@@ -38,7 +41,7 @@ export default function EditProfileScreen() {
         });
         router.back();
       } catch {
-        setServerError('Could not save your profile. Check the avatar URL and try again.');
+        setServerError(t('edit.saveError'));
       }
     },
   });
@@ -46,7 +49,7 @@ export default function EditProfileScreen() {
   if (isLoading || !profile) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Edit profile" />
+        <AppHeader title={t('edit.title')} />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
         </View>
@@ -56,16 +59,16 @@ export default function EditProfileScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Edit profile" />
+      <AppHeader title={t('edit.title')} />
       <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
         {([canSubmit, isSubmitting]) => (
           <View className="flex-1 px-6 pt-4" style={{ paddingBottom: insets.bottom + 16 }}>
             <form.Field name="displayName">
               {(field) => (
                 <Input
-                  label="Display name"
+                  label={t('edit.displayNameLabel')}
                   size="lg"
-                  placeholder="Your name"
+                  placeholder={t('edit.displayNamePlaceholder')}
                   value={field.state.value}
                   onChangeText={field.handleChange}
                   onBlur={field.handleBlur}
@@ -80,9 +83,9 @@ export default function EditProfileScreen() {
               <form.Field name="bio">
                 {(field) => (
                   <Input
-                    label="Bio"
+                    label={t('edit.bioLabel')}
                     size="lg"
-                    placeholder="Tell people what you dig"
+                    placeholder={t('edit.bioPlaceholder')}
                     value={field.state.value}
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
@@ -98,9 +101,9 @@ export default function EditProfileScreen() {
               <form.Field name="avatarUrl">
                 {(field) => (
                   <Input
-                    label="Avatar URL"
+                    label={t('edit.avatarUrlLabel')}
                     size="lg"
-                    placeholder="https://..."
+                    placeholder={t('edit.avatarUrlPlaceholder')}
                     value={field.state.value}
                     onChangeText={field.handleChange}
                     onBlur={field.handleBlur}
@@ -125,7 +128,7 @@ export default function EditProfileScreen() {
               style={{ marginTop: 'auto' }}
             >
               <Button
-                label="Save"
+                label={tc('actions.save')}
                 layout="flex"
                 loading={isSubmitting}
                 disabled={isSubmitting || !canSubmit}

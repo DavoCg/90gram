@@ -1,1 +1,54 @@
-{}
+{
+  "loadError": "Impossible de charger ce profil.",
+  "settingsA11y": "Réglages",
+  "loadingTitle": "Profil",
+  "stats": {
+    "followers_one": "Abonné",
+    "followers_other": "Abonnés",
+    "following": "Abonnements",
+    "records_one": "Disque",
+    "records_other": "Disques"
+  },
+  "actions": {
+    "editProfile": "Modifier le profil"
+  },
+  "follow": {
+    "follow": "Suivre",
+    "following": "Abonné"
+  },
+  "collections": {
+    "title": "Collections",
+    "new": "Nouvelle",
+    "emptyOwn": "Créez un groupe pour y enregistrer des disques.",
+    "emptyOther": "Aucune collection pour le moment.",
+    "count_one": "{{count}} disque",
+    "count_other": "{{count}} disques"
+  },
+  "userList": {
+    "followersTitle": "Abonnés",
+    "followingTitle": "Abonnements",
+    "emptyFollowers": "Aucun abonné pour le moment.",
+    "emptyFollowing": "Aucun abonnement pour le moment."
+  },
+  "edit": {
+    "title": "Modifier le profil",
+    "displayNameLabel": "Nom affiché",
+    "displayNamePlaceholder": "Votre nom",
+    "bioLabel": "Bio",
+    "bioPlaceholder": "Dites aux autres ce que vous aimez",
+    "avatarUrlLabel": "URL de l'avatar",
+    "avatarUrlPlaceholder": "https://...",
+    "saveError": "Impossible d'enregistrer votre profil. Vérifiez l'URL de l'avatar et réessayez."
+  },
+  "collectionDetail": {
+    "removeA11y": "Retirer de la collection",
+    "deleteMenu": "Supprimer la collection",
+    "actionsA11y": "Actions de la collection",
+    "deleteTitle": "Supprimer la collection",
+    "deleteMessage": "Cette action est irréversible.",
+    "deleteConfirm": "Supprimer",
+    "by": "par @{{username}}",
+    "emptyOwn": "Aucun disque pour le moment. Ajoutez-en depuis une page de disque.",
+    "emptyOther": "Cette collection est vide."
+  }
+}

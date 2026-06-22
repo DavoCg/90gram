@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { use$ } from '@legendapp/state/react';
 import { ChevronRight, Play, Shuffle } from 'lucide-react-native';
@@ -23,11 +24,10 @@ import { formatPrice } from '../currency';
 // Leaves room at the bottom of the scroll for the floating mini-player.
 const LIST_BOTTOM_PADDING = 160;
 
-// "from €24.99" using the cheapest offer across shops (in the display currency), null when no
-// priced offer.
+// The cheapest offer across shops, formatted in the display currency (e.g. "€24.99"), null when no
+// priced offer. The surrounding "from ..." label is applied via i18n at the call site.
 function formatFromPrice(price: number | null, currency: string | null): string | null {
-  const formatted = formatPrice(price, currency);
-  return formatted === null ? null : `from ${formatted}`;
+  return formatPrice(price, currency);
 }
 
 // The shop's original (pre-conversion) price, shown under the converted one only when it actually
@@ -62,6 +62,8 @@ function formatMeta(vinyl: VinylDto): string {
 // pushes ON TOP of whichever tab the user is on rather than forcing a jump to Home.
 export default function VinylDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation('vinyl');
+  const { t: tCommon } = useTranslation('common');
   const { data: vinyl, isLoading, isError, refetch } = useVinyl(id ?? '');
   const router = useRouter();
   const colors = useThemeColors();
@@ -120,12 +122,12 @@ export default function VinylDetailScreen() {
         <View className="flex-1 bg-bg">
           <AppHeader />
           <View className="flex-1 items-center justify-center gap-3 px-6">
-            <Text align="center">Could not load this record.</Text>
+            <Text align="center">{t('detail.loadFailed')}</Text>
             <PressableScale
               onPress={() => void refetch()}
               className="rounded-full curve-continuous bg-accent px-5 py-2"
             >
-              <Text color="white">Retry</Text>
+              <Text color="white">{tCommon('actions.retry')}</Text>
             </PressableScale>
           </View>
         </View>
@@ -179,9 +181,9 @@ export default function VinylDetailScreen() {
           ) : null}
           {fromPrice ? (
             <Text size="sm" color="neutral-soft" align="center" className="mt-0.5">
-              {fromPrice}
+              {t('detail.from', { price: fromPrice })}
               {vinyl.shopCount > 0
-                ? ` · ${vinyl.shopCount === 1 ? '1 shop' : `${vinyl.shopCount} shops`}`
+                ? ` · ${t('detail.shop', { count: vinyl.shopCount })}`
                 : ''}
             </Text>
           ) : null}
@@ -197,7 +199,7 @@ export default function VinylDetailScreen() {
           >
             <Play color={colors.accent} size={18} fill={colors.accent} />
             <Text weight="semibold" color="accent">
-              Play
+              {t('detail.play')}
             </Text>
           </PressableScale>
           <PressableScale
@@ -208,7 +210,7 @@ export default function VinylDetailScreen() {
           >
             <Shuffle color={colors.accent} size={18} />
             <Text weight="semibold" color="accent">
-              Shuffle
+              {t('detail.shuffle')}
             </Text>
           </PressableScale>
         </View>
@@ -252,7 +254,7 @@ export default function VinylDetailScreen() {
                   </Text>
                   {!playable ? (
                     <Text size="xs" color="neutral-soft">
-                      No preview
+                      {t('detail.noPreview')}
                     </Text>
                   ) : null}
                 </Pressable>
@@ -266,7 +268,7 @@ export default function VinylDetailScreen() {
         {vinyl.offers.length > 0 ? (
           <View className="mt-6 px-2">
             <Text size="sm" color="neutral-soft" weight="semibold" className="px-4 pb-1">
-              Available at
+              {t('detail.availableAt')}
             </Text>
             {vinyl.offers.map((offer) => {
               const offerPrice = formatPrice(offer.price, offer.currency);

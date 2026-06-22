@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { Button } from './button';
 import { useFollowUser } from '../api/hooks';
 
@@ -13,6 +14,7 @@ interface FollowButtonProps {
 // so the label swaps the instant it is tapped. Filled accent when not yet following, subtle when
 // already following (the "tap to unfollow" affordance).
 export function FollowButton({ username, isFollowing, size = 'xs' }: FollowButtonProps) {
+  const { t } = useTranslation('profile');
   const { mutate, isPending } = useFollowUser();
 
   const onPress = useCallback(() => {
@@ -22,7 +24,7 @@ export function FollowButton({ username, isFollowing, size = 'xs' }: FollowButto
 
   return (
     <Button
-      label={isFollowing ? 'Following' : 'Follow'}
+      label={isFollowing ? t('follow.following') : t('follow.follow')}
       onPress={onPress}
       size={size}
       variant={isFollowing ? 'soft' : 'intense'}

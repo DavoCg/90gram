@@ -1,1 +1,12 @@
-{}
+{
+  "sections": {
+    "records": "Disques",
+    "tracks": "Titres"
+  },
+  "track": {
+    "noPreview": "Pas d'extrait"
+  },
+  "error": {
+    "loadFailed": "Impossible de charger vos favoris."
+  }
+}

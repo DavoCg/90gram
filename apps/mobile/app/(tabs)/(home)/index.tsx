@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { RefreshControl } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'expo-router';
 import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import { use$ } from '@legendapp/state/react';
@@ -21,6 +22,8 @@ const LIST_BOTTOM_PADDING = 140;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation('home');
+  const { t: tCommon } = useTranslation('common');
   const colors = useThemeColors();
   // Applied genre filter (slugs), shared with the filter route via filters$ (it cannot receive an
   // onApply callback as a route). The filter sheet writes it on "Show results"; the feed reads it
@@ -66,12 +69,12 @@ export default function HomeScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} />
+        <AppHeader title={tCommon('tabs.home')} showBack={false} />
         {filterBar}
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator />
           <Text color="neutral-soft" className="mt-3">
-            Loading records…
+            {t('loadingRecords')}
           </Text>
         </View>
       </View>
@@ -81,18 +84,18 @@ export default function HomeScreen() {
   if (isError) {
     return (
       <View className="flex-1 bg-bg">
-        <AppHeader title="Home" showBack={false} />
+        <AppHeader title={tCommon('tabs.home')} showBack={false} />
         {filterBar}
         <View className="flex-1 items-center justify-center gap-3 px-6">
-          <Text align="center">Could not reach the API.</Text>
+          <Text align="center">{tCommon('errors.network')}</Text>
           <Text size="sm" color="neutral-soft" align="center">
-            Is it running? Check EXPO_PUBLIC_API_BASE_URL.
+            {tCommon('errors.apiHint')}
           </Text>
           <Pressable
             onPress={() => void refetch()}
             className="rounded-2xl curve-continuous bg-accent px-5 py-2"
           >
-            <Text color="white">Retry</Text>
+            <Text color="white">{tCommon('actions.retry')}</Text>
           </Pressable>
         </View>
       </View>
@@ -101,7 +104,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-bg">
-      <AppHeader title="Home" showBack={false} />
+      <AppHeader title={tCommon('tabs.home')} showBack={false} />
       {filterBar}
       <LegendList
         data={data ?? []}
@@ -117,12 +120,12 @@ export default function HomeScreen() {
         ListEmptyComponent={
           hasFilters ? (
             <View className="flex-1 items-center justify-center gap-3 px-6 pt-24">
-              <Text align="center">No records match these filters.</Text>
+              <Text align="center">{t('emptyFiltered')}</Text>
               <Pressable
                 onPress={() => filters$.genres.set([])}
                 className="rounded-2xl curve-continuous bg-accent px-5 py-2"
               >
-                <Text color="white">Clear filters</Text>
+                <Text color="white">{t('clearFilters')}</Text>
               </Pressable>
             </View>
           ) : null
