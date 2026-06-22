@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Switch } from 'react-native';
+import { Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable, ScrollView, View } from '../src/theme/uniwind';
 import { Text } from '../src/components/text';
@@ -86,26 +86,26 @@ function AccountRow() {
 }
 
 // Sign out: clears the session (and the SecureStore token). The root auth gate then redirects to
-// the sign-in screen, so no manual navigation is needed here. Tapping the row does not sign out
-// immediately; it raises a confirmation toast whose action commits the sign-out, so an accidental
-// tap is harmless (swipe the toast away, or let it auto-dismiss, to cancel).
+// the sign-in screen, so no manual navigation is needed here. Tapping the row first raises the
+// native confirmation alert (same pattern as deleting a collection); only the destructive action
+// commits the sign-out, so an accidental tap is harmless.
 function SignOutRow() {
   const [busy, setBusy] = useState(false);
   return (
     <Pressable
       disabled={busy}
       onPress={() => {
-        toast.warning('Sign out?', {
-          description: 'You will need to sign in again to access your collection.',
-          duration: 6000,
-          action: {
-            label: 'Sign out',
-            onClick: () => {
+        Alert.alert('Sign out', 'You will need to sign in again to access your collection.', [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Sign out',
+            style: 'destructive',
+            onPress: () => {
               setBusy(true);
               void authClient.signOut().finally(() => setBusy(false));
             },
           },
-        });
+        ]);
       }}
       className="px-4 py-3.5"
     >
