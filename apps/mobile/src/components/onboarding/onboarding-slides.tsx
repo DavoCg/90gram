@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Disc3, Headphones, Heart, Radio, Sparkles } from 'lucide-react-native';
+import { Bookmark, Disc3, Headphones, Radio, Sparkles } from 'lucide-react-native';
 
 // One onboarding story. Backgrounds are designed gradients (no photo assets yet): a diagonal
 // `colors` gradient plus a large faint `Icon` watermark. Swap a slide to a photo later by giving
@@ -48,7 +48,7 @@ export const ONBOARDING_SLIDES: readonly OnboardingSlide[] = [
     key: 'wishlist',
     title: 'Save the ones you love.',
     subtitle: 'Build a wishlist and never miss a repress.',
-    Icon: Heart,
+    Icon: Bookmark,
     colors: ['#5a1130', '#180f12'],
   },
 ] as const;

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
-import { RefreshControl } from 'react-native';
+import { RefreshControl, useWindowDimensions } from 'react-native';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { Settings } from 'lucide-react-native';
 import type { CollectionDto } from '@getvinyls/api-client';
@@ -17,6 +18,9 @@ import { useScreenRefresh } from '../hooks/use-screen-refresh';
 import { useUser, useUserCollections, useMyCollections } from '../api/hooks';
 
 const LIST_BOTTOM_PADDING = 160;
+// Collections grid: two columns inset from the screen edges with a gap between them.
+const GRID_PADDING = 16;
+const GRID_GAP = 14;
 
 // A tappable stat block (Followers / Following / Records).
 function Stat({
@@ -66,6 +70,9 @@ export default function ProfileScreen({
 }) {
   const router = useRouter();
   const colors = useThemeColors();
+  const { width } = useWindowDimensions();
+  // Two columns: split the row width (minus side insets and the inter-column gap) in half.
+  const cardSize = (width - GRID_PADDING * 2 - GRID_GAP) / 2;
   const { data: profile, isLoading, isError, refetch } = useUser(username);
   // The own-profile rail reads the SAME cache as the add-to-collection sheet (useMyCollections,
   // keyed ['collections','mine']), so the two share collections and neither flashes a spinner; other
@@ -209,19 +216,29 @@ export default function ProfileScreen({
             {profile.isMe ? 'Create a group to save records into.' : 'No collections yet.'}
           </Text>
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
+          <View
+            className="flex-row flex-wrap"
+            style={{ paddingHorizontal: GRID_PADDING, gap: GRID_GAP }}
           >
             {myCollections.map((collection: CollectionDto) => (
-              <CollectionCard
+              // Each card animates as the list changes: fade in when a collection is created, fade
+              // out when deleted, and spring to its new grid slot as siblings reflow. layout is on
+              // the wrapper (not the card) so the press-scale bounce inside stays independent.
+              <Animated.View
                 key={collection.id}
-                collection={collection}
-                onPress={onOpenCollection}
-              />
+                entering={FadeIn.duration(220)}
+                exiting={FadeOut.duration(160)}
+                layout={LinearTransition.springify().damping(15).stiffness(280).mass(0.5)}
+                style={{ width: cardSize }}
+              >
+                <CollectionCard
+                  collection={collection}
+                  onPress={onOpenCollection}
+                  size={cardSize}
+                />
+              </Animated.View>
             ))}
-          </ScrollView>
+          </View>
         )}
       </ScrollView>
     </View>

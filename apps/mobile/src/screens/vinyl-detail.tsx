@@ -12,6 +12,7 @@ import { useVinyl } from '../api/hooks';
 import { AppHeader } from '../components/AppHeader';
 import { IconButton } from '../components/button';
 import { FavoriteButton } from '../components/favorite-button';
+import { TrackActionsMenu } from '../components/track-actions-menu';
 import { EqualizerBars } from '../components/equalizer-bars';
 import { audioEngine } from '../audio/engine';
 import { player$ } from '../audio/store';
@@ -265,11 +266,7 @@ export default function VinylDetailScreen() {
                     No preview
                   </Text>
                 ) : null}
-                <FavoriteButton
-                  targetType="track"
-                  track={toFavoriteTrack(track, vinyl)}
-                  size={18}
-                />
+                <TrackActionsMenu track={toFavoriteTrack(track, vinyl)} />
               </Pressable>
             );
           })}

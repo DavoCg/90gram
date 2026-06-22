@@ -771,8 +771,29 @@ export function prefetchMyCollections(queryClient: QueryClient): void {
   });
 }
 
-// A single collection's metadata + owner.
+// Scan the already-loaded collection lists (the own-profile rail's ['collections','mine'] and any
+// public profile's ['users', <username>, 'collections']) for one collection by id. The list and
+// detail endpoints return the same CollectionDto shape, so a list entry is a complete stand-in.
+function findCachedCollection(queryClient: QueryClient, id: string): CollectionDto | undefined {
+  const lists = queryClient.getQueriesData<CollectionDto[]>({
+    predicate: ({ queryKey: key }) =>
+      (key[0] === 'collections' && key[1] === 'mine') ||
+      (key[0] === 'users' && key[2] === 'collections'),
+  });
+  for (const [, collections] of lists) {
+    const found = collections?.find((collection) => collection.id === id);
+    if (found) {
+      return found;
+    }
+  }
+  return undefined;
+}
+
+// A single collection's metadata + owner. Seeds from whatever a collection list already loaded so the
+// detail screen paints instantly (no spinner) when opened from a profile rail, then refetches the
+// canonical copy in the background.
 export function useCollection(id: string): UseQueryResult<CollectionDto> {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: queryKeys.collections.detail(id),
     enabled: id.length > 0,
@@ -785,6 +806,7 @@ export function useCollection(id: string): UseQueryResult<CollectionDto> {
       }
       return data;
     },
+    placeholderData: () => findCachedCollection(queryClient, id),
   });
 }
 

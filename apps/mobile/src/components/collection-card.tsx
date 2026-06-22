@@ -75,7 +75,7 @@ export interface CollectionCardProps {
 }
 
 // A saved-group card: a square cover mosaic with the name and record count beneath. Used in the
-// horizontal collections rail on profiles.
+// collections grid on profiles.
 function CollectionCardBase({ collection, onPress, size = 150 }: CollectionCardProps) {
   const count =
     collection.vinylCount === 1 ? '1 record' : `${collection.vinylCount} records`;

@@ -1,7 +1,7 @@
 import type { BottomTabBarProps } from "expo-router/tabs";
 import {
+	Bookmark,
 	Flame,
-	Heart,
 	Home,
 	type LucideIcon,
 	Search,
@@ -32,7 +32,7 @@ import { LiquidGlassSurface } from "./LiquidGlassSurface";
 const ICONS: Record<string, LucideIcon> = {
 	"(home)": Home,
 	hot: Flame,
-	favorites: Heart,
+	favorites: Bookmark,
 	search: Search,
 	profile: User,
 };

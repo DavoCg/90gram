@@ -154,8 +154,6 @@ export default function CollectionDetailScreen() {
           isOwner ? (
             <IconButton
               onPress={onDelete}
-              variant="ghost"
-              size="xs"
               accessibilityLabel="Delete collection"
               icon={<Trash2 color={colors.text} size={20} />}
             />

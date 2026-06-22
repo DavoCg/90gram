@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import * as Haptics from 'expo-haptics';
-import { Heart } from 'lucide-react-native';
+import { Bookmark } from 'lucide-react-native';
 import type { VinylSummaryDto, FavoriteTrackDto } from '@getvinyls/api-client';
 import { IconButton } from './button';
 import { useIsFavorite, useToggleFavorite } from '../api/hooks';
@@ -8,17 +8,19 @@ import { useThemeColors } from '../theme/colors';
 
 // Discriminated props: a button favorites either a vinyl or a track. The full DTO is passed so the
 // toggle can optimistically insert it into the favorites list (see useToggleFavorite).
-type FavoriteButtonProps = (
+type FavoriteButtonProps =
   | { targetType: 'vinyl'; vinyl: VinylSummaryDto }
-  | { targetType: 'track'; track: FavoriteTrackDto }
-) & {
-  size?: number;
-};
+  | { targetType: 'track'; track: FavoriteTrackDto };
 
-// A heart toggle wired to the per-user favorites. Filled + accent when favorited, outline otherwise.
-// Optimistic: the heart flips the instant it is tapped (the cache rewrite drives useIsFavorite).
+// Every favorite bookmark renders at this one glyph size so the control looks identical wherever it
+// appears (header, track rows, ...). Intentionally not a prop: a per-caller size lets the buttons
+// drift out of sync.
+const ICON_SIZE = 22;
+
+// A bookmark toggle wired to the per-user favorites. Filled + accent when favorited, outline
+// otherwise. Optimistic: the icon flips the instant it is tapped (the cache rewrite drives
+// useIsFavorite).
 export function FavoriteButton(props: FavoriteButtonProps) {
-  const { size = 22 } = props;
   const colors = useThemeColors();
   const { toggle } = useToggleFavorite();
 
@@ -41,10 +43,10 @@ export function FavoriteButton(props: FavoriteButtonProps) {
       hitSlop={8}
       accessibilityLabel={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
       icon={
-        <Heart
+        <Bookmark
           color={isFavorite ? colors.accent : colors.text}
           fill={isFavorite ? colors.accent : 'transparent'}
-          size={size}
+          size={ICON_SIZE}
         />
       }
     />

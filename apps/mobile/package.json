@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@better-auth/expo": "^1.6.18",
+		"@expo/ui": "~56.0.18",
 		"@getvinyls/api-client": "workspace:*",
 		"@legendapp/list": "3.0.3",
 		"@legendapp/state": "3.0.0-beta.47",
