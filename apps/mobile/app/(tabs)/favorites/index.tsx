@@ -9,7 +9,7 @@ import { Text } from '../../../src/components/text';
 import { CoverArt } from '../../../src/components/cover-art';
 import { VinylRow, VINYL_ROW_ESTIMATED_HEIGHT } from '../../../src/components/VinylRow';
 import { ListFooterLoader } from '../../../src/components/list-footer-loader';
-import { FavoriteButton } from '../../../src/components/favorite-button';
+import { TrackActionsMenu } from '../../../src/components/track-actions-menu';
 import { EqualizerBars } from '../../../src/components/equalizer-bars';
 import { AppHeader } from '../../../src/components/AppHeader';
 import { useFavoriteTracks, useFavoriteVinyls } from '../../../src/api/hooks';
@@ -30,7 +30,7 @@ function SectionTitle({ children }: { children: string }) {
 }
 
 // A favorited track: cover + title + parent artist. Tapping the row plays just this track; the
-// cover doubles as a shortcut into the parent vinyl page. The trailing heart un-favorites in place.
+// cover doubles as a shortcut into the parent vinyl page. The trailing menu opens the track actions.
 function FavoriteTrackRow({
   track,
   isCurrent,
@@ -70,7 +70,7 @@ function FavoriteTrackRow({
           No preview
         </Text>
       ) : null}
-      <FavoriteButton targetType="track" track={track} />
+      <TrackActionsMenu track={track} />
     </Pressable>
   );
 }
