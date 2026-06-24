@@ -62,7 +62,14 @@ export default function AddToCollectionSheet() {
   return (
     <>
       <FormSheetHeader title={t('collection.saveTitle')} />
-      <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
+      {/* "always" (not the SheetScrollView default of "handled"): the inline create form autofocuses
+          its input, so the keyboard is up when "Create and add" is tapped. On this native form sheet
+          "handled" still lets the first tap dismiss the keyboard (collapsing the fitToContents sheet)
+          instead of pressing the button, so it took two taps. "always" delivers the press on tap one. */}
+      <SheetScrollView
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={{ paddingBottom: bottomPadding }}
+      >
         {(collections ?? []).map((collection) => {
           const selected = memberIds.has(collection.id);
           return (

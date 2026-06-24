@@ -45,7 +45,14 @@ export default function NewCollectionSheet() {
         title={t('collection.createTitle')}
         subtitle={t('collection.createSubtitle')}
       />
-      <SheetScrollView contentContainerStyle={{ paddingBottom: bottomPadding }}>
+      {/* "always" (not the SheetScrollView default of "handled"): the name input autofocuses, so the
+          keyboard is up when "Create" is tapped. On this native form sheet "handled" still lets the
+          first tap dismiss the keyboard (collapsing the fitToContents sheet) instead of pressing the
+          button, so it took two taps. "always" delivers the press on the first tap. */}
+      <SheetScrollView
+        keyboardShouldPersistTaps="always"
+        contentContainerStyle={{ paddingBottom: bottomPadding }}
+      >
         <form.Field
           name="name"
           validators={{
