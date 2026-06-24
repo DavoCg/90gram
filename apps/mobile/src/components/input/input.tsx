@@ -5,7 +5,7 @@ import {
 	useEffect,
 	useRef,
 } from "react";
-import { Platform, type TextInput as RNTextInput } from "react-native";
+import type { TextInput as RNTextInput } from "react-native";
 import { useNavigation } from "expo-router";
 import { useThemeColors } from "../../theme/colors";
 import { TextInput, View } from "../../theme/uniwind";
@@ -115,15 +115,7 @@ export function Input({
 					ref={setRef}
 					className={inputTextRecipe({ size, className: inputClassName })}
 					editable={!disabled}
-					style={[
-						{ color: colors.text },
-						// A font-size className (text-base / text-lg / text-2xl) also bakes in a Tailwind
-						// line-height. On a single-line iOS TextInput an explicit lineHeight top-aligns the
-						// glyph and breaks vertical centering, so unset it here. Android centers via the
-						// textAlignVertical below. (Same fix as perp-companion's Input.)
-						Platform.OS === "ios" ? { lineHeight: undefined } : null,
-						style,
-					]}
+					style={[{ color: colors.text }, style]}
 					placeholderTextColor={placeholderTextColor ?? colors.muted}
 					selectionColor={selectionColor ?? colors.accent}
 					textAlignVertical="center"

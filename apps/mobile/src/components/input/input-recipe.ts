@@ -26,13 +26,17 @@ export const inputContainerRecipe = tv({
   },
 });
 
+// Font size is set with arbitrary px (text-[Npx]) rather than the named text-sm/base/lg, matching
+// the Text recipe. The named scales bake in a Tailwind line-height; on a single-line iOS TextInput
+// an explicit line-height top-aligns the glyph and breaks vertical centering. With no line-height,
+// iOS centers the text natively and Android centers via textAlignVertical (set on the field).
 export const inputTextRecipe = tv({
   base: 'flex-1 bg-transparent font-polymath-medium',
   variants: {
     size: {
-      sm: 'text-sm',
-      md: 'text-base',
-      lg: 'text-lg',
+      sm: 'text-[14px]',
+      md: 'text-[16px]',
+      lg: 'text-[18px]',
     },
   },
   defaultVariants: {
