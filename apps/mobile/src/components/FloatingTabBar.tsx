@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import {
 	Bookmark,
@@ -141,6 +142,9 @@ export function FloatingTabBar({
 					const color = focused ? colors.accent : colors.muted;
 
 					const onPress = () => {
+						// Soft tactile feedback on every tab tap, matching the rest of the app's
+						// impactAsync affordances (favorite/follow buttons). Fire-and-forget.
+						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Soft);
 						// Emitting tabPress also drives the per-screen listeners (e.g. Search re-focuses
 						// its field when tapped while already active). See src/search/focus-signal.ts.
 						const event = navigation.emit({
